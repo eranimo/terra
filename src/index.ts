@@ -23,32 +23,16 @@ const seed = 'fuck';
 const rng = alea(seed);
 
 g = new DebugGroup('generate points');
-// const points = d3.range(100_000).map(() => {
-//   return [360 * rng(), 90 * (rng() - rng())]
-// });
 const size = 0.75;
 const p = new Poisson([360, 180], size, size, 30, rng);
 const points: any = p.fill().map((point: any) => [point[0], point[1] - 90]);
 console.log(`${points.length} points`);
 g.end();
 
-const alpha = 5;
-const degrees = 180 / Math.PI;
-const radians = 1 / degrees;
-let features;
-
 g = new DebugGroup('voronoi relaxation');
-for (let n = 0; n < 1; n++) {
-  console.log(`Iteration ${n}`);
-  let v = geoVoronoi(points);
-  const polygons: any = v.polygons();
-  features = polygons.features;
-  // features.forEach((poly: any, i: number) => {
-  //   const c = d3.geoCentroid(poly);
-  //   points[i][0] += alpha * degrees * Math.sin(radians * (c[0] - points[i][0]));
-  //   points[i][1] += alpha * (c[1] - points[i][1]);
-  // });
-}
+let v = geoVoronoi(points);
+const features = v.polygons().features;
+console.log('features', features);
 g.end();
 
 g = new DebugGroup('generate projection');
