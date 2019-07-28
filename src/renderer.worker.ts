@@ -2,16 +2,24 @@ import * as d3 from 'd3';
 import { geoVoronoi } from 'd3-geo-voronoi';
 import { alea } from 'seedrandom';
 import { DebugGroup } from './debug';
-import { FeatureCollection } from 'geojson';
+import { FeatureCollection, Feature, Geometry } from 'geojson';
+import { RenderWorkerEventType, RenderWorkerEventHandler, InitEventData, EventData, RotateEventData } from './types';
 const Poisson = require('poisson-disk-sampling');
 
 let g;
 const seed = 'fuck';
 const rng = alea(seed);
 
-function generate() {
+type WorldMap = {
+  features: Feature<Geometry, {
+      [name: string]: any;
+  }>[],
+  path: d3.GeoPath<any, d3.GeoPermissibleObjects>,
+  projection: d3.GeoProjection;
+}
+function generate(): WorldMap {
   g = new DebugGroup('generate points');
-  const size = 1.75;
+  const size = 5;
   const p = new Poisson([360, 180], size, size, 30, rng);
   const points: any = p.fill().map((point: any) => [point[0], point[1] - 90]);
   console.log(`${points.length} points`);
@@ -25,31 +33,59 @@ function generate() {
 
   g = new DebugGroup('generate projection');
   const projection = d3.geoOrthographic();
+  // projection.translate([480 + 10, 250 + 100]);
+  // projection.scale(100)
+  // projection.rotate([-50, 10, 10])
   const path = d3.geoPath().projection(projection)
   g.end();
 
-  return { features, path };
+  return { features, path, projection };
 }
 
+let canvas: OffscreenCanvas;
+let worldMap: WorldMap;
 
-self.onmessage = (event: MessageEvent) => {
-  const { type, data } = event.data;
-  console.log('Worker event', type, data);
+const eventHandlers = {
+  init({ offscreen }: InitEventData) {
+    canvas = offscreen;
+  },
 
-  if (type === 'init') {
-    const canvas = data.offscreen as OffscreenCanvas;
+  generate() {
+    g = new DebugGroup('generate');
+    worldMap = generate();
+  },
+
+  render() {
     const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
-    const { features, path } = generate();
-    g = new DebugGroup('render');
-    features.forEach((feature, index) => {
-      const d = path(feature);
+    worldMap.features.forEach((feature, index) => {
+      const d = worldMap.path(feature);
       const p = new Path2D(d);
       const color = d3.schemeCategory10[index % 10];
+      // const color = index < (worldMap.features.length / 2) ? 'red' : 'white';
       // ctx.strokeStyle = 'black';
       ctx.fillStyle = color;
       ctx.fill(p);
       // ctx.stroke(p);
     });
-    g.end();
+  },
+
+  rotate(data: RotateEventData) {
+    const [x, y, z] = data.angles;
+    const [cx, cy, cz] = worldMap.projection.rotate();
+    worldMap.projection.rotate([cx + x, cy + y, cz + z]);
   }
+}
+
+
+self.onmessage = (event: MessageEvent) => {
+  const { type, data } = event.data as EventData;
+  console.log('Worker event', type, data);
+
+  if (!(type in eventHandlers)) {
+    throw new Error(`Unknown event "${type}"`);
+  }
+
+  g = new DebugGroup(type);
+  eventHandlers[type](data);
+  g.end();
 }

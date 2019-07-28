@@ -1,6 +1,7 @@
 {
   "files.exclude": {
     "node_modules/": "explorerExcludedFiles",
-    "dist/": "explorerExcludedFiles"
+    "dist/": "explorerExcludedFiles",
+    "report*": "explorerExcludedFiles"
   }
 }
