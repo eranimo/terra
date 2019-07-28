@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
+    "baseUrl": "./",
     "outDir": "./dist/",
-    "noImplicitAny": true,
-    "module": "es6",
+    "noImplicitAny": false,
+    "module": "esnext",
     "target": "es5",
     "jsx": "react",
     "allowJs": true,
@@ -10,6 +11,9 @@
     "typeRoots": [
       "./node_modules/@types",
       "./typings/custom.d.ts",
-    ]
+    ],
+    "paths": {
+      "three": ["node_modules/three/src/Three"]
+    }   
   }
 }
