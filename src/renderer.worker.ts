@@ -80,9 +80,9 @@ function initScene(canvas: HTMLCanvasElement) {
 
 function animate() {
   requestAnimationFrame( animate )
-  planet.rotation.z += 0.003
-  planet.rotation.x += 0.001
-  planet.rotation.y += 0.001
+  // planet.rotation.z += 0.003
+  // planet.rotation.x += 0.001
+  // planet.rotation.y += 0.001
   renderer.render( scene, camera )
 }
 
@@ -102,9 +102,9 @@ const eventHandlers = {
 
   rotate(data: RotateEventData) {
     const [x, y, z] = data.angles;
-    mapGroup.rotation.x += x;
-    mapGroup.rotation.y += y;
-    mapGroup.rotation.z += z;
+    planet.rotation.x += x;
+    planet.rotation.y += y;
+    planet.rotation.z += z;
   }
 }
 
