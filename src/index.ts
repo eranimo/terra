@@ -28,19 +28,15 @@ const rotateRight = (angle: number) => [angle, 0, 0];
 const ROTATE_BY = 25;
 document.getElementById('rotate-left').addEventListener('click', () => {
   renderer.postMessage({ type: 'rotate', data: { angles: rotateLeft(ROTATE_BY) }});
-  renderer.postMessage({ type: 'render'});
 });
 document.getElementById('rotate-right').addEventListener('click', () => {
   renderer.postMessage({ type: 'rotate', data: { angles: rotateRight(ROTATE_BY) }});
-  renderer.postMessage({ type: 'render'});
 });
 document.getElementById('rotate-up').addEventListener('click', () => {
   renderer.postMessage({ type: 'rotate', data: { angles: rotateUp(ROTATE_BY) }});
-  renderer.postMessage({ type: 'render'});
 });
 document.getElementById('rotate-down').addEventListener('click', () => {
   renderer.postMessage({ type: 'rotate', data: { angles: rotateDown(ROTATE_BY) }});
-  renderer.postMessage({ type: 'render'});
 });
 
 
