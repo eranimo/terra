@@ -1,17 +1,10 @@
 import { geoVoronoi } from 'd3-geo-voronoi';
 import { alea } from 'seedrandom';
 import { DebugGroup } from './debug';
-import { FeatureCollection, Polygon, Feature, Geometry, Point } from 'geojson';
-import { RenderWorkerEventType, RenderWorkerEventHandler, InitEventData, EventData, RotateEventData } from './types';
+import { InitEventData, EventData, RotateEventData } from './types';
 const Poisson = require('poisson-disk-sampling');
 import * as THREE from 'three';
-import drawThreeGeo from './threeGeoJSON';
-import { isEqual, random } from 'lodash';
-import { stitch } from './stitch';
 import * as d3 from 'd3';
-
-// typescript can go fuck itself
-const bboxClip = require('@turf/bbox-clip').default;
 
 
 interface VoronoiProps {
