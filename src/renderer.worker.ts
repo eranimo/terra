@@ -6,8 +6,9 @@ import { RenderWorkerEventType, RenderWorkerEventHandler, InitEventData, EventDa
 const Poisson = require('poisson-disk-sampling');
 import * as THREE from 'three';
 import drawThreeGeo from './threeGeoJSON';
-import { isEqual } from 'lodash';
+import { isEqual, random } from 'lodash';
 import { stitch } from './stitch';
+import * as d3 from 'd3';
 
 // typescript can go fuck itself
 const bboxClip = require('@turf/bbox-clip').default;
@@ -24,9 +25,69 @@ let g;
 const seed = 'fuck';
 const rng = alea(seed);
 
+let canvas: OffscreenCanvas;
+let camera: THREE.PerspectiveCamera;
+let scene: THREE.Scene;
+let renderer: THREE.WebGLRenderer;
+let planet: THREE.Group;
+const WIDTH = 960;
+const HEIGHT = 500;
+let material: THREE.MeshBasicMaterial;
+let canvasTexture: OffscreenCanvas;
+let sphere: THREE.Mesh;
+
+function initScene(canvas: HTMLCanvasElement) {
+  console.log('canvas', canvas);
+  scene = new THREE.Scene()
+  camera = new THREE.PerspectiveCamera( 60, WIDTH / HEIGHT, 0.5)
+  camera.position.z = 2
+  renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+  renderer.setSize(WIDTH, HEIGHT, false);
+
+  //
+  scene.add( new THREE.AmbientLight( 0xffffff, 5 ) );
+	
+	var light = new THREE.PointLight( 0xffffff, 1 );
+	camera.add(light);
+  //
+  
+  const geometry = new THREE.SphereGeometry(10, 32, 32);
+  material = new THREE.MeshLambertMaterial({
+    color: 0x333333,
+    wireframe: false,
+    transparent: false,
+  });
+  sphere = new THREE.Mesh(geometry, material);
+  scene.add(sphere);
+  camera.position.z = 20;
+}
+
+function drawPolygonsOnCanvas(polygons): OffscreenCanvas {
+  const ctx = canvasTexture.getContext('2d') as OffscreenCanvasRenderingContext2D;
+  const projection = d3.geoEquirectangular()
+    .fitSize([canvasTexture.width, canvasTexture.height], polygons);
+  const path = d3.geoPath().projection(projection);
+  polygons.features.forEach((feature, index) => {
+    const d = path(feature.geometry);
+    const p = new Path2D(d);
+    const color = d3.schemeCategory10[index % 10];
+    ctx.fillStyle = color;
+    ctx.fill(p);  
+  });
+  return canvasTexture;
+}
+
+function textureFromCanvas(canvas: OffscreenCanvas): THREE.CanvasTexture {
+  const texture = new THREE.CanvasTexture(canvas as any);
+  console.log('canvas', canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+
 function generate() {
   let gg = new DebugGroup('generate points');
-  const size = 50;
+  const size = 5;
   const p = new Poisson([360, 180], size, size, 300, rng);
   const points: [number, number][] = p.fill().map((point: any) => [point[0], point[1] - 90]);
   console.log(`${points.length} points`);
@@ -38,62 +99,23 @@ function generate() {
   console.log('polygons', polygons);
   gg.end();
 
-  gg = new DebugGroup('draw');
-  for (const feature of polygons.features) {
-    drawThreeGeo(
-      feature,
-      10,
-      'sphere',
-      {
-        color: 0x80FF80,
-        linewidth: 2
-      },
-      planet
-    );
-  }
+  gg = new DebugGroup('draw');  
+  const texture = textureFromCanvas(drawPolygonsOnCanvas(polygons));
+  material.map = texture;
+  material.needsUpdate = true;
   gg.end()
 }
 
-let canvas: OffscreenCanvas;
-let camera: THREE.PerspectiveCamera;
-let scene: THREE.Scene;
-let renderer: THREE.WebGLRenderer;
-let planet: THREE.Group;
-const WIDTH = 960;
-const HEIGHT = 500;
-
-function initScene(canvas: HTMLCanvasElement) {
-  console.log('canvas', canvas);
-  scene = new THREE.Scene()
-  camera = new THREE.PerspectiveCamera( 60, WIDTH / HEIGHT, 0.5)
-  camera.position.z = 2
-  renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
-  renderer.setSize(WIDTH, HEIGHT, false);
-  
-  planet = new THREE.Group();
-  const geometry = new THREE.SphereGeometry(10, 32, 32);
-  const material = new THREE.MeshBasicMaterial({
-    color: 0x333333,
-    wireframe: false,
-    transparent: false
-  });
-  const sphere = new THREE.Mesh(geometry, material);
-  planet.add(sphere);
-  scene.add(planet);
-  camera.position.z = 20;
-}
-
+let frameID: number;
 function animate() {
-  requestAnimationFrame( animate )
-  // planet.rotation.z += 0.003
-  // planet.rotation.x += 0.001
-  // planet.rotation.y += 0.001
+  frameID = requestAnimationFrame( animate )
   renderer.render( scene, camera )
 }
 
 const eventHandlers = {
-  init({ offscreen }: InitEventData) {
+  init({ offscreen, texture }: InitEventData) {
     canvas = offscreen;
+    canvasTexture = texture;
   },
 
   generate() {
@@ -102,14 +124,17 @@ const eventHandlers = {
   },
 
   render() {
+    if (frameID) {
+      cancelAnimationFrame(frameID);
+    }
     animate();
   },
 
   rotate(data: RotateEventData) {
     const [x, y, z] = data.angles;
-    planet.rotation.x += x;
-    planet.rotation.y += y;
-    planet.rotation.z += z;
+    sphere.rotation.x += x;
+    sphere.rotation.y += y;
+    sphere.rotation.z += z;
   }
 }
 

@@ -6,7 +6,11 @@ import Renderer = require('worker-loader!./renderer.worker');
 const canvas = (document.getElementById('root') as HTMLCanvasElement)
 const offscreen = canvas.transferControlToOffscreen();
 const renderer = new Renderer();
-renderer.postMessage({ type: 'init', data: { offscreen } }, [offscreen as any]);
+const c = (document.getElementById('texture') as HTMLCanvasElement) // document.createElement('canvas');
+c.width = 360 * 24;
+c.height = 180 * 24;
+const texture = c.transferControlToOffscreen();
+renderer.postMessage({ type: 'init', data: { offscreen, texture } }, [offscreen as any, texture as any]);
 renderer.postMessage({ type: 'generate'});
 renderer.postMessage({ type: 'render'});
 renderer.onmessage = (event) => {

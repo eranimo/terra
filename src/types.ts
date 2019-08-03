@@ -8,6 +8,7 @@ export type RenderWorkerEventHandler<T extends any> = (data: T) => void;
 
 export type InitEventData = {
   offscreen: OffscreenCanvas;
+  texture: OffscreenCanvas;
 }
 export type RotateEventData = {
   angles: [

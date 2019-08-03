@@ -29,4 +29,8 @@ module.exports = {
       template: './src/index.html'
     })
   ],
+  devServer: {
+    writeToDisk: true,
+    compress: true
+  }
 };
