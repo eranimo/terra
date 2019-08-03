@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { FeatureCollection } from 'geojson';
-import { Shape, MaterialParameters, Object3D } from 'three';
+import { Shape, MaterialParameters, Object3D, Group } from 'three';
 
 export default function drawThreeGeo(
-  json: FeatureCollection,
+  json: any,
   radius: number,
   shape: string,
   materalOptions: any,
-  container: Object3D
+  container: Group
 ) {
   let x_values = [];
   let y_values = [];
@@ -147,7 +147,7 @@ export default function drawThreeGeo(
     let lon_distance = Math.abs(lon1 - lon2);
     let lat_distance = Math.abs(lat1 - lat2);
 
-    if (lon_distance > 10 || lat_distance > 10) {
+    if (lon_distance > 1 || lat_distance > 1) {
       return true;
     } else {
       return false;
@@ -183,9 +183,9 @@ export default function drawThreeGeo(
   }
 
   function getMidpoint(point1, point2) {
-    let midpoint_lon = (point1[0] + point2[0]) / 2;
-    let midpoint_lat = (point1[1] + point2[1]) / 2;
-    let midpoint = [midpoint_lon, midpoint_lat];
+    let midpoint_lon = ((point1[0] + 360) + (point2[0] + 360)) / 2;
+    let midpoint_lat = ((point1[1] + 360) + (point2[1] + 360)) / 2;
+    let midpoint = [midpoint_lon - 360, midpoint_lat - 360];
 
     return midpoint;
   }

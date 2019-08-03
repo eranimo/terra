@@ -1,5 +1,5 @@
 import './style.css';
-import Renderer from 'worker-loader!./renderer.worker';
+import Renderer = require('worker-loader!./renderer.worker');
 
 
 

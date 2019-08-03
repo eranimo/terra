@@ -3,17 +3,20 @@
     "baseUrl": "./",
     "outDir": "./dist/",
     "noImplicitAny": false,
-    "module": "esnext",
+    "module": "commonjs",
     "target": "es5",
     "jsx": "react",
     "allowJs": true,
-    "allowSyntheticDefaultImports": true,
+    "allowSyntheticDefaultImports": false,
     "typeRoots": [
       "./node_modules/@types",
+      "./node_modules/@turf/turf/index.d.ts",
       "./typings/custom.d.ts",
     ],
+    "esModuleInterop": true,
     "paths": {
-      "three": ["node_modules/three/src/Three"]
+      "three": ["node_modules/three/src/Three"],
+      "turf": ["node_modules/@turf/turf"]
     }   
   }
 }
