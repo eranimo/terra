@@ -1,6 +1,7 @@
 import './style.css';
 import Renderer = require('worker-loader!./renderer.worker');
 import * as THREE from 'three';
+import { WorkerTextureRef } from './types';
 
 
 const TEXTURES = {
@@ -20,25 +21,65 @@ c.height = 180 * 24;
 const texture = c.transferControlToOffscreen();
 
 // load textures
-const loader = new THREE.TextureLoader();
+const fileReader = new FileReader();
 
-renderer.postMessage({
-  type: 'init',
-  data: {
-    canvases: {
-      offscreen,
-      texture
-    },
-  }
-}, [offscreen as any, texture as any]);
+Promise.all(Object.entries(TEXTURES).map(([name, url]) => (
+  new Promise((resolve, reject) => {
+    fetch(url)
+      .then(response => {
+        if (response.ok) {
+          return response;
+        }
+        reject();
+      })
+      .then(response => response.blob())
+      .then((blob) => {
+        const image = new Image();
+        image.src = URL.createObjectURL(blob);
+        image.onload = () => {
+          new Response(blob).arrayBuffer()
+            .then(data => (
+              resolve({
+                name,
+                data,
+                size: {
+                  width: image.width,
+                  height: image.height,
+                }
+              })
+            ))
+            .catch(error => reject(error))
+        };
+      })
+  }))))
+  .then((textures: WorkerTextureRef[]) => {
+    console.log(textures);
+    const transferList: any[] = [offscreen, texture];
+    for (const item of textures) {
+      transferList.push(item.data);
+    }
+    renderer.postMessage({
+      type: 'init',
+      data: {
+        canvases: {
+          offscreen,
+          texture
+        },
+        textures,
+      }
+    }, transferList as any);
 
-renderer.postMessage({ type: 'generate'});
-renderer.postMessage({ type: 'render'});
+    renderer.postMessage({ type: 'generate'});
+    renderer.postMessage({ type: 'render'});
+  })
+  .catch((error) => {
+    console.error(error);
+    throw new Error('Failed to load textures');
+  });
 
 renderer.onmessage = (event) => {
   console.log(event);
 };
-
 // setup events
 document.getElementById('generate').addEventListener('click', () => {
   renderer.postMessage({ type: 'generate'});

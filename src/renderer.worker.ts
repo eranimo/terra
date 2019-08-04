@@ -21,6 +21,7 @@ const HEIGHT = 500;
 let material: THREE.MeshBasicMaterial;
 let canvasTexture: OffscreenCanvas;
 let sphere: THREE.Mesh;
+let textureMap: Record<string, THREE.Texture> = {};
 
 function initScene(canvas: HTMLCanvasElement) {
   console.log('canvas', canvas);
@@ -36,14 +37,11 @@ function initScene(canvas: HTMLCanvasElement) {
 	var light = new THREE.PointLight( 0xffffff, 1 );
 	camera.add(light);
   //
-  
   const geometry = new THREE.SphereGeometry(10, 32, 32);
   material = new THREE.MeshLambertMaterial({
     color: 0x333333,
     wireframe: false,
     transparent: false,
-    // map: THREE.ImageUtils.loadTexture('images/stars.png'), 
-    // side: THREE.BackSide,
   });
   sphere = new THREE.Mesh(geometry, material);
   scene.add(sphere);
@@ -101,11 +99,16 @@ function animate() {
 
 
 let lastMove = [WIDTH / 2, HEIGHT / 2];
-
 const eventHandlers = {
-  init({ canvases: { offscreen, texture } }: InitEventData) {
+  init({ canvases: { offscreen, texture }, textures }: InitEventData) {
     canvas = offscreen;
     canvasTexture = texture;
+    
+    for (const item of textures) {
+      const texture = new THREE.DataTexture(new Uint8Array(item.data), item.size.width, item.size.height);
+      textureMap[item.name] = texture;
+    }
+    console.log('textureMap', textureMap);
   },
 
   generate() {
