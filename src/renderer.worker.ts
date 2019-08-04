@@ -4,17 +4,10 @@ import { DebugGroup } from './debug';
 import { InitEventData, EventData, RotateEventData } from './types';
 import * as THREE from 'three';
 import * as d3 from 'd3';
-import { poisson } from './poisson';
+import { getGeoPointsSpiral } from './utils';
 
 
-interface VoronoiProps {
-  neighbors: number[],
-  site: [number, number],
-  sitecoordinates: [number, number],
-}
-
-
-let g;
+let g: DebugGroup;
 const seed = 'fuck';
 const rng = alea(seed);
 
@@ -63,7 +56,8 @@ function drawPolygonsOnCanvas(polygons): OffscreenCanvas {
   polygons.features.forEach((feature, index) => {
     const d = path(feature.geometry);
     const p = new Path2D(d);
-    const color = d3.schemeCategory10[index % 10];
+    // const color = d3.schemeCategory10[index % 10];
+    const color = `rgb(${rng() * 255}, ${rng() * 255}, ${rng() * 255})`;
     ctx.fillStyle = color;
     ctx.fill(p);  
   });
@@ -79,11 +73,7 @@ function textureFromCanvas(canvas: OffscreenCanvas): THREE.CanvasTexture {
 
 function generate() {
   let gg = new DebugGroup('generate points');
-  const nextPoisson = poisson(5, rng);
-  let points = [];
-  for (let i = 0; i < 5_000; i++) {
-    points = nextPoisson();
-  }
+  const points = getGeoPointsSpiral(1_000, rng);
   console.log('points', points);
   console.log(`${points.length} points`);
   gg.end();
