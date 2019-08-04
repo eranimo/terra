@@ -3,6 +3,10 @@ body {
   color: #DDD;
 }
 
+#root {
+  background-image: url('./images/stars.png');
+}
+
 #texture {
   width: calc(360px * 1);
   height: calc(180px * 1);

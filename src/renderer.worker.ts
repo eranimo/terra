@@ -26,10 +26,12 @@ let textureMap: Record<string, THREE.Texture> = {};
 function initScene(canvas: HTMLCanvasElement) {
   console.log('canvas', canvas);
   scene = new THREE.Scene()
+
   camera = new THREE.PerspectiveCamera( 60, WIDTH / HEIGHT, 0.5)
   camera.position.z = 2
-  renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas });
   renderer.setSize(WIDTH, HEIGHT, false);
+  renderer.setClearColor( 0x000000, 0 );
 
   //
   scene.add( new THREE.AmbientLight( 0xffffff, 5 ) );
@@ -107,6 +109,7 @@ const eventHandlers = {
     for (const item of textures) {
       const texture = new THREE.DataTexture(new Uint8Array(item.data), item.size.width, item.size.height);
       textureMap[item.name] = texture;
+      texture.needsUpdate = true;
     }
     console.log('textureMap', textureMap);
   },
