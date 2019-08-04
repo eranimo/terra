@@ -2,9 +2,9 @@ import { geoVoronoi } from 'd3-geo-voronoi';
 import { alea } from 'seedrandom';
 import { DebugGroup } from './debug';
 import { InitEventData, EventData, RotateEventData } from './types';
-const Poisson = require('poisson-disk-sampling');
 import * as THREE from 'three';
 import * as d3 from 'd3';
+import { poisson } from './poisson';
 
 
 interface VoronoiProps {
@@ -77,12 +77,14 @@ function textureFromCanvas(canvas: OffscreenCanvas): THREE.CanvasTexture {
   return texture;
 }
 
-
 function generate() {
   let gg = new DebugGroup('generate points');
-  const size = 5;
-  const p = new Poisson([360, 180], size, size, 300, rng);
-  const points: [number, number][] = p.fill().map((point: any) => [point[0], point[1] - 90]);
+  const nextPoisson = poisson(5, rng);
+  let points = [];
+  for (let i = 0; i < 5_000; i++) {
+    points = nextPoisson();
+  }
+  console.log('points', points);
   console.log(`${points.length} points`);
   gg.end();
 
