@@ -1,22 +1,45 @@
 import './style.css';
 import Renderer = require('worker-loader!./renderer.worker');
+import * as THREE from 'three';
 
 
+const TEXTURES = {
+  stars: require('./images/stars.png'),
+  earth: require('./images/earth.jpg'),
+}
 
+// initialize worker
+const renderer = new Renderer();
+
+// configure canvases
 const canvas = (document.getElementById('root') as HTMLCanvasElement)
 const offscreen = canvas.transferControlToOffscreen();
-const renderer = new Renderer();
 const c = (document.getElementById('texture') as HTMLCanvasElement) // document.createElement('canvas');
 c.width = 360 * 24;
 c.height = 180 * 24;
 const texture = c.transferControlToOffscreen();
-renderer.postMessage({ type: 'init', data: { offscreen, texture } }, [offscreen as any, texture as any]);
+
+// load textures
+const loader = new THREE.TextureLoader();
+
+renderer.postMessage({
+  type: 'init',
+  data: {
+    canvases: {
+      offscreen,
+      texture
+    },
+  }
+}, [offscreen as any, texture as any]);
+
 renderer.postMessage({ type: 'generate'});
 renderer.postMessage({ type: 'render'});
+
 renderer.onmessage = (event) => {
   console.log(event);
-}
+};
 
+// setup events
 document.getElementById('generate').addEventListener('click', () => {
   renderer.postMessage({ type: 'generate'});
   renderer.postMessage({ type: 'render'});
@@ -24,24 +47,32 @@ document.getElementById('generate').addEventListener('click', () => {
 document.getElementById('render').addEventListener('click', () => {
   renderer.postMessage({ type: 'render'});
 });
+let isPanning = false;
+canvas.addEventListener('mousedown', (event) => {
+  isPanning = true;
 
-const rotateUp = (angle: number) => [0, angle, 0];
-const rotateDown = (angle: number) => [0, -angle, 0];
-const rotateLeft = (angle: number) => [-angle, 0, 0];
-const rotateRight = (angle: number) => [angle, 0, 0];
-const ROTATE_BY = 25;
-document.getElementById('rotate-left').addEventListener('click', () => {
-  renderer.postMessage({ type: 'rotate', data: { angles: rotateLeft(ROTATE_BY) }});
+  renderer.postMessage({
+    type: 'rotate',
+    data: {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      shouldReset: true,
+    }
+  });
 });
-document.getElementById('rotate-right').addEventListener('click', () => {
-  renderer.postMessage({ type: 'rotate', data: { angles: rotateRight(ROTATE_BY) }});
-});
-document.getElementById('rotate-up').addEventListener('click', () => {
-  renderer.postMessage({ type: 'rotate', data: { angles: rotateUp(ROTATE_BY) }});
-});
-document.getElementById('rotate-down').addEventListener('click', () => {
-  renderer.postMessage({ type: 'rotate', data: { angles: rotateDown(ROTATE_BY) }});
-});
+canvas.addEventListener('mouseup', () => isPanning = false);
+canvas.addEventListener('mousemove', event => {
+  if (isPanning) {
+    renderer.postMessage({
+      type: 'rotate',
+      data: {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        shouldReset: false,
+      }
+    });
+  }
+})
 
 
 

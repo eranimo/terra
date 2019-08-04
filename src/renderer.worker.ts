@@ -42,6 +42,8 @@ function initScene(canvas: HTMLCanvasElement) {
     color: 0x333333,
     wireframe: false,
     transparent: false,
+    // map: THREE.ImageUtils.loadTexture('images/stars.png'), 
+    // side: THREE.BackSide,
   });
   sphere = new THREE.Mesh(geometry, material);
   scene.add(sphere);
@@ -97,8 +99,11 @@ function animate() {
   renderer.render( scene, camera )
 }
 
+
+let lastMove = [WIDTH / 2, HEIGHT / 2];
+
 const eventHandlers = {
-  init({ offscreen, texture }: InitEventData) {
+  init({ canvases: { offscreen, texture } }: InitEventData) {
     canvas = offscreen;
     canvasTexture = texture;
   },
@@ -116,10 +121,23 @@ const eventHandlers = {
   },
 
   rotate(data: RotateEventData) {
-    const [x, y, z] = data.angles;
-    sphere.rotation.x += x;
-    sphere.rotation.y += y;
-    sphere.rotation.z += z;
+    const { clientX, clientY, shouldReset } = data;
+    if (shouldReset) {
+      lastMove[0] = clientX;
+      lastMove[1] = clientY;
+    }
+
+
+    //calculate difference between current and last mouse position
+    const moveX = (clientX - lastMove[0]);
+    const moveY = (clientY - lastMove[1]);
+    //rotate the globe based on distance of mouse moves (x and y) 
+    sphere.rotation.y += ( moveX * .005);
+    sphere.rotation.x += ( moveY * .005);
+
+    //store new position in lastMove
+    lastMove[0] = clientX;
+    lastMove[1] = clientY;
   }
 }
 
