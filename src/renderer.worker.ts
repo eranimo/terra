@@ -92,7 +92,7 @@ function textureFromCanvas(canvas: OffscreenCanvas): THREE.CanvasTexture {
 
 function generate() {
   let gg = new DebugGroup('generate points');
-  const points = getGeoPointsSpiral(5_000, rng);
+  const points = getGeoPointsSpiral(50_000, rng);
   console.log('points', points);
   console.log(`${points.length} points`);
   gg.end();
