@@ -1,21 +1,20 @@
 import { geoVoronoi } from 'd3-geo-voronoi';
 import { alea } from 'seedrandom';
 import { DebugGroup } from './debug';
-import { InitEventData, EventData, RotateEventData } from './types';
+import { InitEventData, EventData, RotateEventData, ZoomEventData } from './types';
 import * as THREE from 'three';
 import * as d3 from 'd3';
 import { getGeoPointsSpiral } from './utils';
+import { clamp } from 'lodash';
 
 
 let g: DebugGroup;
-const seed = 'fuck';
-const rng = alea(seed);
+let rng: () => number;
 
 let canvas: OffscreenCanvas;
 let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
 let renderer: THREE.WebGLRenderer;
-let planet: THREE.Group;
 let screenSize: { width: number, height: number };
 let material: THREE.MeshBasicMaterial;
 let canvasTexture: OffscreenCanvas;
@@ -26,18 +25,21 @@ function initScene(canvas: HTMLCanvasElement) {
   const { width, height } = screenSize;
   scene = new THREE.Scene()
 
+  // camera
   camera = new THREE.PerspectiveCamera( 60, width / height, 0.5)
   camera.position.z = 2
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas });
+
+  // renderer
   renderer.setSize(width, height, false);
   renderer.setClearColor( 0x000000, 0 );
 
-  //
+  // light
   scene.add( new THREE.AmbientLight( 0xffffff, 5 ) );
-	
-	var light = new THREE.PointLight( 0xffffff, 1 );
-	camera.add(light);
-  //
+	const light = new THREE.PointLight( 0xffffff, 1 );
+  camera.add(light);
+  
+  // sphere
   const geometry = new THREE.SphereGeometry(10, 32, 32);
   material = new THREE.MeshLambertMaterial({
     color: 0x333333,
@@ -99,7 +101,7 @@ function animate() {
 }
 
 
-let lastMove;
+let lastMove: [number, number];
 const eventHandlers = {
   init({ canvases: { offscreen, texture }, textures, size }: InitEventData) {
     canvas = offscreen;
@@ -116,6 +118,7 @@ const eventHandlers = {
   },
 
   generate() {
+    rng = alea(Math.random().toString());
     initScene(canvas as any);
     generate();
   },
@@ -137,7 +140,6 @@ const eventHandlers = {
       lastMove[1] = clientY;
     }
 
-
     //calculate difference between current and last mouse position
     const moveX = (clientX - lastMove[0]);
     const moveY = (clientY - lastMove[1]);
@@ -148,6 +150,12 @@ const eventHandlers = {
     //store new position in lastMove
     lastMove[0] = clientX;
     lastMove[1] = clientY;
+  },
+
+  zoom(data: ZoomEventData) {
+    camera.zoom += data.zoomDiff;
+    camera.zoom = clamp(camera.zoom, 0.1, 5);
+    camera.updateProjectionMatrix();
   }
 }
 

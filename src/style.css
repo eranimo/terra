@@ -37,10 +37,12 @@ body {
 
 button {
   border: 1px solid #C0C0C0;
-  padding: 0.5rem;
+  padding: 0.25rem 0.5rem;
   background-color: transparent;
   color: #C0C0C0;
   cursor: pointer;
+  border-radius: 2px;
+  transition: background-color .1s ease-in-out;
 }
 button:hover {
   background-color: #C0C0C0;

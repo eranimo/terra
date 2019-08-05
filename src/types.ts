@@ -34,3 +34,7 @@ export type RotateEventData = {
   clientY: number;
   shouldReset: boolean;
 };
+
+export type ZoomEventData = {
+  zoomDiff: number;
+}
