@@ -5,10 +5,44 @@ body {
 
 #root {
   background-image: url('./images/stars.png');
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 #texture {
   width: calc(360px * 1);
   height: calc(180px * 1);
   border: 1px solid white;
+
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+#controls {
+  background-color: rgba(10, 10, 10, 0.8);
+  z-index: 100;
+
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  width: auto;
+  padding: 1rem;
+}
+
+button {
+  border: 1px solid #C0C0C0;
+  padding: 0.5rem;
+  background-color: transparent;
+  color: #C0C0C0;
+  cursor: pointer;
+}
+button:hover {
+  background-color: #C0C0C0;
+  color: #111;
 }

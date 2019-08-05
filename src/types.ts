@@ -19,6 +19,10 @@ export type RenderWorkerEvent<T = any> = {
 export type RenderWorkerEventHandler<T extends any> = (data: T) => void;
 
 export type InitEventData = {
+  size: {
+    width: number;
+    height: number;
+  },
   canvases: {
     offscreen: OffscreenCanvas;
     texture: OffscreenCanvas;

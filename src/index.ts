@@ -14,15 +14,15 @@ const renderer = new Renderer();
 
 // configure canvases
 const canvas = (document.getElementById('root') as HTMLCanvasElement)
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 const offscreen = canvas.transferControlToOffscreen();
 const c = (document.getElementById('texture') as HTMLCanvasElement) // document.createElement('canvas');
 c.width = 360 * 24;
 c.height = 180 * 24;
 const texture = c.transferControlToOffscreen();
 
-// load textures
-const fileReader = new FileReader();
-
+// load texture
 Promise.all(Object.entries(TEXTURES).map(([name, url]) => (
   new Promise((resolve, reject) => {
     fetch(url)
@@ -61,6 +61,10 @@ Promise.all(Object.entries(TEXTURES).map(([name, url]) => (
     renderer.postMessage({
       type: 'init',
       data: {
+        size: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
         canvases: {
           offscreen,
           texture

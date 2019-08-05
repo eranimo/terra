@@ -16,21 +16,20 @@ let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
 let renderer: THREE.WebGLRenderer;
 let planet: THREE.Group;
-const WIDTH = 960;
-const HEIGHT = 500;
+let screenSize: { width: number, height: number };
 let material: THREE.MeshBasicMaterial;
 let canvasTexture: OffscreenCanvas;
 let sphere: THREE.Mesh;
 let textureMap: Record<string, THREE.Texture> = {};
 
 function initScene(canvas: HTMLCanvasElement) {
-  console.log('canvas', canvas);
+  const { width, height } = screenSize;
   scene = new THREE.Scene()
 
-  camera = new THREE.PerspectiveCamera( 60, WIDTH / HEIGHT, 0.5)
+  camera = new THREE.PerspectiveCamera( 60, width / height, 0.5)
   camera.position.z = 2
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas });
-  renderer.setSize(WIDTH, HEIGHT, false);
+  renderer.setSize(width, height, false);
   renderer.setClearColor( 0x000000, 0 );
 
   //
@@ -100,11 +99,13 @@ function animate() {
 }
 
 
-let lastMove = [WIDTH / 2, HEIGHT / 2];
+let lastMove;
 const eventHandlers = {
-  init({ canvases: { offscreen, texture }, textures }: InitEventData) {
+  init({ canvases: { offscreen, texture }, textures, size }: InitEventData) {
     canvas = offscreen;
     canvasTexture = texture;
+    console.log(size);
+    screenSize = size;
     
     for (const item of textures) {
       const texture = new THREE.DataTexture(new Uint8Array(item.data), item.size.width, item.size.height);
@@ -129,6 +130,9 @@ const eventHandlers = {
   rotate(data: RotateEventData) {
     const { clientX, clientY, shouldReset } = data;
     if (shouldReset) {
+      if (!lastMove) {
+        lastMove = [screenSize.width / 2, screenSize.height / 2];
+      }
       lastMove[0] = clientX;
       lastMove[1] = clientY;
     }
