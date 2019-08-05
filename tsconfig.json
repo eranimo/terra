@@ -7,7 +7,7 @@
     "target": "es5",
     "jsx": "react",
     "allowJs": true,
-    "allowSyntheticDefaultImports": false,
+    "allowSyntheticDefaultImports": true,
     "typeRoots": [
       "./node_modules/@types",
       "./node_modules/@turf/turf/index.d.ts",
