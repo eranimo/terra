@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import * as d3 from 'd3';
 import { getGeoPointsSpiral } from './utils';
 import { clamp } from 'lodash';
+import jpeg from 'jpeg-js';
 
 
 let g: DebugGroup;
@@ -20,6 +21,7 @@ let material: THREE.MeshBasicMaterial;
 let canvasTexture: OffscreenCanvas;
 let sphere: THREE.Mesh;
 let textureMap: Record<string, THREE.Texture> = {};
+let earthImageData;
 
 function initScene(canvas: HTMLCanvasElement) {
   const { width, height } = screenSize;
@@ -51,6 +53,19 @@ function initScene(canvas: HTMLCanvasElement) {
   camera.position.z = 20;
 }
 
+function getEarthColorForPoint([x, y]: [number, number]): string {
+  const { width, height, data } = earthImageData;
+  const nx = clamp(Math.round( (x / 360) * width ), 0, width);
+  let ny = clamp(Math.round( ((y + 90) / 180) * height), 0, height);
+  ny = height - ny;
+  const index = (nx + ny * width) * 4;
+  const r = data[index];
+  const g = data[index + 1];
+  const b = data[index + 2];
+  // const a = data[index + 3];
+  return `rgba(${r}, ${g}, ${b})`;
+}
+
 function drawPolygonsOnCanvas(polygons): OffscreenCanvas {
   const ctx = canvasTexture.getContext('2d') as OffscreenCanvasRenderingContext2D;
   const projection = d3.geoEquirectangular()
@@ -60,7 +75,8 @@ function drawPolygonsOnCanvas(polygons): OffscreenCanvas {
     const d = path(feature.geometry);
     const p = new Path2D(d);
     // const color = d3.schemeCategory10[index % 10];
-    const color = `rgb(${rng() * 255}, ${rng() * 255}, ${rng() * 255})`;
+    // const color = `rgb(${rng() * 255}, ${rng() * 255}, ${rng() * 255})`;
+    const color = getEarthColorForPoint(feature.properties.site)
     ctx.fillStyle = color;
     ctx.fill(p);  
   });
@@ -76,7 +92,7 @@ function textureFromCanvas(canvas: OffscreenCanvas): THREE.CanvasTexture {
 
 function generate() {
   let gg = new DebugGroup('generate points');
-  const points = getGeoPointsSpiral(1_000, rng);
+  const points = getGeoPointsSpiral(5_000, rng);
   console.log('points', points);
   console.log(`${points.length} points`);
   gg.end();
@@ -115,6 +131,9 @@ const eventHandlers = {
       texture.needsUpdate = true;
     }
     console.log('textureMap', textureMap);
+
+    earthImageData = jpeg.decode(textureMap.earth.image.data, true);
+    console.log('earthImageData', earthImageData)
   },
 
   generate() {
