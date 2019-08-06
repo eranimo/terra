@@ -41,6 +41,14 @@ class GameManager {
       .catch(options.onError);
   }
 
+  onResize = () => {
+    this.resize();
+    this.worker.action(ERenderWorkerEvent.RESIZE).send({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+  }
+
   onLoad = (textures: WorkerTextureRef[]) => {
     const transferList: any[] = [this.screenCanvas, this.minimapCanvas];
     for (const item of textures) {
@@ -135,8 +143,11 @@ export function App() {
     });
   }, document);
 
-  let isPanning = useRef(false);
+  useEvent('resize', (event: Event) => {
+    manager.onResize();
+  }, window);
 
+  let isPanning = useRef(false);
   const onScreenMouseDown = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     isPanning.current = true;
     manager.worker.action(ERenderWorkerEvent.ROTATE).send({
@@ -145,11 +156,9 @@ export function App() {
       shouldReset: true,
     });
   }
-
   const onScreenMouseUp = () => {
     isPanning.current = false;
   }
-
   const onScreenMouseMove = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     if (isPanning.current) {
       manager.worker.action(ERenderWorkerEvent.ROTATE).send({

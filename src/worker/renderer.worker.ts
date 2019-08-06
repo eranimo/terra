@@ -1,7 +1,7 @@
 import { geoVoronoi } from 'd3-geo-voronoi';
 import { alea } from 'seedrandom';
 import { DebugGroup } from '../debug';
-import { InitEventData, RotateEventData, ZoomEventData, ERenderWorkerEvent } from '../types';
+import { InitEventData, RotateEventData, ZoomEventData, ERenderWorkerEvent, ResizeEventData } from '../types';
 import * as THREE from 'three';
 import * as d3 from 'd3';
 import { getGeoPointsSpiral } from '../utils';
@@ -57,6 +57,12 @@ function initScene(canvas: HTMLCanvasElement) {
   camera.position.z = 20;
 }
 
+function resizeScene(width: number, height: number) {
+  renderer.setSize(width, height, false);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+}
+
 function getEarthColorForPoint([x, y]: [number, number]): string {
   const { width, height, data } = earthImageData;
   const nx = clamp(Math.round( (x / 360) * width ), 0, width);
@@ -96,7 +102,7 @@ function textureFromCanvas(canvas: OffscreenCanvas): THREE.CanvasTexture {
 
 function generate() {
   let gg = new DebugGroup('generate points');
-  const points = getGeoPointsSpiral(50_000, rng);
+  const points = getGeoPointsSpiral(10_000, rng);
   console.log('points', points);
   console.log(`${points.length} points`);
   gg.end();
@@ -188,9 +194,14 @@ function onZoom(data: ZoomEventData) {
   camera.updateProjectionMatrix();
 }
 
+function onResize(data: ResizeEventData) {
+  resizeScene(data.width, data.height);
+}
+
 const worker = new ReactiveWorker(ctx, true)
   .on<InitEventData>(ERenderWorkerEvent.INIT, onInit)
   .on(ERenderWorkerEvent.GENERATE, onGenerate)
   .on(ERenderWorkerEvent.RENDER, onRender)
   .on<ZoomEventData>(ERenderWorkerEvent.ZOOM, onZoom)
+  .on<ResizeEventData>(ERenderWorkerEvent.RESIZE, onResize)
   .on<RotateEventData>(ERenderWorkerEvent.ROTATE, onRotate)

@@ -31,6 +31,11 @@ export type ZoomEventData = {
   zoomDiff: number;
 }
 
+export type ResizeEventData = {
+  width: number;
+  height: number;
+}
+
 export enum ERenderWorkerEvent {
   // client -> worker
   INIT = 'INIT',
@@ -38,6 +43,7 @@ export enum ERenderWorkerEvent {
   RENDER = 'RENDER',
   ROTATE = 'ROTATE',
   ZOOM = 'ZOOM',
+  RESIZE = 'RESIZE',
 
   // worker -> client
   ONLOAD = 'ONLOAD',
