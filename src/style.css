@@ -1,7 +1,11 @@
 body {
   background-color: #111;
   color: #DDD;
-  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif
+  font-family: sans-serif
+}
+
+body, html {
+  font-size: 14px;
 }
 
 #screen {
@@ -37,10 +41,15 @@ body {
   padding: 1rem;
 }
 
+h1, h2 {
+  margin: 0;
+  padding: 0;
+}
+
 button {
   border: 1px solid #C0C0C0;
   padding: 0.25rem 0.5rem;
-  background-color: transparent;
+  background-color: rgb(255, 255, 255, 0.1);
   color: #C0C0C0;
   cursor: pointer;
   border-radius: 2px;
@@ -49,6 +58,26 @@ button {
 button:hover {
   background-color: #C0C0C0;
   color: #111;
+}
+input {
+  border: 1px solid #C0C0C0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 2px;
+  background-color: transparent;
+  color: #C0C0C0;
+}
+
+fieldset {
+  margin: 1rem 0;
+  border: none;
+  padding: 0;
+}
+
+legend {
+  margin: 0;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
 }
 
 #loading {

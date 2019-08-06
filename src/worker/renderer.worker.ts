@@ -1,7 +1,7 @@
 import { geoVoronoi } from 'd3-geo-voronoi';
 import { alea } from 'seedrandom';
 import { DebugGroup } from '../debug';
-import { InitEventData, RotateEventData, ZoomEventData, ERenderWorkerEvent, ResizeEventData } from '../types';
+import { InitEventData, RotateEventData, ZoomEventData, ERenderWorkerEvent, ResizeEventData, GenerateEventData } from '../types';
 import * as THREE from 'three';
 import * as d3 from 'd3';
 import { getGeoPointsSpiral } from '../utils';
@@ -108,9 +108,9 @@ function textureFromCanvas(canvas: OffscreenCanvas): THREE.CanvasTexture {
   return texture;
 }
 
-function generate() {
+function generate(cells) {
   let gg = new DebugGroup('generate points');
-  const points = getGeoPointsSpiral(10_000, rng);
+  const points = getGeoPointsSpiral(cells, rng);
   console.log('points', points);
   console.log(`${points.length} points`);
   gg.end();
@@ -150,10 +150,11 @@ function onInit(data: InitEventData) {
   console.log('earthImageData', earthImageData)
 }
 
-async function onGenerate() {
-  rng = alea(Math.random().toString());
+async function onGenerate(data: GenerateEventData) {
+  const { seed, cells } = data.options;
+  rng = alea(seed.toString());
   initScene(canvas as any);
-  generate();
+  generate(cells);
   return true;
 }
 

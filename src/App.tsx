@@ -3,12 +3,15 @@ import { WorkerTextureRef, ERenderWorkerEvent, IWorldOptions, GenerateEventData 
 import Renderer = require('worker-loader!./worker/renderer.worker');
 import { useEvent } from 'react-use';
 import { ReactiveWorkerClient } from './utils/workers';
+import { ObservableDict } from './utils/ObservableDict';
+import { useObservable } from './utils/hooks';
 
 
 class GameManager {
   screenCanvas: OffscreenCanvas;
   minimapCanvas: OffscreenCanvas;
   worker: ReactiveWorkerClient;
+  workerOptions$: ObservableDict<IWorldOptions>;
 
   constructor() {
     const renderer = new Renderer();
@@ -23,15 +26,17 @@ class GameManager {
     screenCanvas: HTMLCanvasElement,
     minimapCanvas: HTMLCanvasElement,
     onLoad: () => void,
-    onError: (error: any) => void,
+    worldOptions: IWorldOptions
   }) {
     this.screenCanvas = options.screenCanvas.transferControlToOffscreen();
     this.minimapCanvas = options.minimapCanvas.transferControlToOffscreen();
     this.resize();
+    this.workerOptions$ = new ObservableDict(options.worldOptions)
 
     const textures = await loadTextures(TEXTURES);
     await this.initializeRenderer(textures);
-    await this.generateWorld();
+    await this.generateWorld(options.worldOptions);
+    this.workerOptions$.subscribe(options => this.generateWorld(options));
     options.onLoad();
   }
 
@@ -61,9 +66,9 @@ class GameManager {
     }, transferList);
   }
 
-  generateWorld() {
+  generateWorld(options: IWorldOptions) {
     return new Promise((resolve => {
-      this.worker.action(ERenderWorkerEvent.GENERATE).observe().subscribe(() => {
+      this.worker.action(ERenderWorkerEvent.GENERATE).observe({ options }).subscribe(() => {
         console.log('generate!');
         resolve();
       });
@@ -108,10 +113,70 @@ function loadTextures(textures: Record<string, string>): Promise<WorkerTextureRe
     }))))
 }
 
+let manager = new GameManager();
+
+function Input({
+  value,
+  onChange,
+  ...restProps
+}) {
+  const [_value, setValue] = useState(value);
+  useEffect(() => {
+    setValue(value);
+  }, [value]);
+  return (
+    <input
+      value={_value}
+      onChange={event => setValue(event.target.value)}
+      onBlur={() => onChange(_value)}
+      onKeyDown={event => event.keyCode === 13 && onChange(_value)}
+      {...restProps}
+    />
+  )
+}
+
 function Controls() {
+  const seed = useObservable(manager.workerOptions$.ofKey('seed'), manager.workerOptions$.value.seed);
+  const cells = useObservable(manager.workerOptions$.ofKey('cells'), manager.workerOptions$.value.cells);
   return (
     <div id="controls">
-      <button id="generate">Generate</button>
+      <h1>Terra</h1>
+      <fieldset>
+        <legend>Seed</legend>
+
+        <Input
+          type="text"
+          value={seed}
+          onChange={value => manager.workerOptions$.set('seed', value)}
+        />
+
+        <button
+          onClick={() => {
+            manager.workerOptions$.set('seed', Math.random().toString());
+          }}
+        >
+          Randomize
+        </button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Number of Cells:</legend>
+
+        <Input
+          type="number"
+          value={cells}
+          onChange={value => manager.workerOptions$.set('cells', parseInt(value, 10))}
+        />
+      </fieldset>
+
+      <button
+        type="submit"
+        onClick={() => {
+          manager.generateWorld(manager.workerOptions$.value);
+        }}
+      >
+        Regenerate
+      </button>
     </div>
   );
 }
@@ -121,27 +186,29 @@ const TEXTURES = {
   earth: require('./images/earth.jpg'),
 }
 
-let manager = new GameManager();
-
 export function App() {
   const screenRef = useRef();
   const minimapRef = useRef();
   const [isLoading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     manager.init({
       screenCanvas: screenRef.current,
       minimapCanvas: minimapRef.current,
       onLoad: () => setLoading(false),
-      onError: (error) => setError(error),
+      worldOptions: {
+        seed: 'earth',
+        cells: 10000
+      }
     });
   }, []);
 
   useEvent('wheel', (event: WheelEvent) => {
-    manager.worker.action(ERenderWorkerEvent.ZOOM).send({
-      zoomDiff: event.deltaY * 0.001
-    });
+    if ((event.target as any).id === 'screen') {
+      manager.worker.action(ERenderWorkerEvent.ZOOM).send({
+        zoomDiff: event.deltaY * 0.001
+      });
+    }
   }, document);
 
   useEvent('resize', (event: Event) => {
@@ -181,7 +248,7 @@ export function App() {
         onMouseMove={onScreenMouseMove}
       />
       <canvas width={360 * 24} height={180 * 24} id="minimap" ref={minimapRef} />
-      <Controls />
+      {!isLoading && <Controls />}
     </div>
   );
 }
