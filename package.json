@@ -47,6 +47,7 @@
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-use": "^10.5.0",
+    "rxjs": "6.3.2",
     "seedrandom": "^3.0.1",
     "three": "^0.106.2",
     "three-orbitcontrols": "^2.102.2"

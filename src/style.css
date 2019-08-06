@@ -1,6 +1,7 @@
 body {
   background-color: #111;
   color: #DDD;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif
 }
 
 #screen {
@@ -48,4 +49,21 @@ button {
 button:hover {
   background-color: #C0C0C0;
   color: #111;
+}
+
+#loading {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 100;
+  padding: 1rem;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #C0C0C0;
+  background-color: #111;
+  font-size: 5rem;
 }

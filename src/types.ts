@@ -10,14 +10,6 @@ export type WorkerTextureRef = {
   data: ArrayBuffer;
 }
 
-export type RenderWorkerEventType = 'init' | 'generate' | 'render';
-export type EventData = { type: RenderWorkerEventType, data: any };
-export type RenderWorkerEvent<T = any> = {
-  type: RenderWorkerEventType,
-  data: T,
-}
-export type RenderWorkerEventHandler<T extends any> = (data: T) => void;
-
 export type InitEventData = {
   size: {
     width: number;
@@ -37,4 +29,16 @@ export type RotateEventData = {
 
 export type ZoomEventData = {
   zoomDiff: number;
+}
+
+export enum ERenderWorkerEvent {
+  // client -> worker
+  INIT = 'INIT',
+  GENERATE = 'GENERATE',
+  RENDER = 'RENDER',
+  ROTATE = 'ROTATE',
+  ZOOM = 'ZOOM',
+
+  // worker -> client
+  ONLOAD = 'ONLOAD',
 }

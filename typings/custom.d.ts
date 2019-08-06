@@ -9,3 +9,8 @@ declare module "@turf/*" {
   var fuckTypescript: any;
   export = fuckTypescript;
 }
+
+interface Constructor<T> {
+  new (...args: any[]): T;
+  prototype: T;
+}

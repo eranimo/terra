@@ -1,20 +1,26 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
-import { WorkerTextureRef } from './types';
-import Renderer = require('worker-loader!./renderer.worker');
+import { WorkerTextureRef, ERenderWorkerEvent } from './types';
+import Renderer = require('worker-loader!./worker/renderer.worker');
 import { useEvent } from 'react-use';
+import { ReactiveWorkerClient } from './utils/workers';
 
 
 class GameManager {
   screenCanvas: OffscreenCanvas;
   minimapCanvas: OffscreenCanvas;
-  rendererWorker: Renderer;
+  worker: ReactiveWorkerClient;
 
   state: {
     isPanning: false,
   };
 
   constructor() {
-    this.rendererWorker = new Renderer();
+    const renderer = new Renderer();
+    this.worker = new ReactiveWorkerClient(renderer, true);
+
+    // this.rendererWorker$.on(ERenderWorkerEvent.ONLOAD).subscribe(() => {
+    //   console.log('loaded');
+    // });
   }
 
   init(options: {
@@ -28,20 +34,11 @@ class GameManager {
     this.resize();
 
     loadTextures(TEXTURES)
-      .then(this.onLoad)
+      .then(textures => {
+        this.onLoad(textures);
+        options.onLoad();
+      })
       .catch(options.onError);
-  }
-
-  sendEvent(event: string, data: any = {}, transferList?: Transferable[]) {
-    setImmediate(() => {
-      this.rendererWorker.postMessage(
-        {
-          type: event,
-          data,
-        },
-        transferList,
-      );
-    });
   }
 
   onLoad = (textures: WorkerTextureRef[]) => {
@@ -49,7 +46,7 @@ class GameManager {
     for (const item of textures) {
       transferList.push(item.data);
     }
-    this.sendEvent('init', {
+    this.worker.action(ERenderWorkerEvent.INIT).send({
       size: {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -59,9 +56,9 @@ class GameManager {
         texture: this.minimapCanvas,
       },
       textures,
-    }, transferList as any);
-    this.sendEvent('generate');
-    this.sendEvent('render');
+    }, transferList);
+    this.worker.action(ERenderWorkerEvent.GENERATE).send();
+    this.worker.action(ERenderWorkerEvent.RENDER).send();
   }
 
   resize() {
@@ -115,12 +112,13 @@ const TEXTURES = {
   earth: require('./images/earth.jpg'),
 }
 
+let manager = new GameManager();
+
 export function App() {
   const screenRef = useRef();
   const minimapRef = useRef();
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  let manager = new GameManager();
 
   useEffect(() => {
     manager.init({
@@ -132,7 +130,7 @@ export function App() {
   }, []);
 
   useEvent('wheel', (event: WheelEvent) => {
-    manager.sendEvent('zoom', {
+    manager.worker.action(ERenderWorkerEvent.ZOOM).send({
       zoomDiff: event.deltaY * 0.001
     });
   }, document);
@@ -141,7 +139,7 @@ export function App() {
 
   const onScreenMouseDown = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     isPanning.current = true;
-    manager.sendEvent('rotate', {
+    manager.worker.action(ERenderWorkerEvent.ROTATE).send({
       clientX: event.clientX,
       clientY: event.clientY,
       shouldReset: true,
@@ -154,7 +152,7 @@ export function App() {
 
   const onScreenMouseMove = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     if (isPanning.current) {
-      manager.sendEvent('rotate', {
+      manager.worker.action(ERenderWorkerEvent.ROTATE).send({
         clientX: event.clientX,
         clientY: event.clientY,
         shouldReset: false,
@@ -164,6 +162,7 @@ export function App() {
 
   return (
     <div>
+      {isLoading && <div id="loading">Loading...</div>}
       <canvas
         id="screen"
         ref={screenRef}

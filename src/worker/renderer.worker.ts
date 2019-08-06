@@ -1,13 +1,16 @@
 import { geoVoronoi } from 'd3-geo-voronoi';
 import { alea } from 'seedrandom';
-import { DebugGroup } from './debug';
-import { InitEventData, EventData, RotateEventData, ZoomEventData } from './types';
+import { DebugGroup } from '../debug';
+import { InitEventData, RotateEventData, ZoomEventData, ERenderWorkerEvent } from '../types';
 import * as THREE from 'three';
 import * as d3 from 'd3';
-import { getGeoPointsSpiral } from './utils';
+import { getGeoPointsSpiral } from '../utils';
 import { clamp } from 'lodash';
 import jpeg from 'jpeg-js';
+import { ReactiveWorker } from '../utils/workers';
 
+
+let ctx: Worker = self as any;
 
 let g: DebugGroup;
 let rng: () => number;
@@ -22,6 +25,7 @@ let canvasTexture: OffscreenCanvas;
 let sphere: THREE.Mesh;
 let textureMap: Record<string, THREE.Texture> = {};
 let earthImageData;
+
 
 function initScene(canvas: HTMLCanvasElement) {
   const { width, height } = screenSize;
@@ -116,78 +120,77 @@ function animate() {
   renderer.render( scene, camera )
 }
 
+/**
+ * Event handlers
+ */
+
+function onInit(data: InitEventData) {
+  const { canvases: { offscreen, texture }, textures, size } = data;
+  canvas = offscreen;
+  canvasTexture = texture;
+  console.log(size);
+  screenSize = size;
+  
+  for (const item of textures) {
+    const texture = new THREE.DataTexture(new Uint8Array(item.data), item.size.width, item.size.height);
+    textureMap[item.name] = texture;
+    texture.needsUpdate = true;
+  }
+  console.log('textureMap', textureMap);
+
+  earthImageData = jpeg.decode(textureMap.earth.image.data, true);
+  console.log('earthImageData', earthImageData)
+}
+
+function onGenerate() {
+  rng = alea(Math.random().toString());
+  initScene(canvas as any);
+  generate();
+  ctx.postMessage({
+    type: 'onload'
+  });
+}
+
+function onRender() {
+  if (frameID) {
+    cancelAnimationFrame(frameID);
+  }
+  animate();
+}
 
 let lastMove: [number, number];
-const eventHandlers = {
-  init({ canvases: { offscreen, texture }, textures, size }: InitEventData) {
-    canvas = offscreen;
-    canvasTexture = texture;
-    console.log(size);
-    screenSize = size;
-    
-    for (const item of textures) {
-      const texture = new THREE.DataTexture(new Uint8Array(item.data), item.size.width, item.size.height);
-      textureMap[item.name] = texture;
-      texture.needsUpdate = true;
+
+function onRotate(data: RotateEventData) {
+  const { clientX, clientY, shouldReset } = data;
+  if (shouldReset) {
+    if (!lastMove) {
+      lastMove = [screenSize.width / 2, screenSize.height / 2];
     }
-    console.log('textureMap', textureMap);
-
-    earthImageData = jpeg.decode(textureMap.earth.image.data, true);
-    console.log('earthImageData', earthImageData)
-  },
-
-  generate() {
-    rng = alea(Math.random().toString());
-    initScene(canvas as any);
-    generate();
-  },
-
-  render() {
-    if (frameID) {
-      cancelAnimationFrame(frameID);
-    }
-    animate();
-  },
-
-  rotate(data: RotateEventData) {
-    const { clientX, clientY, shouldReset } = data;
-    if (shouldReset) {
-      if (!lastMove) {
-        lastMove = [screenSize.width / 2, screenSize.height / 2];
-      }
-      lastMove[0] = clientX;
-      lastMove[1] = clientY;
-    }
-
-    //calculate difference between current and last mouse position
-    const moveX = (clientX - lastMove[0]);
-    const moveY = (clientY - lastMove[1]);
-    //rotate the globe based on distance of mouse moves (x and y) 
-    sphere.rotation.y += ( moveX * .005);
-    sphere.rotation.x += ( moveY * .005);
-
-    //store new position in lastMove
     lastMove[0] = clientX;
     lastMove[1] = clientY;
-  },
-
-  zoom(data: ZoomEventData) {
-    camera.zoom += data.zoomDiff;
-    camera.zoom = clamp(camera.zoom, 0.1, 5);
-    camera.updateProjectionMatrix();
-  }
-}
-
-
-self.onmessage = (event: MessageEvent) => {
-  const { type, data } = event.data as EventData;
-  console.log('Worker event', type, data);
-
-  if (!(type in eventHandlers)) {
-    throw new Error(`Unknown event "${type}"`);
   }
 
-  g = new DebugGroup(type);
-  eventHandlers[type](data);
-  g.end();
+  //calculate difference between current and last mouse position
+  const moveX = (clientX - lastMove[0]);
+  const moveY = (clientY - lastMove[1]);
+  //rotate the globe based on distance of mouse moves (x and y) 
+  sphere.rotation.y += ( moveX * .005);
+  sphere.rotation.x += ( moveY * .005);
+
+  //store new position in lastMove
+  lastMove[0] = clientX;
+  lastMove[1] = clientY;
 }
+
+function onZoom(data: ZoomEventData) {
+  camera.zoom += data.zoomDiff;
+  camera.zoom = clamp(camera.zoom, 0.1, 5);
+  camera.updateProjectionMatrix();
+}
+
+const worker = new ReactiveWorker(ctx, true)
+  .on<InitEventData>(ERenderWorkerEvent.INIT, onInit)
+  .on(ERenderWorkerEvent.GENERATE, onGenerate)
+  .on(ERenderWorkerEvent.RENDER, onRender)
+  .on<ZoomEventData>(ERenderWorkerEvent.ZOOM, onZoom)
+  .on<RotateEventData>(ERenderWorkerEvent.ROTATE, onRotate)

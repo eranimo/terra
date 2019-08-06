@@ -5,6 +5,13 @@
     "noImplicitAny": false,
     "module": "commonjs",
     "target": "es5",
+    "lib": [
+      "dom",
+      "es5",
+      "es6",
+      "esnext",
+      "scripthost"
+    ],
     "jsx": "react",
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
