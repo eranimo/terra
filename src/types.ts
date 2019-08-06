@@ -21,6 +21,9 @@ export type InitEventData = {
   },
   textures: WorkerTextureRef[]
 }
+export type GenerateEventData = {
+  options: IWorldOptions,
+}
 export type RotateEventData = {
   clientX: number;
   clientY: number;
@@ -46,5 +49,9 @@ export enum ERenderWorkerEvent {
   RESIZE = 'RESIZE',
 
   // worker -> client
-  ONLOAD = 'ONLOAD',
+}
+
+export interface IWorldOptions {
+  seed: string,
+  cells: number,
 }

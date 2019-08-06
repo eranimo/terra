@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
-import { WorkerTextureRef, ERenderWorkerEvent } from './types';
+import { WorkerTextureRef, ERenderWorkerEvent, IWorldOptions, GenerateEventData } from './types';
 import Renderer = require('worker-loader!./worker/renderer.worker');
 import { useEvent } from 'react-use';
 import { ReactiveWorkerClient } from './utils/workers';
@@ -10,10 +10,6 @@ class GameManager {
   minimapCanvas: OffscreenCanvas;
   worker: ReactiveWorkerClient;
 
-  state: {
-    isPanning: false,
-  };
-
   constructor() {
     const renderer = new Renderer();
     this.worker = new ReactiveWorkerClient(renderer, true);
@@ -23,7 +19,7 @@ class GameManager {
     // });
   }
 
-  init(options: {
+  async init(options: {
     screenCanvas: HTMLCanvasElement,
     minimapCanvas: HTMLCanvasElement,
     onLoad: () => void,
@@ -33,12 +29,10 @@ class GameManager {
     this.minimapCanvas = options.minimapCanvas.transferControlToOffscreen();
     this.resize();
 
-    loadTextures(TEXTURES)
-      .then(textures => {
-        this.onLoad(textures);
-        options.onLoad();
-      })
-      .catch(options.onError);
+    const textures = await loadTextures(TEXTURES);
+    await this.initializeRenderer(textures);
+    await this.generateWorld();
+    options.onLoad();
   }
 
   onResize = () => {
@@ -49,7 +43,7 @@ class GameManager {
     });
   }
 
-  onLoad = (textures: WorkerTextureRef[]) => {
+  initializeRenderer = (textures: WorkerTextureRef[]) => {
     const transferList: any[] = [this.screenCanvas, this.minimapCanvas];
     for (const item of textures) {
       transferList.push(item.data);
@@ -65,8 +59,15 @@ class GameManager {
       },
       textures,
     }, transferList);
-    this.worker.action(ERenderWorkerEvent.GENERATE).send();
-    this.worker.action(ERenderWorkerEvent.RENDER).send();
+  }
+
+  generateWorld() {
+    return new Promise((resolve => {
+      this.worker.action(ERenderWorkerEvent.GENERATE).observe().subscribe(() => {
+        console.log('generate!');
+        resolve();
+      });
+    }));
   }
 
   resize() {

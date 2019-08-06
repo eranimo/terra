@@ -55,6 +55,14 @@ function initScene(canvas: HTMLCanvasElement) {
   sphere = new THREE.Mesh(geometry, material);
   scene.add(sphere);
   camera.position.z = 20;
+
+  render();
+}
+
+let frameID: number;
+function render() {
+  frameID = requestAnimationFrame(render);
+  renderer.render(scene, camera);
 }
 
 function resizeScene(width: number, height: number) {
@@ -120,12 +128,6 @@ function generate() {
   gg.end()
 }
 
-let frameID: number;
-function animate() {
-  frameID = requestAnimationFrame( animate )
-  renderer.render( scene, camera )
-}
-
 /**
  * Event handlers
  */
@@ -148,20 +150,11 @@ function onInit(data: InitEventData) {
   console.log('earthImageData', earthImageData)
 }
 
-function onGenerate() {
+async function onGenerate() {
   rng = alea(Math.random().toString());
   initScene(canvas as any);
   generate();
-  ctx.postMessage({
-    type: 'onload'
-  });
-}
-
-function onRender() {
-  if (frameID) {
-    cancelAnimationFrame(frameID);
-  }
-  animate();
+  return true;
 }
 
 let lastMove: [number, number];
@@ -200,8 +193,7 @@ function onResize(data: ResizeEventData) {
 
 const worker = new ReactiveWorker(ctx, true)
   .on<InitEventData>(ERenderWorkerEvent.INIT, onInit)
-  .on(ERenderWorkerEvent.GENERATE, onGenerate)
-  .on(ERenderWorkerEvent.RENDER, onRender)
+  .on(ERenderWorkerEvent.GENERATE, onGenerate, true)
   .on<ZoomEventData>(ERenderWorkerEvent.ZOOM, onZoom)
   .on<ResizeEventData>(ERenderWorkerEvent.RESIZE, onResize)
   .on<RotateEventData>(ERenderWorkerEvent.ROTATE, onRotate)
