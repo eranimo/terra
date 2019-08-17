@@ -10,12 +10,13 @@ import { useObservable } from './utils/hooks';
 class GameManager {
   screenCanvas: OffscreenCanvas;
   minimapCanvas: OffscreenCanvas;
+  surfaceCanvas: OffscreenCanvas;
   worker: ReactiveWorkerClient;
   workerOptions$: ObservableDict<IWorldOptions>;
 
   constructor() {
     const renderer = new Renderer();
-    this.worker = new ReactiveWorkerClient(renderer, true);
+    this.worker = new ReactiveWorkerClient(renderer, false);
 
     // this.rendererWorker$.on(ERenderWorkerEvent.ONLOAD).subscribe(() => {
     //   console.log('loaded');
@@ -30,12 +31,15 @@ class GameManager {
   }) {
     this.screenCanvas = options.screenCanvas.transferControlToOffscreen();
     this.minimapCanvas = options.minimapCanvas.transferControlToOffscreen();
+    const surfaceCanvas = document.createElement('canvas');
+    surfaceCanvas.width = options.minimapCanvas.width;
+    surfaceCanvas.height = options.minimapCanvas.height;
+    this.surfaceCanvas = surfaceCanvas.transferControlToOffscreen();
     this.resize();
     this.workerOptions$ = new ObservableDict(options.worldOptions)
 
     const textures = await loadTextures(TEXTURES);
     await this.initializeRenderer(textures);
-    await this.generateWorld(options.worldOptions);
     this.workerOptions$.subscribe(options => this.generateWorld(options));
     options.onLoad();
   }
@@ -49,7 +53,7 @@ class GameManager {
   }
 
   initializeRenderer = (textures: WorkerTextureRef[]) => {
-    const transferList: any[] = [this.screenCanvas, this.minimapCanvas];
+    const transferList: any[] = [this.screenCanvas, this.minimapCanvas, this.surfaceCanvas];
     for (const item of textures) {
       transferList.push(item.data);
     }
@@ -61,6 +65,7 @@ class GameManager {
       canvases: {
         offscreen: this.screenCanvas,
         texture: this.minimapCanvas,
+        surface: this.surfaceCanvas,
       },
       textures,
     }, transferList);
@@ -198,7 +203,7 @@ export function App() {
       onLoad: () => setLoading(false),
       worldOptions: {
         seed: 'earth',
-        cells: 10000
+        cells: 1000
       }
     });
   }, []);
@@ -228,6 +233,10 @@ export function App() {
     isPanning.current = false;
   }
   const onScreenMouseMove = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+    manager.worker.action(ERenderWorkerEvent.MOUSEMOVE).send({
+      x: event.clientX,
+      y: event.clientY,
+    })
     if (isPanning.current) {
       manager.worker.action(ERenderWorkerEvent.ROTATE).send({
         clientX: event.clientX,

@@ -18,6 +18,7 @@ export type InitEventData = {
   canvases: {
     offscreen: OffscreenCanvas;
     texture: OffscreenCanvas;
+    surface: OffscreenCanvas;
   },
   textures: WorkerTextureRef[]
 }
@@ -39,6 +40,11 @@ export type ResizeEventData = {
   height: number;
 }
 
+export type MouseMoveEventData = {
+  x: number;
+  y: number;
+}
+
 export enum ERenderWorkerEvent {
   // client -> worker
   INIT = 'INIT',
@@ -47,6 +53,7 @@ export enum ERenderWorkerEvent {
   ROTATE = 'ROTATE',
   ZOOM = 'ZOOM',
   RESIZE = 'RESIZE',
+  MOUSEMOVE = 'MOUSEMOVE',
 
   // worker -> client
 }
