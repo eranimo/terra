@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 
 
+export type Resources = {
+  earthImageData: any;
+};
+
 export type WorkerTextureRef = {
   name: string;
   size: {
@@ -10,16 +14,18 @@ export type WorkerTextureRef = {
   data: ArrayBuffer;
 }
 
+export type CanvasMap = {
+  offscreen: OffscreenCanvas;
+  texture: OffscreenCanvas;
+  surface: OffscreenCanvas;
+};
+
 export type InitEventData = {
   size: {
     width: number;
     height: number;
   },
-  canvases: {
-    offscreen: OffscreenCanvas;
-    texture: OffscreenCanvas;
-    surface: OffscreenCanvas;
-  },
+  canvases: CanvasMap,
   textures: WorkerTextureRef[]
   devicePixelRatio: number;
 }
