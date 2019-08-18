@@ -38,14 +38,19 @@ let surfaceTexture: THREE.Texture;
 const group = new THREE.Group();
 let projection;
 
-function initScene(canvas: HTMLCanvasElement) {
+function initScene(devicePixelRatio: number, canvas: HTMLCanvasElement) {
   const { width, height } = screenSize;
   scene = new THREE.Scene()
 
   // camera
   camera = new THREE.PerspectiveCamera( 60, width / height, 0.5)
   camera.position.z = 2
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas });
+  renderer = new THREE.WebGLRenderer({
+    antialias: false,
+    alpha: true,
+    canvas,
+  });
+  renderer.setPixelRatio(devicePixelRatio * 0.5);
 
   // renderer
   renderer.setSize(width, height, false);
@@ -167,9 +172,8 @@ function generate(cells) {
 
 const geoPath = d3.geoPath();
 function drawSurface() {
-  console.log('draw surface');
   if (!surfaceContext) return;
-  surfaceContext.clearRect(0, 0, 360 * 24, 180 * 24);
+  surfaceContext.clearRect(0, 0, 360 * 36, 180 * 36);
 
   if (currentHoverCell) {
     surfaceContext.fillStyle = 'rgba(255, 0, 0, 0.5)';
@@ -180,8 +184,6 @@ function drawSurface() {
     surfaceContext.fill(p);
     surfaceTexture.needsUpdate = true;
     surfaceMaterial.needsUpdate = true;
-  } else {
-    console.log('no hover cell');
   }
 }
 
@@ -190,7 +192,12 @@ function drawSurface() {
  */
 
 function onInit(data: InitEventData) {
-  const { canvases: { offscreen, texture, surface }, textures, size } = data;
+  const {
+    canvases: { offscreen, texture, surface },
+    textures,
+    size,
+    devicePixelRatio,
+  } = data;
   canvasTexture = texture;
   canvasSurface = surface;
   console.log(size);
@@ -209,7 +216,7 @@ function onInit(data: InitEventData) {
 
   console.log('canvasTexture', canvasTexture);
   
-  initScene(offscreen as any);
+  initScene(devicePixelRatio, offscreen as any);
   drawSurface();
 }
 
@@ -270,14 +277,11 @@ function onMouseMove(data: MouseMoveEventData) {
   if (selectedIntersect && selectedIntersect.uv) {
     var uv = selectedIntersect.uv;
     (selectedIntersect.object as any).material.map.transformUv(uv);
-    // console.log('uv', uv);
     cursor.set(
       (uv.x * 360) + 180,
       90 - (uv.y * 180),
     );
-    // console.log('cursor', cursor);
     const cell = polgonContainingPoint(cursor);
-    // console.log(cell.properties.site);
     currentHoverCell = cell;
   } else {
     currentHoverCell = null;

@@ -21,6 +21,7 @@ export type InitEventData = {
     surface: OffscreenCanvas;
   },
   textures: WorkerTextureRef[]
+  devicePixelRatio: number;
 }
 export type GenerateEventData = {
   options: IWorldOptions,
