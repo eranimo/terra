@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { alea } from 'seedrandom';
 import { IWorldOptions, Resources, CanvasMap } from '../types';
-import { getGeoPointsSpiral } from '../utils';
+import { getGeoPointsSpiral, measure } from '../utils';
 import { geoVoronoi } from 'd3-geo-voronoi';
 import * as d3 from 'd3';
-import { geoContains } from 'd3';
+import { geoContains, xml } from 'd3';
 import { clamp } from 'lodash';
+import PolygonLookup from 'polygon-lookup';
 
+console.log(PolygonLookup);
 
 interface PlanetLayer {
   canvas: HTMLCanvasElement;
@@ -47,6 +49,7 @@ export class Planet {
   sphereLayers: THREE.Group;
   rng: () => number;
   polygons: any;
+  polytree: any;
   projection: d3.GeoProjection;
   path: d3.GeoPath<unknown>;
 
@@ -90,12 +93,18 @@ export class Planet {
     scene.add(this.sphereLayers);
   }
 
+  @measure('generate')
   generate({ seed, cells }: IWorldOptions) {
     console.log(`(Generate) seed: ${seed} cells: ${cells}`);
     this.rng = alea(seed.toString());
     const points = getGeoPointsSpiral(cells, this.rng);
     let v = geoVoronoi(points);
     this.polygons = v.polygons();
+    const kdPoints = this.polygons.features.map(feature => feature.properties.site);
+    // const kdPoints = this.polygons.features.map(feature => d3.geoCentroid(feature));
+    console.log('kdPoints', kdPoints);
+    this.polytree = new PolygonLookup(this.polygons);
+    console.log('polytree', this.polytree);
 
     const { width, height } = this.layers.terrain.canvas;
     this.projection = d3.geoEquirectangular()
@@ -138,6 +147,7 @@ export class Planet {
     });
   }
 
+  // @measure('drawSurface')
   public drawSurface(currentHoverCell) {
     const ctx = this.layers.ui.ctx;
     ctx.clearRect(0, 0, 360 * 36, 180 * 36);
@@ -155,10 +165,16 @@ export class Planet {
   }
 
   public polgonContainingPoint(point: THREE.Vector2) {
-    for (const cell of this.polygons.features) {
-      if (geoContains(cell, [point.x, point.y])) {
-        return cell;
-      }
+    const x = point.x;
+    const y = point.y;
+    const found = this.polytree.search(x, y);
+    if (found) {
+      return found;
     }
+    // for (const cell of this.polygons.features) {
+    //   if (geoContains(cell, [point.x, point.y])) {
+    //     return cell;
+    //   }
+    // }
   }
 }

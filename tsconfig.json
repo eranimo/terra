@@ -21,6 +21,7 @@
       "./typings/custom.d.ts",
     ],
     "esModuleInterop": true,
+    "experimentalDecorators": true,
     "paths": {
       "three": ["node_modules/three/src/Three"],
       "turf": ["node_modules/@turf/turf"]

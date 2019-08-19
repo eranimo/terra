@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Planet } from './Planet';
 import { CanvasMap, Resources } from '../types';
 import { clamp } from 'lodash';
+import { measure } from '../utils';
 
 
 export class PlanetView {
@@ -66,13 +67,21 @@ export class PlanetView {
     this.lastMove = null;
   }
 
-  render = () => {
-    this.lastFrameID = requestAnimationFrame(this.render);
+  // @measure('render', 1)
+  render() {
+    performance.mark('render-surface');
     if (this.currentHoverCell !== this.lastUpdatedHoverCell) {
       this.planet.drawSurface(this.currentHoverCell);
       this.lastUpdatedHoverCell = this.currentHoverCell;
     }
+    performance.mark('render-scene');
     this.renderer.render(this.scene, this.camera);
+    performance.mark('render-end');
+    performance.measure('PlanetView.render', 'render-surface', 'render-end');
+    performance.measure('PlanetView.render-surface', 'render-surface', 'render-scene');
+    performance.measure('PlanetView.render-scene', 'render-scene', 'render-end');
+
+    this.lastFrameID = requestAnimationFrame(this.render.bind(this));
   }
 
   resizeScene(width: number, height: number) {
@@ -92,8 +101,8 @@ export class PlanetView {
       var uv = selectedIntersect.uv;
       (selectedIntersect.object as any).material.map.transformUv(uv);
       this.cursor.set(
-        (uv.x * 360) + 180,
-        90 - (uv.y * 180),
+        (uv.x * 360) - 180,
+        -((uv.y * 180) - 90),
       );
       const cell = this.planet.polgonContainingPoint(this.cursor);
       this.currentHoverCell = cell;
@@ -117,6 +126,7 @@ export class PlanetView {
     //rotate the globe based on distance of mouse moves (x and y) 
     this.planet.sphereLayers.rotation.y += ( moveX * .005);
     this.planet.sphereLayers.rotation.x += ( moveY * .005);
+    this.planet.sphereLayers.updateMatrix();
 
     //store new position in this.lastMove
     this.lastMove[0] = clientX;

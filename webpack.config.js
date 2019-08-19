@@ -41,7 +41,6 @@ module.exports = {
     })
   ],
   devServer: {
-    writeToDisk: true,
     compress: true
   }
 };

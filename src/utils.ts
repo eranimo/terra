@@ -34,3 +34,22 @@ export function getGeoPointsSpiral(
   }
   return geoPoints
 }
+
+export function measure(label: string, thresholdMS: number = 0) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalMethod = descriptor.value;
+    descriptor.value = function (...args: any[]) {
+      const startTime = performance.now();
+      performance.mark(`${label}-start`);
+      const result = originalMethod.apply(this, args);
+      performance.mark(`${label}-end`);
+      const endTime = performance.now();
+      const timespan = endTime - startTime;
+      if (timespan >= thresholdMS) {
+        console.info(`Measure: ${label} (${timespan.toLocaleString()}ms)`)
+      }
+      performance.measure(label, `${label}-start`, `${label}-end`);
+      return result;
+    }
+  }
+}
