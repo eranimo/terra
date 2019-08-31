@@ -7,15 +7,16 @@
  */
 import { makeRandInt } from '@redblobgames/prng';
 import TriangleMesh from '@redblobgames/dual-mesh';
-import { vec3, mat4 } from 'gl-matrix';
+import { vec3 } from 'gl-matrix';
 import { fbm_noise } from './geometry';
+import { IGlobeOptions } from './types';
 
 
-const SEED = 123;
-let N = 10000;
-let P = 30;
-
-function pickRandomRegions(mesh: TriangleMesh, N, randInt: (input: number) => number) {
+function pickRandomRegions(
+  mesh: TriangleMesh,
+  N: number,
+  randInt: (input: number) => number
+) {
   let { numRegions } = mesh;
   let chosen_r: Set<number> = new Set();
   while (chosen_r.size < N && chosen_r.size < numRegions) {
@@ -25,14 +26,14 @@ function pickRandomRegions(mesh: TriangleMesh, N, randInt: (input: number) => nu
 }
 
 
-export function generatePlates(mesh, r_xyz) {
+export function generatePlates(mesh: TriangleMesh, options: IGlobeOptions, r_xyz: number[]) {
   let r_plate = new Int32Array(mesh.numRegions);
   r_plate.fill(-1);
-  let plate_r = pickRandomRegions(mesh, Math.min(P, N), makeRandInt(SEED));
+  let plate_r = pickRandomRegions(mesh, Math.min(options.numberPlates, options.numberCells), makeRandInt(options.seed));
   let queue = Array.from(plate_r);
   for (let r of queue) { r_plate[r] = r; }
   let out_r = [];
-  const randInt = makeRandInt(SEED);
+  const randInt = makeRandInt(options.seed);
   for (let queue_out = 0; queue_out < mesh.numRegions; queue_out++) {
     let pos = queue_out + randInt(queue.length - queue_out);
     let current_r = queue[pos];
@@ -61,8 +62,8 @@ export function generatePlates(mesh, r_xyz) {
 
 /* Distance from any point in seeds_r to all other points, but 
 * don't go past any point in stop_r */
-function assignDistanceField(mesh, seeds_r, stop_r) {
-  const randInt = makeRandInt(SEED);
+function assignDistanceField(mesh: TriangleMesh, options: IGlobeOptions, seeds_r, stop_r) {
+  const randInt = makeRandInt(options.seed);
   let { numRegions } = mesh;
   let r_distance = new Float32Array(numRegions);
   r_distance.fill(Infinity);
@@ -136,7 +137,11 @@ function findCollisions(mesh: TriangleMesh, r_xyz: number[], plate_is_ocean, r_p
 }
 
 
-export function assignRegionElevation(mesh, { r_xyz, plate_is_ocean, r_plate, plate_vec, /* out */ r_elevation }) {
+export function assignRegionElevation(
+  mesh: TriangleMesh, 
+  options: IGlobeOptions,
+  { r_xyz, plate_is_ocean, r_plate, plate_vec, /* out */ r_elevation }
+) {
   const epsilon = 1e-3;
   let { numRegions } = mesh;
 
@@ -154,10 +159,10 @@ export function assignRegionElevation(mesh, { r_xyz, plate_is_ocean, r_plate, pl
   for (let r of coastline_r) { stop_r.add(r); }
   for (let r of ocean_r) { stop_r.add(r); }
 
-  console.log('seeds mountain/coastline/ocean:', mountain_r.size, coastline_r.size, ocean_r.size, 'plate_is_ocean', plate_is_ocean.size, '/', P);
-  let r_distance_a = assignDistanceField(mesh, mountain_r, ocean_r);
-  let r_distance_b = assignDistanceField(mesh, ocean_r, coastline_r);
-  let r_distance_c = assignDistanceField(mesh, coastline_r, stop_r);
+  console.log('seeds mountain/coastline/ocean:', mountain_r.size, coastline_r.size, ocean_r.size, 'plate_is_ocean', plate_is_ocean.size, '/', options.numberPlates);
+  let r_distance_a = assignDistanceField(mesh, options, mountain_r, ocean_r);
+  let r_distance_b = assignDistanceField(mesh, options, ocean_r, coastline_r);
+  let r_distance_c = assignDistanceField(mesh, options, coastline_r, stop_r);
 
   for (let r = 0; r < numRegions; r++) {
     let a = r_distance_a[r] + epsilon,

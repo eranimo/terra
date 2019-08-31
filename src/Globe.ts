@@ -7,9 +7,6 @@ import { assignTriangleValues, assignDownflow, assignFlow } from './rivers';
 import { IGlobeOptions } from './types';
 
 
-let SEED = 123;
-let N = 10000;
-let jitter = 0.75;
 
 export class Globe {
   mesh: TriangleMesh;
@@ -32,9 +29,9 @@ export class Globe {
   plate_vec: any[];
   plate_is_ocean: Set<unknown>;
 
-  constructor(options: IGlobeOptions) {
+  constructor(public options: IGlobeOptions) {
     console.log('options', options)
-    const { mesh, r_xyz } = makeSphere(options.numberCells, jitter, makeRandFloat(options.seed));
+    const { mesh, r_xyz } = makeSphere(options.numberCells, options.jitter, makeRandFloat(options.seed));
     this.mesh = mesh;
     console.log('mesh', mesh)
     this.r_xyz = r_xyz;
@@ -56,7 +53,7 @@ export class Globe {
   }
 
   generateMap() {
-    let result = generatePlates(this.mesh, this.r_xyz);
+    let result = generatePlates(this.mesh, this.options, this.r_xyz);
     this.plate_r = result.plate_r;
     this.r_plate = result.r_plate;
     this.plate_vec = result.plate_vec;
@@ -67,7 +64,7 @@ export class Globe {
         // TODO: either make tiny plates non-ocean, or make sure tiny plates don't create seeds for rivers
       }
     }
-    assignRegionElevation(this.mesh, this);
+    assignRegionElevation(this.mesh, this.options, this);
     // TODO: assign region moisture in a better way!
     for (let r = 0; r < this.mesh.numRegions; r++) {
       this.r_moisture[r] = (this.r_plate[r] % 10) / 10.0;

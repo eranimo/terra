@@ -7,15 +7,16 @@
  */
 
 import FlatQueue from 'flatqueue';
+import TriangleMesh from '@redblobgames/dual-mesh';
 
 
-export function assignTriangleValues(mesh, { r_elevation, r_moisture, /* out */ t_elevation, t_moisture }) {
+export function assignTriangleValues(mesh: TriangleMesh, { r_elevation, r_moisture, /* out */ t_elevation, t_moisture }) {
   const { numTriangles } = mesh;
   for (let t = 0; t < numTriangles; t++) {
-    let s0 = 3 * t;
-    let r1 = mesh.s_begin_r(s0),
-      r2 = mesh.s_begin_r(s0 + 1),
-      r3 = mesh.s_begin_r(s0 + 2);
+    const s0 = 3 * t;
+    const r1 = mesh.s_begin_r(s0);
+    const r2 = mesh.s_begin_r(s0 + 1);
+    const r3 = mesh.s_begin_r(s0 + 2);
     t_elevation[t] = 1 / 3 * (r_elevation[r1] + r_elevation[r2] + r_elevation[r3]);
     t_moisture[t] = 1 / 3 * (r_moisture[r1] + r_moisture[r2] + r_moisture[r3]);
   }
@@ -23,7 +24,7 @@ export function assignTriangleValues(mesh, { r_elevation, r_moisture, /* out */ 
 
 
 let _queue = new FlatQueue();
-export function assignDownflow(mesh, { t_elevation, /* out */ t_downflow_s, /* out */ order_t }) {
+export function assignDownflow(mesh: TriangleMesh, { t_elevation, /* out */ t_downflow_s, /* out */ order_t }) {
   /* Use a priority queue, starting with the ocean triangles and
    * moving upwards using elevation as the priority, to visit all
    * the land triangles */
@@ -35,8 +36,8 @@ export function assignDownflow(mesh, { t_elevation, /* out */ t_downflow_s, /* o
     if (t_elevation[t] < 0) {
       let best_s = -1, best_e = t_elevation[t];
       for (let j = 0; j < 3; j++) {
-        let s = 3 * t + j,
-          e = t_elevation[mesh.s_outer_t(s)];
+        const s = 3 * t + j;
+        const e = t_elevation[mesh.s_outer_t(s)];
         if (e < best_e) {
           best_e = e;
           best_s = s;
@@ -63,7 +64,7 @@ export function assignDownflow(mesh, { t_elevation, /* out */ t_downflow_s, /* o
 }
 
 
-export function assignFlow(mesh, { order_t, t_elevation, t_moisture, t_downflow_s, /* out */ t_flow, /* out */ s_flow }) {
+export function assignFlow(mesh: TriangleMesh, { order_t, t_elevation, t_moisture, t_downflow_s, /* out */ t_flow, /* out */ s_flow }) {
   let { numTriangles, _halfedges } = mesh;
   s_flow.fill(0);
   for (let t = 0; t < numTriangles; t++) {

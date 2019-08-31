@@ -6,4 +6,6 @@ export type Size = {
 export interface IGlobeOptions {
   seed: number,
   numberCells: number,
+  jitter: number,
+  numberPlates: number,
 }

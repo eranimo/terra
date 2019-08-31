@@ -5,6 +5,7 @@ import { ObservableDict } from './utils/ObservableDict';
 import { Globe } from './Globe';
 import Renderer from './Renderer';
 import { mat4 } from 'gl-matrix';
+import { useWindowSize } from 'react-use';
 
 
 const camera = {
@@ -77,6 +78,8 @@ let drawCellCenter = false;
 const initialOptions: IGlobeOptions = {
   seed: 123,
   numberCells: 10_000,
+  jitter: 0.75,
+  numberPlates: 30,
 }
 class GameManager {
   options$: ObservableDict<IGlobeOptions>;
@@ -85,8 +88,7 @@ class GameManager {
 
   constructor(canvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
-    const globe = new Globe(this.options$.toObject() as any);
-    this.globe = globe;
+    this.generate();
 
     const renderer = Renderer(canvas, onLoad);
     this.renderer = renderer;
@@ -97,6 +99,12 @@ class GameManager {
       renderer.regl.clear({ color: [0, 0, 0, 1] })
       this.draw();
     });
+  }
+
+  generate() {
+    const globe = new Globe(this.options$.toObject() as any);
+    this.globe = globe;
+    camera.dirty = true;
   }
 
   draw() {
@@ -173,6 +181,7 @@ function Input({
 function Controls({ manager }: { manager: GameManager }) {
   const seed = useObservable(manager.options$.ofKey('seed'), manager.options$.value.seed);
   const cells = useObservable(manager.options$.ofKey('numberCells'), manager.options$.value.numberCells);
+  const plates = useObservable(manager.options$.ofKey('numberPlates'), manager.options$.value.numberPlates);
   return (
     <div id="controls">
       <h1>Terra</h1>
@@ -180,7 +189,7 @@ function Controls({ manager }: { manager: GameManager }) {
         <legend>Seed</legend>
 
         <Input
-          type="text"
+          type="number"
           value={seed}
           onChange={value => manager.options$.set('seed', value)}
         />
@@ -195,6 +204,16 @@ function Controls({ manager }: { manager: GameManager }) {
           onChange={value => manager.options$.set('numberCells', parseInt(value, 10))}
         />
       </fieldset>
+
+      <fieldset>
+        <legend>Number of Plates:</legend>
+
+        <Input
+          type="number"
+          value={plates}
+          onChange={value => manager.options$.set('numberPlates', parseInt(value, 10))}
+        />
+      </fieldset>
     </div>
   );
 }
@@ -207,15 +226,21 @@ export function App() {
     const manager = new GameManager(screenRef.current);
     console.log('manager', manager);
     setManager(manager);
+
+    manager.options$.subscribe(() => {
+      manager.generate();
+    });
   }, []);
+
+  const { width, height } = useWindowSize();
 
   return (
     <div>
       {!manager && <div id="loading">Loading...</div>}
       <canvas
         ref={screenRef}
-        width={window.innerWidth}
-        height={window.innerHeight}
+        width={width}
+        height={height}
       />
       {manager && <Controls manager={manager} />}
     </div>
