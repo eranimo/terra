@@ -3,6 +3,7 @@ import { Planet } from './Planet';
 import { CanvasMap, Resources } from '../types';
 import { clamp } from 'lodash';
 import { measure } from '../utils';
+import { PlanetSphere } from './PlanetSphere';
 
 
 export class PlanetView {
@@ -16,6 +17,7 @@ export class PlanetView {
   };
 
   planet: Planet;
+  sphere: PlanetSphere;
 
   lastUpdatedHoverCell: any = null;
   lastFrameID: number = null;
@@ -55,7 +57,9 @@ export class PlanetView {
     this.scene.add(ambientLight);
     this.camera.add(pointLight);
 
-    this.planet = new Planet(
+    this.planet = new Planet(options.screenSize);
+    this.sphere = new PlanetSphere(
+      this.planet,
       this.scene,
       options.canvases,
       options.resources,
@@ -71,7 +75,7 @@ export class PlanetView {
   render() {
     performance.mark('render-surface');
     if (this.currentHoverCell !== this.lastUpdatedHoverCell) {
-      this.planet.drawSurface(this.currentHoverCell);
+      this.sphere.drawSurface(this.currentHoverCell);
       this.lastUpdatedHoverCell = this.currentHoverCell;
     }
     performance.mark('render-scene');
@@ -95,7 +99,7 @@ export class PlanetView {
   setHoverCell(x: number, y: number) {
     this.mouse.set(( (x / this.screenSize.width) * 2 ) - 1, -((y / this.screenSize.height) * 2 ) + 1);
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.planet.sphereLayers.children);
+    const intersects = this.raycaster.intersectObjects(this.sphere.sphereLayers.children);
     let selectedIntersect = intersects[0];
     if (selectedIntersect && selectedIntersect.uv) {
       var uv = selectedIntersect.uv;
@@ -104,7 +108,7 @@ export class PlanetView {
         (uv.x * 360) - 180,
         -((uv.y * 180) - 90),
       );
-      const cell = this.planet.polgonContainingPoint(this.cursor);
+      const cell = this.sphere.polgonContainingPoint(this.cursor);
       this.currentHoverCell = cell;
     } else {
       this.currentHoverCell = null;
@@ -124,9 +128,10 @@ export class PlanetView {
     const moveX = (clientX - this.lastMove[0]);
     const moveY = (clientY - this.lastMove[1]);
     //rotate the globe based on distance of mouse moves (x and y) 
-    this.planet.sphereLayers.rotation.y += ( moveX * .005);
-    this.planet.sphereLayers.rotation.x += ( moveY * .005);
-    this.planet.sphereLayers.updateMatrix();
+    this.sphere.sphereLayers.rotation.y += ( moveX * .005);
+    this.sphere.sphereLayers.rotation.x += ( moveY * .005);
+    // this.sphere.sphereLayers.rotation.x = this.planet.sphereLayers.rotation.x % ;
+    this.sphere.sphereLayers.matrixAutoUpdate = true;
 
     //store new position in this.lastMove
     this.lastMove[0] = clientX;

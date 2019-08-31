@@ -54,7 +54,7 @@ function onInit(data: InitEventData) {
 
 async function onGenerate(data: GenerateEventData) {
   view.planet.generate(data.options)
-  return true;
+  view.sphere.draw();
 }
 
 function onRotate(data: RotateEventData) {

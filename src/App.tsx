@@ -257,7 +257,7 @@ export function App() {
         onMouseUp={onScreenMouseUp}
         onMouseMove={onScreenMouseMove}
       />
-      <canvas width={360 * 36} height={180 * 36} id="minimap" ref={minimapRef} />
+      <canvas width={360 * 6} height={180 * 6} id="minimap" ref={minimapRef} />
       {!isLoading && <Controls />}
     </div>
   );

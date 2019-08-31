@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 
 
+export type Size = {
+  width: number,
+  height: number,
+}
+
 export type Resources = {
   earthImageData: any;
 };

@@ -9,14 +9,17 @@ module.exports = {
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: /node_modules/
+        exclude: /node_modules/,
+        include: /src/,
       },
       {
         test: /\.css$/,
+        include: /src/,
         use: ['style-loader', 'css-loader'],
       },
       {
         test: /\.(png|svg|jpg|gif)$/,
+        include: /src/,
         use: [
           'file-loader'
         ]
