@@ -59,6 +59,14 @@ export class ObservableDict<T extends object> extends BehaviorSubject<T> {
     }
   }
 
+  toObject() {
+    let object = {};
+    for (const key of Object.keys(this.data)) {
+      object[key] = this.data[key].value;
+    }
+    return object as T;
+  }
+
   *[Symbol.iterator]() {
     for (const [key, value] of Object.entries(this.data)) {
       yield [key, (value as BehaviorSubject<unknown>).value]
