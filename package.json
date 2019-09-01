@@ -41,6 +41,7 @@
     "react-dom": "^16.8.6",
     "react-use": "^10.5.0",
     "regl": "*",
+    "regl-camera": "^2.1.1",
     "regl-line": "^0.1.4",
     "rxjs": "6.3.2",
     "save": "^2.4.0",

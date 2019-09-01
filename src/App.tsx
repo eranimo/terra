@@ -9,74 +9,9 @@ import { useWindowSize } from 'react-use';
 import { clamp } from 'lodash';
 
 
-const camera = {
-  dirty: false,
-  rotation: {
-    x: 0,
-    y: 0,
-    z: 0,
-  },
-  zoom: 1,
-};
-
-function onLoad() {
-  const canvas = document.querySelector('canvas');
-  document.addEventListener('keydown', event => {
-    if (event.key === 'a') {
-      camera.rotation.x += 0.1;
-      camera.dirty = true;
-    } else if (event.key === 'd') {
-      camera.rotation.x -= 0.1;
-      camera.dirty = true;
-    } else if (event.key === 'w') {
-      camera.rotation.y += 0.1;
-      camera.dirty = true;
-    } else if (event.key === 's') {
-      camera.rotation.y -= 0.1;
-      camera.dirty = true;
-    } else if (event.key === 'q') {
-      camera.rotation.z += 0.1;
-      camera.dirty = true;
-    } else if (event.key === 'e') {
-      camera.rotation.z -= 0.1;
-      camera.dirty = true;
-    }
-  });
-
-  let isPanning = false;
-  let panX = 0;
-  let panY = 0;
-  let lastX = 0;
-  let lastY = 0;
-  canvas.addEventListener('mousedown', event => {
-    isPanning = true;
-    panX = event.screenX;
-    panY = event.screenY;
-  });
-  canvas.addEventListener('mouseup', event => {
-    isPanning = false;
-    lastX = camera.rotation.x;
-    lastY = camera.rotation.y;
-  });
-  canvas.addEventListener('mousemove', (event) => {
-    const x = event.screenX;
-    const y = event.screenY
-    if (isPanning) {
-      camera.rotation.x = (lastX + (x - panX) / 300) % (Math.PI * 2);
-      camera.rotation.y = (lastY + (y - panY) / 300) % (Math.PI * 2);
-      camera.dirty = true;
-    }
-  });
-
-  window.addEventListener('wheel', event => {
-    camera.zoom = clamp(camera.zoom + event.deltaY * 0.005, 0.1, 2);
-    camera.dirty = true;
-  });
-}
-
 let drawMode = 'centroid';
 let draw_plateVectors = false;
-let draw_plateBoundaries = false;
+let draw_plateBoundaries = true;
 let drawCellCenter = false;
 
 const initialOptions: IGlobeOptions = {
@@ -89,77 +24,81 @@ const initialOptions: IGlobeOptions = {
 class GameManager {
   options$: ObservableDict<IGlobeOptions>;
   renderer: ReturnType<typeof Renderer>;
+  camera: any;
   globe: Globe;
+
+  removeDrawLoop: any;
+  shouldDraw: boolean;
 
   constructor(canvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
     this.generate();
 
-    const renderer = Renderer(canvas, onLoad);
+    const renderer = Renderer(canvas, this.onLoad(canvas));
     this.renderer = renderer;
-    camera.dirty = true;
+    this.shouldDraw = true;
 
-    renderer.regl.frame(() => {
-      if (!camera.dirty) return;
-      renderer.regl.clear({ color: [0, 0, 0, 1] })
-      this.draw();
+    this.removeDrawLoop = renderer.regl.frame(() => {
+      renderer.camera((state) => {
+        if (!state.dirty) return;
+        renderer.regl.clear({ color: [0, 0, 0, 1], depth: 1 });
+        this.draw(state);
+      });
     });
+  }
+  
+  onLoad = (canvas) => () => {
+  }
+
+  destroy() {
+    this.removeDrawLoop();
   }
 
   generate() {
     const globe = new Globe(this.options$.toObject() as any);
     this.globe = globe;
-    camera.dirty = true;
+    this.shouldDraw = true;
   }
 
-  draw() {
-    let u_projection = mat4.create();
-    const sizeRatio = window.innerWidth / window.innerHeight;
-    mat4.scale(u_projection, u_projection, [camera.zoom, sizeRatio * camera.zoom, 1]);
-    mat4.rotate(u_projection, u_projection, -camera.rotation.x, [0, 1, 0]);
-    mat4.rotate(u_projection, u_projection, -camera.rotation.y, [1, 0, 0]);
-    mat4.rotate(u_projection, u_projection, -camera.rotation.z, [0, 0, 1]);
-
-    const u_projection_line = mat4.clone(u_projection);
-    mat4.scale(u_projection_line, u_projection_line, [1.001, 1.001, 1.001]);
-
+  draw(state) {
     const { mesh, triangleGeometry, quadGeometry, r_xyz } = this.globe;
 
     if (drawMode === 'centroid') {
       this.renderer.renderTriangles({
-        u_projection,
         a_xyz: triangleGeometry.xyz,
         a_tm: triangleGeometry.tm,
         count: triangleGeometry.xyz.length / 3,
       });
     } else if (drawMode === 'quads') {
       this.renderer.renderIndexedTriangles({
-        u_projection,
         a_xyz: quadGeometry.xyz,
         a_tm: quadGeometry.tm,
         elements: quadGeometry.I,
       } as any);
     }
 
-    this.renderer.drawRivers(u_projection_line, mesh, this.globe, camera.zoom);
+    this.renderer.drawRivers(
+      mesh,
+      this.globe,
+      0.5
+    );
 
     if (draw_plateVectors) {
-      this.renderer.drawPlateVectors(u_projection, mesh, this.globe, this.options$.toObject());
+      this.renderer.drawPlateVectors(mesh, this.globe, this.options$.toObject());
     }
     if (draw_plateBoundaries) {
-      this.renderer.drawPlateBoundaries(u_projection_line, mesh, this.globe);
+      this.renderer.drawPlateBoundaries(state.projection, state.view, mesh, this.globe);
     }
 
     if (drawCellCenter) {
       let u_pointsize = 0.1 + 100 / Math.sqrt(this.options$.get('numberCells'));
       this.renderer.renderPoints({
-        u_projection,
         u_pointsize,
         a_xyz: r_xyz,
         count: mesh.numRegions,
       });
     }
-    camera.dirty = true;
+    this.shouldDraw = true;
   }
 }
 

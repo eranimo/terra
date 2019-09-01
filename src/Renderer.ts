@@ -7,25 +7,21 @@ import { IGlobeOptions } from './types';
 
 
 type PointsUniforms = {
-  u_projection: REGL.Mat4,
   u_pointsize: REGL.Mat4,
 }
 
 type PointsProps = {
-  u_projection: mat4,
   u_pointsize: number,
   count: number,
   a_xyz: number[],
 }
 
 type LinesUniforms = {
-  u_projection: REGL.Mat4,
   u_multiply_rgba: REGL.Mat4,
   u_add_rgba: REGL.Mat4,
 }
 
 type LinesProps = {
-  u_projection: mat4,
   u_multiply_rgba: number[],
   u_add_rgba: number[],
   count: number,
@@ -34,12 +30,10 @@ type LinesProps = {
 }
 
 type TrianglesUniforms = {
-  u_projection: REGL.Mat4,
   u_colormap: REGL.Texture,
 }
 
 type TrianglesProps = {
-  u_projection: mat4,
   u_colormap?: number[],
   count: number,
   a_xyz: number[],
@@ -47,7 +41,6 @@ type TrianglesProps = {
 }
 
 type IndexedTrianglesUniforms = {
-  u_projection: REGL.Mat4,
   u_colormap: REGL.Texture,
   u_light_angle: REGL.Vec2,
   u_inverse_texture_size: number,
@@ -59,7 +52,6 @@ type IndexedTrianglesUniforms = {
 }
 
 type IndexedTrianglesProps = {
-  u_projection: mat4,
   u_colormap?: number[],
   elements: Int32Array,
   a_xyz: number[],
@@ -71,6 +63,15 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     canvas: canvas,
     extensions: ['OES_element_index_uint', 'OES_standard_derivatives', 'ANGLE_instanced_arrays'],
     onDone: onLoad,
+  });
+
+  const camera = require('regl-camera')(regl, {
+    center: [0, 0, 0],
+    distance: 2,
+    rotationSpeed: 0.8,
+    damping: 0,
+    maxDistance: 3,
+    minDistance: 1.2,
   });
 
   const u_colormap = regl.texture({
@@ -92,35 +93,33 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
 
     vert: `
   precision mediump float;
-  uniform mat4 u_projection;
   uniform mat4 projection, view;
   uniform float u_pointsize;
   attribute vec3 a_xyz;
 
   void main() {
-  gl_Position = u_projection * vec4(a_xyz, 1);
+  gl_Position = projection * view * vec4(a_xyz, 1);
   gl_PointSize = gl_Position.z > 0.0? 0.0 : u_pointsize;
   }
   `,
 
     depth: {
-        enable: false,
+      enable: false,
     },
-    
+
     uniforms: {
-        u_projection: regl.prop<PointsProps, 'u_projection'>('u_projection'),
-        u_pointsize: regl.prop<PointsProps, 'u_pointsize'>('u_pointsize'),
+      u_pointsize: regl.prop<PointsProps, 'u_pointsize'>('u_pointsize'),
     },
 
     primitive: 'points',
     count: regl.prop<PointsProps, 'count'>('count'),
     attributes: {
-        a_xyz: regl.prop<PointsProps, 'a_xyz'>('a_xyz'),
+      a_xyz: regl.prop<PointsProps, 'a_xyz'>('a_xyz'),
     },
 
     cull: {
-        enable: true,
-        face: 'front'
+      enable: true,
+      face: 'front'
     },
   });
 
@@ -138,47 +137,46 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
 
     vert: `
   precision mediump float;
-  uniform mat4 u_projection;
+  uniform mat4 projection, view;
   attribute vec3 a_xyz;
   attribute vec4 a_rgba;
   varying vec4 v_rgba;
 
   void main() {
-  vec4 pos = u_projection * vec4(a_xyz, 1);
+  vec4 pos = projection * view * vec4(a_xyz, 1);
   v_rgba = (-2.0 * pos.z) * a_rgba;
   gl_Position = pos;
   }
   `,
 
     depth: {
-        enable: false,
+      enable: false,
     },
-    
+
     uniforms: {
-        u_projection: regl.prop<LinesProps, 'u_projection'>('u_projection'),
-        u_multiply_rgba: regl.prop<LinesProps, 'u_multiply_rgba'>('u_multiply_rgba'),
-        u_add_rgba: regl.prop<LinesProps, 'u_add_rgba'>('u_add_rgba'),
+      u_multiply_rgba: regl.prop<LinesProps, 'u_multiply_rgba'>('u_multiply_rgba'),
+      u_add_rgba: regl.prop<LinesProps, 'u_add_rgba'>('u_add_rgba'),
     },
 
     blend: {
-        enable: true,
-        func: {src: 'one', dst: 'one minus src alpha'},
-        equation: {
-            rgb: 'add',
-            alpha: 'add'
-        },
-        color: [0, 0, 0, 0],
+      enable: true,
+      func: { src: 'one', dst: 'one minus src alpha' },
+      equation: {
+        rgb: 'add',
+        alpha: 'add'
+      },
+      color: [0, 0, 0, 0],
     },
     primitive: 'lines',
     count: regl.prop<LinesProps, 'count'>('count'),
     attributes: {
-        a_xyz: regl.prop<LinesProps, 'a_xyz'>('a_xyz'),
-        a_rgba: regl.prop<LinesProps, 'a_rgba'>('a_rgba'),
+      a_xyz: regl.prop<LinesProps, 'a_xyz'>('a_xyz'),
+      a_rgba: regl.prop<LinesProps, 'a_rgba'>('a_rgba'),
     },
 
     cull: {
-        enable: true,
-        face: 'front'
+      enable: true,
+      face: 'front'
     },
   });
 
@@ -196,25 +194,25 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
 
     vert: `
   precision mediump float;
-  uniform mat4 u_projection;
+  uniform mat4 projection, view;
   attribute vec3 a_xyz;
   attribute vec2 a_tm;
   varying vec2 v_tm;
+
   void main() {
-  v_tm = a_tm;
-  gl_Position = u_projection * vec4(a_xyz, 1);
+    v_tm = a_tm;
+    gl_Position = projection * view * vec4(a_xyz, 1);
   }
   `,
 
     uniforms: {
-        u_colormap,
-        u_projection: regl.prop<TrianglesProps, 'u_projection'>('u_projection'),
+      u_colormap,
     },
 
     count: regl.prop<TrianglesProps, 'count'>('count'),
     attributes: {
-        a_xyz: regl.prop<TrianglesProps, 'a_xyz'>('a_xyz'),
-        a_tm: regl.prop<TrianglesProps, 'a_tm'>('a_tm'),
+      a_xyz: regl.prop<TrianglesProps, 'a_xyz'>('a_xyz'),
+      a_tm: regl.prop<TrianglesProps, 'a_tm'>('a_tm'),
     },
   });
 
@@ -245,44 +243,42 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
 
     vert: `
   precision mediump float;
-  uniform mat4 u_projection;
+  uniform mat4 projection, view;
   attribute vec3 a_xyz;
   attribute vec2 a_tm;
   varying vec2 v_tm;
 
   void main() {
   v_tm = a_tm;
-  gl_Position = u_projection * vec4(a_xyz, 1);
+  gl_Position = projection * view * vec4(a_xyz, 1);
   }
   `,
 
     uniforms: {
-        u_projection: regl.prop<IndexedTrianglesProps, 'u_projection'>('u_projection'),
-        u_colormap,
-        u_light_angle: [Math.cos(Math.PI/3), Math.sin(Math.PI/3)],
-        u_inverse_texture_size: 1.0 / 2048,
-        u_d: 60,
-        u_c: 0.15,
-        u_slope: 6,
-        u_flat: 2.5,
-        u_outline_strength: 5,
+      u_colormap,
+      u_light_angle: [Math.cos(Math.PI / 3), Math.sin(Math.PI / 3)],
+      u_inverse_texture_size: 1.0 / 2048,
+      u_d: 60,
+      u_c: 0.15,
+      u_slope: 6,
+      u_flat: 2.5,
+      u_outline_strength: 5,
     },
 
     elements: regl.prop<IndexedTrianglesProps, 'elements'>('elements'),
     attributes: {
-        a_xyz: regl.prop<IndexedTrianglesProps, 'a_xyz'>('a_xyz'),
-        a_tm: regl.prop<IndexedTrianglesProps, 'a_tm'>('a_tm'),
+      a_xyz: regl.prop<IndexedTrianglesProps, 'a_xyz'>('a_xyz'),
+      a_tm: regl.prop<IndexedTrianglesProps, 'a_tm'>('a_tm'),
     },
   });
 
   function drawPlateVectors(
-    u_projection: mat4,
     mesh: TriangleMesh,
     { r_xyz, r_plate, plate_vec },
     options: IGlobeOptions,
   ) {
     let line_xyz = [], line_rgba = [];
-  
+
     for (let r = 0; r < mesh.numRegions; r++) {
       line_xyz.push(r_xyz.slice(3 * r, 3 * r + 3));
       line_rgba.push([1, 1, 1, 1]);
@@ -290,9 +286,8 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
         vec3.scale([] as any, plate_vec[r_plate[r]], 2 / Math.sqrt(options.numberCells))));
       line_rgba.push([1, 0, 0, 0]);
     }
-  
+
     renderLines({
-      u_projection,
       u_multiply_rgba: [1, 1, 1, 1],
       u_add_rgba: [0, 0, 0, 0],
       a_xyz: line_xyz,
@@ -300,8 +295,13 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
       count: line_xyz.length,
     });
   }
-  
-  function drawPlateBoundaries(u_projection, mesh: TriangleMesh, { t_xyz, r_plate }) {
+
+  function drawPlateBoundaries(
+    projection: mat4,
+    view: mat4,
+    mesh: TriangleMesh,
+    { t_xyz, r_plate },
+  ) {
     const points = [];
     const widths = [];
     for (let s = 0; s < mesh.numSides; s++) {
@@ -316,19 +316,24 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
         widths.push(0, 5, 5, 0);
       }
     }
-  
+
     const line = createLine(regl, {
       color: [1.0, 1.0, 1.0, 1.0],
       widths,
       points,
     });
-  
+
     line.draw({
-      projection: u_projection,
+      projection: projection,
+      view: view,
     } as any);
   }
-  
-  function drawRivers(u_projection, mesh: TriangleMesh, { t_xyz, s_flow }, zoomLevel) {
+
+  function drawRivers(
+    mesh: TriangleMesh,
+    { t_xyz, s_flow },
+    zoomLevel: number
+  ) {
     let points = [];
     let widths = [];
     for (let s = 0; s < mesh.numSides; s++) {
@@ -344,20 +349,23 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
         widths.push(0, width, width, 0);
       }
     }
-  
+
     const line = createLine(regl, {
       color: [0.0, 0.0, 1.0, 1.0],
       widths,
       points,
+      miter: 1
     });
-  
+
     line.draw({
-      projection: u_projection,
+      model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
     } as any);
   }
 
   return {
     regl,
+    camera,
+
     renderPoints,
     renderLines,
     renderTriangles,
