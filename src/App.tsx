@@ -28,16 +28,12 @@ class GameManager {
   globe: Globe;
 
   removeDrawLoop: any;
-  shouldDraw: boolean;
 
   constructor(canvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
-    this.generate();
 
     const renderer = Renderer(canvas, this.onLoad(canvas));
     this.renderer = renderer;
-    this.shouldDraw = true;
-
     this.removeDrawLoop = renderer.regl.frame(() => {
       renderer.camera((state) => {
         if (!state.dirty) return;
@@ -45,6 +41,8 @@ class GameManager {
         this.draw(state);
       });
     });
+
+    this.generate();
   }
   
   onLoad = (canvas) => () => {
@@ -57,7 +55,7 @@ class GameManager {
   generate() {
     const globe = new Globe(this.options$.toObject() as any);
     this.globe = globe;
-    this.shouldDraw = true;
+    this.renderer.camera.dirty = true;
   }
 
   draw(state) {
@@ -98,7 +96,7 @@ class GameManager {
         count: mesh.numRegions,
       });
     }
-    this.shouldDraw = true;
+    this.renderer.camera.dirty = true;
   }
 }
 
