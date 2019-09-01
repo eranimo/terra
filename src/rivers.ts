@@ -8,6 +8,7 @@
 
 import FlatQueue from 'flatqueue';
 import TriangleMesh from '@redblobgames/dual-mesh';
+import { IGlobeOptions } from './types';
 
 
 export function assignTriangleValues(mesh: TriangleMesh, { r_elevation, r_moisture, /* out */ t_elevation, t_moisture }) {
@@ -28,8 +29,8 @@ export function assignDownflow(mesh: TriangleMesh, { t_elevation, /* out */ t_do
   /* Use a priority queue, starting with the ocean triangles and
    * moving upwards using elevation as the priority, to visit all
    * the land triangles */
-  let { numTriangles } = mesh,
-    queue_in = 0;
+  let { numTriangles } = mesh;
+  let queue_in = 0;
   t_downflow_s.fill(-999);
   /* Part 1: ocean triangles get downslope assigned to the lowest neighbor */
   for (let t = 0; t < numTriangles; t++) {
@@ -64,12 +65,16 @@ export function assignDownflow(mesh: TriangleMesh, { t_elevation, /* out */ t_do
 }
 
 
-export function assignFlow(mesh: TriangleMesh, { order_t, t_elevation, t_moisture, t_downflow_s, /* out */ t_flow, /* out */ s_flow }) {
+export function assignFlow(
+  mesh: TriangleMesh,
+  options: IGlobeOptions,
+  { order_t, t_elevation, t_moisture, t_downflow_s, /* out */ t_flow, /* out */ s_flow }
+) {
   let { numTriangles, _halfedges } = mesh;
   s_flow.fill(0);
   for (let t = 0; t < numTriangles; t++) {
     if (t_elevation[t] >= 0.0) {
-      t_flow[t] = 0.5 * t_moisture[t] * t_moisture[t];
+      t_flow[t] = options.flowModifier * t_moisture[t] * t_moisture[t];
     } else {
       t_flow[t] = 0;
     }

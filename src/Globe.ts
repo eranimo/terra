@@ -65,13 +65,15 @@ export class Globe {
       }
     }
     assignRegionElevation(this.mesh, this.options, this);
+
     // TODO: assign region moisture in a better way!
     for (let r = 0; r < this.mesh.numRegions; r++) {
       this.r_moisture[r] = (this.r_plate[r] % 10) / 10.0;
     }
+
     assignTriangleValues(this.mesh, this);
     assignDownflow(this.mesh, this);
-    assignFlow(this.mesh, this);
+    assignFlow(this.mesh, this.options, this);
 
     this.quadGeometry.setMap(this.mesh, this);
     console.log('map', this);

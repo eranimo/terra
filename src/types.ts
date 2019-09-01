@@ -8,4 +8,5 @@ export interface IGlobeOptions {
   numberCells: number,
   jitter: number,
   numberPlates: number,
+  flowModifier: number,
 }

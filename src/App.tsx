@@ -6,6 +6,7 @@ import { Globe } from './Globe';
 import Renderer from './Renderer';
 import { mat4 } from 'gl-matrix';
 import { useWindowSize } from 'react-use';
+import { clamp } from 'lodash';
 
 
 const camera = {
@@ -21,20 +22,23 @@ const camera = {
 function onLoad() {
   const canvas = document.querySelector('canvas');
   document.addEventListener('keydown', event => {
-    if (event.key === 'ArrowLeft') {
+    if (event.key === 'a') {
       camera.rotation.x += 0.1;
       camera.dirty = true;
-    } else if (event.key === 'ArrowRight') {
+    } else if (event.key === 'd') {
       camera.rotation.x -= 0.1;
       camera.dirty = true;
-    } else if (event.key === 'ArrowUp') {
+    } else if (event.key === 'w') {
       camera.rotation.y += 0.1;
       camera.dirty = true;
-    } else if (event.key === 'ArrowDown') {
+    } else if (event.key === 's') {
       camera.rotation.y -= 0.1;
       camera.dirty = true;
-    } else if (event.key === 'd') {
+    } else if (event.key === 'q') {
       camera.rotation.z += 0.1;
+      camera.dirty = true;
+    } else if (event.key === 'e') {
+      camera.rotation.z -= 0.1;
       camera.dirty = true;
     }
   });
@@ -65,7 +69,7 @@ function onLoad() {
   });
 
   window.addEventListener('wheel', event => {
-    camera.zoom += event.deltaY * 0.005;
+    camera.zoom = clamp(camera.zoom + event.deltaY * 0.005, 0.1, 2);
     camera.dirty = true;
   });
 }
@@ -79,7 +83,8 @@ const initialOptions: IGlobeOptions = {
   seed: 123,
   numberCells: 10_000,
   jitter: 0.75,
-  numberPlates: 30,
+  numberPlates: 20,
+  flowModifier: 0.5,
 }
 class GameManager {
   options$: ObservableDict<IGlobeOptions>;
@@ -116,7 +121,7 @@ class GameManager {
     mat4.rotate(u_projection, u_projection, -camera.rotation.z, [0, 0, 1]);
 
     const u_projection_line = mat4.clone(u_projection);
-    mat4.scale(u_projection_line, u_projection_line, [1.0001, 1.0001, 1.0001]);
+    mat4.scale(u_projection_line, u_projection_line, [1.001, 1.001, 1.001]);
 
     const { mesh, triangleGeometry, quadGeometry, r_xyz } = this.globe;
 
@@ -136,10 +141,10 @@ class GameManager {
       } as any);
     }
 
-    this.renderer.drawRivers(u_projection_line, mesh, this.globe);
+    this.renderer.drawRivers(u_projection_line, mesh, this.globe, camera.zoom);
 
     if (draw_plateVectors) {
-      this.renderer.drawPlateVectors(u_projection, mesh, this.globe);
+      this.renderer.drawPlateVectors(u_projection, mesh, this.globe, this.options$.toObject());
     }
     if (draw_plateBoundaries) {
       this.renderer.drawPlateBoundaries(u_projection_line, mesh, this.globe);
@@ -182,6 +187,7 @@ function Controls({ manager }: { manager: GameManager }) {
   const seed = useObservable(manager.options$.ofKey('seed'), manager.options$.value.seed);
   const cells = useObservable(manager.options$.ofKey('numberCells'), manager.options$.value.numberCells);
   const plates = useObservable(manager.options$.ofKey('numberPlates'), manager.options$.value.numberPlates);
+  const flowModifier = useObservable(manager.options$.ofKey('flowModifier'), manager.options$.value.flowModifier);
   return (
     <div id="controls">
       <h1>Terra</h1>
@@ -201,6 +207,7 @@ function Controls({ manager }: { manager: GameManager }) {
         <Input
           type="number"
           value={cells}
+          min={0}
           onChange={value => manager.options$.set('numberCells', parseInt(value, 10))}
         />
       </fieldset>
@@ -211,7 +218,21 @@ function Controls({ manager }: { manager: GameManager }) {
         <Input
           type="number"
           value={plates}
+          min={0}
           onChange={value => manager.options$.set('numberPlates', parseInt(value, 10))}
+        />
+      </fieldset>
+
+      <fieldset>
+        <legend>Flow modifier:</legend>
+
+        <Input
+          type="number"
+          value={flowModifier}
+          min={0}
+          max={1}
+          step={0.1}
+          onChange={value => manager.options$.set('flowModifier', value)}
         />
       </fieldset>
     </div>

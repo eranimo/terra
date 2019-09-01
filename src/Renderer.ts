@@ -3,9 +3,8 @@ import * as colormap from './colormap';
 import { vec3, mat4 } from 'gl-matrix';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import createLine from 'regl-line';
+import { IGlobeOptions } from './types';
 
-
-let N = 10000;
 
 type PointsUniforms = {
   u_projection: REGL.Mat4,
@@ -279,7 +278,8 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   function drawPlateVectors(
     u_projection: mat4,
     mesh: TriangleMesh,
-    { r_xyz, r_plate, plate_vec }
+    { r_xyz, r_plate, plate_vec },
+    options: IGlobeOptions,
   ) {
     let line_xyz = [], line_rgba = [];
   
@@ -287,7 +287,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
       line_xyz.push(r_xyz.slice(3 * r, 3 * r + 3));
       line_rgba.push([1, 1, 1, 1]);
       line_xyz.push(vec3.add([] as any, r_xyz.slice(3 * r, 3 * r + 3),
-        vec3.scale([] as any, plate_vec[r_plate[r]], 2 / Math.sqrt(N))));
+        vec3.scale([] as any, plate_vec[r_plate[r]], 2 / Math.sqrt(options.numberCells))));
       line_rgba.push([1, 0, 0, 0]);
     }
   
@@ -313,7 +313,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
         const x = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
         const y = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
         points.push(...x, ...x, ...y, ...y);
-        widths.push(0, 8, 8, 0);
+        widths.push(0, 5, 5, 0);
       }
     }
   
@@ -328,7 +328,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     } as any);
   }
   
-  function drawRivers(u_projection, mesh: TriangleMesh, { t_xyz, s_flow }) {
+  function drawRivers(u_projection, mesh: TriangleMesh, { t_xyz, s_flow }, zoomLevel) {
     let points = [];
     let widths = [];
     for (let s = 0; s < mesh.numSides; s++) {
@@ -340,7 +340,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
         const x = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
         const y = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
         points.push(...x, ...x, ...y, ...y);
-        const width = Math.max(2, flow * 10);
+        const width = Math.max(2, flow * 5) * zoomLevel;
         widths.push(0, width, width, 0);
       }
     }
