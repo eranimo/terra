@@ -72,6 +72,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     distance: 2,
     rotationSpeed: 0.8,
     damping: 0,
+    fovy: Math.PI / 4.0,
     maxDistance: 3,
     minDistance: 1.2,
   });
@@ -89,7 +90,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   precision mediump float;
 
   void main() {
-    gl_FragColor = vec4(0, 0, 0, 1);
+    gl_FragColor = vec4(1, 1, 1, 1);
   }
   `,
 
@@ -101,7 +102,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
 
   void main() {
     gl_Position = projection * view * vec4(a_xyz, 1);
-    gl_PointSize = gl_Position.z > 0.0 ? 0.0 : u_pointsize;
+    gl_PointSize = 10.0; //gl_Position.z > 0.0 ? 0.0 : u_pointsize;
   }
   `,
 
@@ -404,12 +405,12 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     for (let s = 0; s < mesh.numSides; s++) {
       if (s_flow[s] > 1) {
         let flow = 0.1 * Math.sqrt(s_flow[s]);
-        let inner_t = mesh.s_inner_t(s),
-          outer_t = mesh.s_outer_t(s);
+        const inner_t = mesh.s_inner_t(s);
+        const outer_t = mesh.s_outer_t(s);
         if (flow > 1) flow = 1;
-        const x = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
-        const y = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-        points.push(...x, ...x, ...y, ...y);
+        const p1 = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+        const p2 = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+        points.push(...p1, ...p1, ...p2, ...p2);
         const width = Math.max(2, flow * 5) * zoomLevel;
         widths.push(0, width, width, 0);
       }
@@ -439,6 +440,30 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     } as any);
   }
 
+  function drawCell(mesh: TriangleMesh, { t_xyz }, region: number) {
+    let points = [];
+    let sides = [];
+    mesh.r_circulate_s(sides, region);
+    for (const s of sides) {
+      const inner_t = mesh.s_inner_t(s);
+      const outer_t = mesh.s_outer_t(s);
+      const p1 = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+      const p2 = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+      points.push(...p1, ...p2);
+    }
+
+    const line = createLine(regl, {
+      color: [0.0, 0.0, 0.0, 1.0],
+      width: 2,
+      points,
+      miter: 1
+    });
+
+    line.draw({
+      model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
+    } as any);
+  }
+
   return {
     regl,
     camera,
@@ -448,6 +473,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     renderTriangles,
     renderIndexedTriangles,
 
+    drawCell,
     drawPlateVectors,
     drawPlateBoundaries,
     drawCellBorders,

@@ -4,9 +4,10 @@ import { useObservable, useObservableDict } from './utils/hooks';
 import { ObservableDict } from './utils/ObservableDict';
 import { Globe } from './Globe';
 import Renderer from './Renderer';
-import { mat4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import { useWindowSize } from 'react-use';
 import { clamp } from 'lodash';
+import { intersectTriangle } from './utils';
 
 
 let drawMode = 'centroid';
@@ -33,11 +34,13 @@ class GameManager {
   globe: Globe;
 
   removeDrawLoop: any;
+  selectedRegion: any;
 
   constructor(canvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
 
+    this.selectedRegion = null;
     
     const renderer = Renderer(canvas, this.onLoad(canvas));
     this.renderer = renderer;
@@ -50,11 +53,65 @@ class GameManager {
       });
     });
     (window as any).renderer = renderer;
-
+    
     this.generate();
+    (window as any).globe = this.globe;
   }
   
   onLoad = (canvas) => () => {
+    let isPanning = false;
+    canvas.addEventListener('mouseup', () => isPanning = false );
+    canvas.addEventListener('mousedown', () => isPanning = true );
+    canvas.addEventListener('mousemove', (event) => {
+      if (event.shiftKey || isPanning) return;
+      const { left, top } = canvas.getBoundingClientRect();
+      const { clientX, clientY } = event;
+      const mouseX = clientX - left;
+      const mouseY = clientY - top;
+      const { projection, view } = this.renderer.camera;
+      const vp = mat4.multiply([] as any, projection, view);
+      let invVp = mat4.invert([] as any, vp);
+
+      // get a single point on the camera ray.
+      const rayPoint = vec3.transformMat4(
+        [] as any,
+        [
+          2.0 * mouseX / canvas.width - 1.0,
+          -2.0 * mouseY / canvas.height + 1.0,
+          0.0
+        ],
+        invVp,
+      );
+      // get the position of the camera.
+      const rayOrigin = vec3.transformMat4([] as any, [0, 0, 0], mat4.invert([] as any, view));
+      const rayDir = vec3.negate([] as any, vec3.normalize([] as any, vec3.subtract([] as any, rayPoint, rayOrigin)));
+
+      const { mesh, t_xyz, r_xyz } = this.globe;
+      let sides = [];
+      let maxT = -1e10;
+      this.selectedRegion = null;
+      for (let s = 0; s < mesh.numSides; s++) {
+        const inner_t = mesh.s_inner_t(s);
+        const outer_t = mesh.s_outer_t(s);
+        const begin_r = mesh.s_begin_r(s);
+        const x = vec3.fromValues(t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]);
+        const y = vec3.fromValues(t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]);
+        const z = vec3.fromValues(r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]);
+        const tri = [x, y, z];
+
+        let out = [];
+        const t = intersectTriangle(out, rayPoint, rayDir, tri);
+        if (t !== null) {
+          // console.log(s, t, out);
+          if (t > maxT) {
+            maxT = t;
+            this.selectedRegion = mesh.s_begin_r(s);
+            break;
+          }
+        }
+      }
+      this.renderer.camera.dirty = true;
+    });
   }
 
   destroy() {
@@ -110,6 +167,14 @@ class GameManager {
         a_xyz: r_xyz,
         count: mesh.numRegions,
       });
+    }
+
+    if (this.selectedRegion) {
+      this.renderer.drawCell(
+        mesh,
+        this.globe,
+        this.selectedRegion,
+      );
     }
   }
 }
