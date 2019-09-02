@@ -34,13 +34,13 @@ class GameManager {
   globe: Globe;
 
   removeDrawLoop: any;
-  selectedRegion: any;
+  hoveredCell: any;
 
   constructor(canvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
 
-    this.selectedRegion = null;
+    this.hoveredCell = null;
     
     const renderer = Renderer(canvas, this.onLoad(canvas));
     this.renderer = renderer;
@@ -61,7 +61,10 @@ class GameManager {
   onLoad = (canvas) => () => {
     let isPanning = false;
     canvas.addEventListener('mouseup', () => isPanning = false );
-    canvas.addEventListener('mousedown', () => isPanning = true );
+    canvas.addEventListener('mousedown', () => {
+      isPanning = true;
+      this.hoveredCell = null;
+    });
     canvas.addEventListener('mousemove', (event) => {
       if (event.shiftKey || isPanning) return;
       const { left, top } = canvas.getBoundingClientRect();
@@ -89,7 +92,7 @@ class GameManager {
       const { mesh, t_xyz, r_xyz } = this.globe;
       let sides = [];
       let maxT = -1e10;
-      this.selectedRegion = null;
+      this.hoveredCell = null;
       for (let s = 0; s < mesh.numSides; s++) {
         const inner_t = mesh.s_inner_t(s);
         const outer_t = mesh.s_outer_t(s);
@@ -105,7 +108,7 @@ class GameManager {
           // console.log(s, t, out);
           if (t > maxT) {
             maxT = t;
-            this.selectedRegion = mesh.s_begin_r(s);
+            this.hoveredCell = mesh.s_begin_r(s);
             break;
           }
         }
@@ -169,11 +172,11 @@ class GameManager {
       });
     }
 
-    if (this.selectedRegion) {
+    if (this.hoveredCell) {
       this.renderer.drawCell(
         mesh,
         this.globe,
-        this.selectedRegion,
+        this.hoveredCell,
       );
     }
   }
