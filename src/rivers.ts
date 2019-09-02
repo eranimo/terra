@@ -96,4 +96,14 @@ export function assignFlow(
       }
     }
   }
+
+  for (let s = 0; s <= mesh.numSides; s++) {
+    if (s_flow[s] > 1) {
+      const inner = mesh.s_inner_t(s);
+      const outer = mesh.s_outer_t(s);
+      if (t_elevation[inner] < 0 || t_elevation[outer] < 0) {
+        s_flow[s] = 0;
+      }
+    }
+  }
 }

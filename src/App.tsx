@@ -14,7 +14,7 @@ let drawMode = 'centroid';
 const initialOptions: IGlobeOptions = {
   seed: 123,
   numberCells: 10_000,
-  jitter: 0.3,
+  jitter: 0.6,
   numberPlates: 20,
   flowModifier: 0.5,
 }
@@ -49,6 +49,7 @@ class GameManager {
         this.draw();
       });
     });
+    (window as any).renderer = renderer;
 
     this.generate();
   }
