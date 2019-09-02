@@ -39,11 +39,30 @@ body, html {
   top: 0;
   z-index: 100;
   width: auto;
-  padding: 1rem;
+}
+
+.field {
+  height: 2rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #333;
+  cursor: pointer;
+  /* margin: 1rem; */
+}
+.field:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.field__title {
+  margin-right: 1rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
 }
 
 h1, h2 {
-  margin: 0;
+  margin: 1rem;
   padding: 0;
 }
 
@@ -61,11 +80,15 @@ button:hover {
   color: #111;
 }
 input {
-  border: 1px solid #C0C0C0;
+  border: 1px solid #666;
   padding: 0.25rem 0.5rem;
   border-radius: 2px;
   background-color: transparent;
   color: #C0C0C0;
+}
+input:focus {
+  outline: none;
+  border-color: #306496;
 }
 
 fieldset {

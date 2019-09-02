@@ -210,20 +210,12 @@ function Input({
 
 function Field({ title, children }) {
   return (
-    <div style={{
-      height: '30px',
-    }}>
-      <label style={{
-        display: 'flex'
-      }}>
-        <span style={{
-          marginRight: '1rem'
-        }}>
-          {title}
-        </span>
-        {children}
-      </label>
-    </div>
+    <label className="field">
+      <span className="field__title">
+        {title}
+      </span>
+      {children}
+    </label>
   );
 }
 
