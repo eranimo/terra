@@ -11,6 +11,7 @@ import { IGlobeOptions } from './types';
 export class Globe {
   mesh: TriangleMesh;
   r_xyz: number[];
+  latlong: number[];
   triangleGeometry: any;
   quadGeometry: QuadGeometry;
 
@@ -31,10 +32,11 @@ export class Globe {
 
   constructor(public options: IGlobeOptions) {
     console.log('options', options)
-    const { mesh, r_xyz } = makeSphere(options.numberCells, options.jitter, makeRandFloat(options.seed));
+    const { mesh, r_xyz, latlong } = makeSphere(options.numberCells, options.jitter, makeRandFloat(options.seed));
     this.mesh = mesh;
     console.log('mesh', mesh)
     this.r_xyz = r_xyz;
+    this.latlong = latlong;
     this.quadGeometry = new QuadGeometry();
     this.quadGeometry.setMesh(mesh);
 

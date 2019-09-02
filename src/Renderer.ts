@@ -4,6 +4,7 @@ import { vec3, mat4 } from 'gl-matrix';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import createLine from 'regl-line';
 import { IGlobeOptions } from './types';
+import setupCamera from './camera';
 
 
 type PointsUniforms = {
@@ -67,7 +68,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     onDone: onLoad,
   });
 
-  const camera = require('regl-camera')(regl, {
+  const camera = setupCamera(regl, {
     center: [0, 0, 0],
     distance: 2,
     rotationSpeed: 0.8,

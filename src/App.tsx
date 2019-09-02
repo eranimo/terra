@@ -45,14 +45,15 @@ class GameManager {
     
     const renderer = Renderer(canvas, this.onLoad(canvas));
     this.renderer = renderer;
-    this.drawOptions$.subscribe(() => renderer.camera.dirty = true);
+    this.drawOptions$.subscribe(() => renderer.camera.setDirty());
     this.removeDrawLoop = renderer.regl.frame(() => {
-      renderer.camera((state) => {
+      renderer.camera.run((state) => {
         if (!state.dirty) return;
         renderer.regl.clear({ color: [0, 0, 0, 1], depth: 1 });
         this.draw();
       });
     });
+    (window as any).manager = this;
     (window as any).renderer = renderer;
     
     this.generate();
@@ -72,7 +73,7 @@ class GameManager {
       const { clientX, clientY } = event;
       const mouseX = clientX - left;
       const mouseY = clientY - top;
-      const { projection, view } = this.renderer.camera;
+      const { projection, view } = this.renderer.camera.state;
       const vp = mat4.multiply([] as any, projection, view);
       let invVp = mat4.invert([] as any, vp);
 
@@ -114,7 +115,7 @@ class GameManager {
           }
         }
       }
-      this.renderer.camera.dirty = true;
+      this.renderer.camera.setDirty();
     });
   }
 
@@ -122,10 +123,14 @@ class GameManager {
     this.removeDrawLoop();
   }
 
+  resetCamera() {
+    this.destroy();
+  }
+
   generate() {
     const globe = new Globe(this.options$.toObject() as any);
     this.globe = globe;
-    this.renderer.camera.dirty = true;
+    this.renderer.camera.setDirty();
   }
 
   draw() {

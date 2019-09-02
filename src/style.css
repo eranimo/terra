@@ -59,6 +59,7 @@ body, html {
   display: flex;
   align-items: center;
   cursor: pointer;
+  user-select: none;
 }
 
 h1, h2 {

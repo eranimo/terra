@@ -125,6 +125,7 @@ function stereographicProjection(r_xyz: number[]) {
 export type SphereMesh = {
   mesh: TriangleMesh,
   r_xyz: number[],
+  latlong: number[],
 }
 
 export function makeSphere(N: number, jitter: number, randFloat: () => number): SphereMesh {
@@ -153,5 +154,5 @@ export function makeSphere(N: number, jitter: number, randFloat: () => number): 
     _halfedges: delaunayWithPole.halfedges,
   });
 
-  return { mesh, r_xyz };
+  return { mesh, r_xyz, latlong };
 }
