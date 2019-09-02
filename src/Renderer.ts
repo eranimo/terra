@@ -352,7 +352,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   ) {
     const points = [];
     const line_rgba = [];
-    for (let r = 0; r < mesh.numRegions * 7; r++) {
+    for (let r = 0; r < mesh.numRegions; r++) {
       const sides = mesh.r_circulate_s([], r);
       for (let s of sides) {
         const inner_t = mesh.s_inner_t(s);
