@@ -356,10 +356,8 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     } as any);
   }
 
-  function drawCellBorders(
-    mesh: TriangleMesh,
-    { t_xyz },
-  ) {
+  let cellBorderCache = new Map();
+  function createCellBorders(mesh, t_xyz) {
     const points = [];
     const line_rgba = [];
 
@@ -375,14 +373,26 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
         line_rgba.push([0, 0, 0, 0], [0, 0, 0, 0]);
       }
     }
+    return { points, line_rgba };
+  }
+
+  function drawCellBorders(
+    mesh: TriangleMesh,
+    { t_xyz },
+  ) {
+    let data = cellBorderCache.get(mesh);
+    if (!data) {
+      data = createCellBorders(mesh, t_xyz);
+      cellBorderCache.set(mesh, data);
+    }
 
     renderLines({
       scale: mat4.fromScaling(mat4.create(), [1.0001, 1.0001, 1.0001]),
       u_multiply_rgba: [1, 1, 1, 0.5],
       u_add_rgba: [0, 0, 0, 0],
-      a_xyz: points,
-      a_rgba: line_rgba,
-      count: points.length,
+      a_xyz: data.points,
+      a_rgba: data.line_rgba,
+      count: data.points.length,
     });
   }
 
