@@ -25,6 +25,7 @@ const initialDrawOptions: IDrawOptions = {
   plateVectors: false,
   rivers: true,
   cellCenters: false,
+  surface: true,
 };
 class GameManager {
   options$: ObservableDict<IGlobeOptions>;
@@ -130,18 +131,20 @@ class GameManager {
   draw() {
     const { mesh, triangleGeometry, quadGeometry, r_xyz } = this.globe;
 
-    if (drawMode === 'centroid') {
-      this.renderer.renderTriangles({
-        a_xyz: triangleGeometry.xyz,
-        a_tm: triangleGeometry.tm,
-        count: triangleGeometry.xyz.length / 3,
-      });
-    } else if (drawMode === 'quads') {
-      this.renderer.renderIndexedTriangles({
-        a_xyz: quadGeometry.xyz,
-        a_tm: quadGeometry.tm,
-        elements: quadGeometry.I,
-      } as any);
+    if (this.drawOptions$.get('surface')) {
+      if (drawMode === 'centroid') {
+        this.renderer.renderTriangles({
+          a_xyz: triangleGeometry.xyz,
+          a_tm: triangleGeometry.tm,
+          count: triangleGeometry.xyz.length / 3,
+        });
+      } else if (drawMode === 'quads') {
+        this.renderer.renderIndexedTriangles({
+          a_xyz: quadGeometry.xyz,
+          a_tm: quadGeometry.tm,
+          elements: quadGeometry.I,
+        } as any);
+      }
     }
 
     if (this.drawOptions$.get('rivers')) {
@@ -236,6 +239,7 @@ function Controls({ manager }: { manager: GameManager }) {
   const drawPlateBorders = useObservableDict(manager.drawOptions$, 'plateBorders');
   const drawCellCenters = useObservableDict(manager.drawOptions$, 'cellCenters');
   const drawRivers = useObservableDict(manager.drawOptions$, 'rivers');
+  const drawSurface = useObservableDict(manager.drawOptions$, 'surface');
 
   return (
     <div id="controls">
@@ -325,6 +329,14 @@ function Controls({ manager }: { manager: GameManager }) {
           type="checkbox"
           checked={drawRivers}
           onChange={event => manager.drawOptions$.set('rivers', event.target.checked)}
+        />
+      </Field>
+
+      <Field title="Draw Surface">
+        <input
+          type="checkbox"
+          checked={drawSurface}
+          onChange={event => manager.drawOptions$.set('surface', event.target.checked)}
         />
       </Field>
     </div>

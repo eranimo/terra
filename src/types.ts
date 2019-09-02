@@ -17,4 +17,5 @@ export interface IDrawOptions {
   plateVectors: boolean,
   cellCenters: boolean,
   rivers: boolean,
+  surface: boolean,
 }
