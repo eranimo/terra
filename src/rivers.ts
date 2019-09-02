@@ -91,8 +91,6 @@ export function assignFlow(
         if (t_elevation[trunk_t] > t_elevation[tributary_t]) {
           t_elevation[trunk_t] = t_elevation[tributary_t];
         }
-      } else {
-        t_flow[inner] = 0;
       }
     }
   }

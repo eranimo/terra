@@ -194,9 +194,31 @@ function Input({
       onChange={event => setValue(event.target.value)}
       onBlur={() => onChange(_value)}
       onKeyDown={event => event.keyCode === 13 && onChange(_value)}
+      style={{
+        flex: 1,
+      }}
       {...restProps}
     />
   )
+}
+
+function Field({ title, children }) {
+  return (
+    <div style={{
+      height: '30px',
+    }}>
+      <label style={{
+        display: 'flex'
+      }}>
+        <span style={{
+          marginRight: '1rem'
+        }}>
+          {title}
+        </span>
+        {children}
+      </label>
+    </div>
+  );
 }
 
 function Controls({ manager }: { manager: GameManager }) {
@@ -215,30 +237,24 @@ function Controls({ manager }: { manager: GameManager }) {
   return (
     <div id="controls">
       <h1>Terra</h1>
-      <fieldset>
-        <legend>Seed</legend>
-
+      <Field title="Seed">
         <Input
           type="number"
           value={seed}
           onChange={value => manager.options$.set('seed', value)}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Number of Cells:</legend>
-
+      <Field title="Number of Cells">
         <Input
           type="number"
           value={cells}
           min={0}
           onChange={value => manager.options$.set('numberCells', parseInt(value, 10))}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Cell Jitter:</legend>
-
+      <Field title="Cell Jitter">
         <Input
           type="number"
           value={jitter}
@@ -247,22 +263,18 @@ function Controls({ manager }: { manager: GameManager }) {
           step={0.05}
           onChange={value => manager.options$.set('jitter', value)}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Number of Plates:</legend>
-
+      <Field title="Number of Plates">
         <Input
           type="number"
           value={plates}
           min={0}
           onChange={value => manager.options$.set('numberPlates', parseInt(value, 10))}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Flow modifier:</legend>
-
+      <Field title="Flow modifier">
         <Input
           type="number"
           value={flowModifier}
@@ -271,57 +283,47 @@ function Controls({ manager }: { manager: GameManager }) {
           step={0.1}
           onChange={value => manager.options$.set('flowModifier', value)}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Draw Grid:</legend>
-
+      <Field title="Draw Grid">
         <input
           type="checkbox"
           checked={drawGrid}
           onChange={event => manager.drawOptions$.set('grid', event.target.checked)}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Draw Plate Borders:</legend>
-
+      <Field title="Draw Plate Borders">
         <input
           type="checkbox"
           checked={drawPlateBorders}
           onChange={event => manager.drawOptions$.set('plateBorders', event.target.checked)}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Draw Plate Vectors:</legend>
-
+      <Field title="Draw Plate Vectors">
         <input
           type="checkbox"
           checked={drawPlateVectors}
           onChange={event => manager.drawOptions$.set('plateVectors', event.target.checked)}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Draw Cell Centers:</legend>
-
+      <Field title="Draw Cell Centers">
         <input
           type="checkbox"
           checked={drawCellCenters}
           onChange={event => manager.drawOptions$.set('cellCenters', event.target.checked)}
         />
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend>Draw Rivers:</legend>
-
+      <Field title="Draw Rivers">
         <input
           type="checkbox"
           checked={drawRivers}
           onChange={event => manager.drawOptions$.set('rivers', event.target.checked)}
         />
-      </fieldset>
+      </Field>
     </div>
   );
 }
