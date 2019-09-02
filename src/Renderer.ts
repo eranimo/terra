@@ -152,10 +152,10 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   }
   `,
 
-    // depth: {
-    //   enable: true,
-    //   func: '<'
-    // },
+    depth: {
+      enable: true,
+      func: '<'
+    },
 
     uniforms: {
       scale: regl.prop<LinesProps, 'scale'>('scale'),
@@ -178,10 +178,10 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
       a_xyz: regl.prop<LinesProps, 'a_xyz'>('a_xyz'),
       a_rgba: regl.prop<LinesProps, 'a_rgba'>('a_rgba'),
     },
-    // cull: {
-    //   enable: true,
-    //   face: 'front'
-    // },
+    cull: {
+      enable: true,
+      face: 'front'
+    },
   });
 
 
@@ -316,10 +316,9 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     });
   }
 
-  function drawPlateBoundaries(
-    mesh: TriangleMesh,
-    { t_xyz, r_plate },
-  ) {
+  const plateCache = new Map();
+
+  function createPlateBoundary(mesh: TriangleMesh, t_xyz, r_plate) {
     const points = [];
     const widths = [];
     for (let s = 0; s < mesh.numSides; s++) {
@@ -335,11 +334,22 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
       }
     }
 
-    const line = createLine(regl, {
+    return createLine(regl, {
       color: [1.0, 0.0, 0.0, 1.0],
       widths,
       points,
     });
+  }
+
+  function drawPlateBoundaries(
+    mesh: TriangleMesh,
+    { t_xyz, r_plate },
+  ) {
+    let line = plateCache.get(mesh);
+    if (!line) {
+      line = createPlateBoundary(mesh, t_xyz, r_plate);
+      plateCache.set(mesh, line);
+    }
 
     line.draw({
       model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
@@ -362,25 +372,23 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
         const p1 = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
         const p2 = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
         points.push(p2, p1);
-        line_rgba.push([0, 0, 0, 0.1], [0, 0, 0, 0.1]);
+        line_rgba.push([0, 0, 0, 0], [0, 0, 0, 0]);
       }
     }
 
     renderLines({
       scale: mat4.fromScaling(mat4.create(), [1.0001, 1.0001, 1.0001]),
-      u_multiply_rgba: [1, 1, 1, 1],
-      u_add_rgba: [0, 0, 0, 1],
+      u_multiply_rgba: [1, 1, 1, 0.5],
+      u_add_rgba: [0, 0, 0, 0],
       a_xyz: points,
       a_rgba: line_rgba,
       count: points.length,
     });
   }
 
-  function drawRivers(
-    mesh: TriangleMesh,
-    { t_xyz, s_flow },
-    zoomLevel: number
-  ) {
+  const riversCache = new Map();
+
+  function createRivers(mesh: TriangleMesh, t_xyz, s_flow, zoomLevel: number) {
     let points = [];
     let widths = [];
     for (let s = 0; s < mesh.numSides; s++) {
@@ -397,12 +405,24 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
       }
     }
 
-    const line = createLine(regl, {
+    return createLine(regl, {
       color: [0.0, 0.0, 1.0, 1.0],
       widths,
       points,
       miter: 1
     });
+  }
+
+  function drawRivers(
+    mesh: TriangleMesh,
+    { t_xyz, s_flow },
+    zoomLevel: number
+  ) {
+    let line = riversCache.get(mesh);
+    if (!line) {
+      line = createRivers(mesh, t_xyz, s_flow, zoomLevel);
+      riversCache.set(mesh, line);
+    }
 
     line.draw({
       model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
