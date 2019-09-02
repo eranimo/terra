@@ -152,10 +152,10 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   }
   `,
 
-    depth: {
-      enable: true,
-      func: '<'
-    },
+    // depth: {
+    //   enable: true,
+    //   func: '<'
+    // },
 
     uniforms: {
       scale: regl.prop<LinesProps, 'scale'>('scale'),
@@ -163,25 +163,25 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
       u_add_rgba: regl.prop<LinesProps, 'u_add_rgba'>('u_add_rgba'),
     },
 
-    blend: {
-      enable: true,
-      func: { src: 'one', dst: 'one minus src alpha' },
-      equation: {
-        rgb: 'add',
-        alpha: 'add'
-      },
-      color: [0, 0, 0, 0],
-    },
+    // blend: {
+    //   enable: true,
+    //   func: { src: 'one', dst: 'one minus src alpha' },
+    //   equation: {
+    //     rgb: 'add',
+    //     alpha: 'add'
+    //   },
+    //   color: [0, 0, 0, 0],
+    // },
     primitive: 'lines',
     count: regl.prop<LinesProps, 'count'>('count'),
     attributes: {
       a_xyz: regl.prop<LinesProps, 'a_xyz'>('a_xyz'),
       a_rgba: regl.prop<LinesProps, 'a_rgba'>('a_rgba'),
     },
-    cull: {
-      enable: true,
-      face: 'front'
-    },
+    // cull: {
+    //   enable: true,
+    //   face: 'front'
+    // },
   });
 
 
@@ -352,26 +352,27 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   ) {
     const points = [];
     const line_rgba = [];
-    for (let r = 0; r < mesh.numRegions; r++) {
-      const sides = mesh.r_circulate_s([], r);
+
+    let sides = [];
+    for (let r = 0; r < mesh.numRegions * 1; r++) {
+      mesh.r_circulate_s(sides, r);
       for (let s of sides) {
         const inner_t = mesh.s_inner_t(s);
         const outer_t = mesh.s_outer_t(s);
-        const x = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
-        const y = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-        points.push(x, y);
-        line_rgba.push([0, 0, 0, 1]);
+        const p1 = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+        const p2 = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+        points.push(p2, p1);
+        line_rgba.push([0, 0, 0, 0.1], [0, 0, 0, 0.1]);
       }
     }
 
     renderLines({
       scale: mat4.fromScaling(mat4.create(), [1.0001, 1.0001, 1.0001]),
       u_multiply_rgba: [1, 1, 1, 1],
-      // u_add_rgba: [0, 0, 0, 1],
-      u_add_rgba: [1, 1, 1, 1],
+      u_add_rgba: [0, 0, 0, 1],
       a_xyz: points,
       a_rgba: line_rgba,
-      count: points.length / 2,
+      count: points.length,
     });
   }
 

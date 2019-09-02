@@ -10,8 +10,8 @@ import { clamp } from 'lodash';
 
 
 let drawMode = 'centroid';
-let draw_plateVectors = true;
-let draw_plateBoundaries = true;
+let draw_plateVectors = false;
+let draw_plateBoundaries = false;
 let drawCellCenter = false;
 
 const initialOptions: IGlobeOptions = {
@@ -61,32 +61,32 @@ class GameManager {
   draw(state) {
     const { mesh, triangleGeometry, quadGeometry, r_xyz } = this.globe;
 
-    // if (drawMode === 'centroid') {
-    //   this.renderer.renderTriangles({
-    //     a_xyz: triangleGeometry.xyz,
-    //     a_tm: triangleGeometry.tm,
-    //     count: triangleGeometry.xyz.length / 3,
-    //   });
-    // } else if (drawMode === 'quads') {
-    //   this.renderer.renderIndexedTriangles({
-    //     a_xyz: quadGeometry.xyz,
-    //     a_tm: quadGeometry.tm,
-    //     elements: quadGeometry.I,
-    //   } as any);
-    // }
+    if (drawMode === 'centroid') {
+      this.renderer.renderTriangles({
+        a_xyz: triangleGeometry.xyz,
+        a_tm: triangleGeometry.tm,
+        count: triangleGeometry.xyz.length / 3,
+      });
+    } else if (drawMode === 'quads') {
+      this.renderer.renderIndexedTriangles({
+        a_xyz: quadGeometry.xyz,
+        a_tm: quadGeometry.tm,
+        elements: quadGeometry.I,
+      } as any);
+    }
 
-    // this.renderer.drawRivers(
-    //   mesh,
-    //   this.globe,
-    //   0.5
-    // );
+    this.renderer.drawRivers(
+      mesh,
+      this.globe,
+      0.5
+    );
 
-    // if (draw_plateVectors) {
-    //   // this.renderer.drawPlateVectors(mesh, this.globe, this.options$.toObject());
-    // }
-    // if (draw_plateBoundaries) {
-    //   this.renderer.drawPlateBoundaries(mesh, this.globe);
-    // }
+    if (draw_plateVectors) {
+      // this.renderer.drawPlateVectors(mesh, this.globe, this.options$.toObject());
+    }
+    if (draw_plateBoundaries) {
+      this.renderer.drawPlateBoundaries(mesh, this.globe);
+    }
 
     this.renderer.drawCellBorders(mesh, this.globe);
 
