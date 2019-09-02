@@ -17,11 +17,13 @@ type PointsProps = {
 }
 
 type LinesUniforms = {
+  scale: REGL.Mat4,
   u_multiply_rgba: REGL.Mat4,
   u_add_rgba: REGL.Mat4,
 }
 
 type LinesProps = {
+  scale: mat4,
   u_multiply_rgba: number[],
   u_add_rgba: number[],
   count: number,
@@ -87,7 +89,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   precision mediump float;
 
   void main() {
-  gl_FragColor = vec4(0, 0, 0, 1);
+    gl_FragColor = vec4(0, 0, 0, 1);
   }
   `,
 
@@ -98,13 +100,13 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   attribute vec3 a_xyz;
 
   void main() {
-  gl_Position = projection * view * vec4(a_xyz, 1);
-  gl_PointSize = gl_Position.z > 0.0? 0.0 : u_pointsize;
+    gl_Position = projection * view * vec4(a_xyz, 1);
+    gl_PointSize = gl_Position.z > 0.0 ? 0.0 : u_pointsize;
   }
   `,
 
     depth: {
-      enable: false,
+      enable: true,
     },
 
     uniforms: {
@@ -131,29 +133,32 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   varying vec4 v_rgba;
 
   void main() {
-  gl_FragColor = v_rgba * u_multiply_rgba + u_add_rgba;
+    gl_FragColor = v_rgba * u_multiply_rgba + u_add_rgba;
   }
   `,
 
     vert: `
   precision mediump float;
-  uniform mat4 projection, view;
+  uniform mat4 projection, view, scale;
   attribute vec3 a_xyz;
   attribute vec4 a_rgba;
   varying vec4 v_rgba;
 
   void main() {
-  vec4 pos = projection * view * vec4(a_xyz, 1);
-  v_rgba = (-2.0 * pos.z) * a_rgba;
-  gl_Position = pos;
+    vec4 pos = vec4(a_xyz, 1);
+    // v_rgba = (-2.0 * pos.z) * a_rgba;
+    v_rgba = a_rgba;
+    gl_Position = projection * view * scale * pos;
   }
   `,
 
     depth: {
-      enable: false,
+      enable: true,
+      func: '<'
     },
 
     uniforms: {
+      scale: regl.prop<LinesProps, 'scale'>('scale'),
       u_multiply_rgba: regl.prop<LinesProps, 'u_multiply_rgba'>('u_multiply_rgba'),
       u_add_rgba: regl.prop<LinesProps, 'u_add_rgba'>('u_add_rgba'),
     },
@@ -173,7 +178,6 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
       a_xyz: regl.prop<LinesProps, 'a_xyz'>('a_xyz'),
       a_rgba: regl.prop<LinesProps, 'a_rgba'>('a_rgba'),
     },
-
     cull: {
       enable: true,
       face: 'front'
@@ -186,9 +190,12 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   precision mediump float;
   uniform sampler2D u_colormap;
   varying vec2 v_tm;
+
   void main() {
-  float e = v_tm.x > 0.0? 0.5 * (v_tm.x * v_tm.x + 1.0) : 0.5 * (v_tm.x + 1.0);
-  gl_FragColor = texture2D(u_colormap, vec2(e, v_tm.y));
+    float e = v_tm.x > 0.0
+      ? 0.5 * (v_tm.x * v_tm.x + 1.0)
+      : 0.5 * (v_tm.x + 1.0);
+    gl_FragColor = texture2D(u_colormap, vec2(e, v_tm.y));
   }
   `,
 
@@ -213,6 +220,11 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     attributes: {
       a_xyz: regl.prop<TrianglesProps, 'a_xyz'>('a_xyz'),
       a_tm: regl.prop<TrianglesProps, 'a_tm'>('a_tm'),
+    },
+
+    cull: {
+      enable: true,
+      face: 'front'
     },
   });
 
@@ -270,6 +282,11 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
       a_xyz: regl.prop<IndexedTrianglesProps, 'a_xyz'>('a_xyz'),
       a_tm: regl.prop<IndexedTrianglesProps, 'a_tm'>('a_tm'),
     },
+
+    cull: {
+      enable: true,
+      face: 'front'
+    },
   });
 
   function drawPlateVectors(
@@ -282,12 +299,15 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     for (let r = 0; r < mesh.numRegions; r++) {
       line_xyz.push(r_xyz.slice(3 * r, 3 * r + 3));
       line_rgba.push([1, 1, 1, 1]);
-      line_xyz.push(vec3.add([] as any, r_xyz.slice(3 * r, 3 * r + 3),
-        vec3.scale([] as any, plate_vec[r_plate[r]], 2 / Math.sqrt(options.numberCells))));
+      line_xyz.push(
+        vec3.add([] as any, r_xyz.slice(3 * r, 3 * r + 3),
+        vec3.scale([] as any, plate_vec[r_plate[r]], 2 / Math.sqrt(options.numberCells)))
+      );
       line_rgba.push([1, 0, 0, 0]);
     }
 
     renderLines({
+      scale: mat4.fromScaling(mat4.create(), [1.005, 1.005, 1.005]),
       u_multiply_rgba: [1, 1, 1, 1],
       u_add_rgba: [0, 0, 0, 0],
       a_xyz: line_xyz,
@@ -297,8 +317,6 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   }
 
   function drawPlateBoundaries(
-    projection: mat4,
-    view: mat4,
     mesh: TriangleMesh,
     { t_xyz, r_plate },
   ) {
@@ -313,20 +331,48 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
         const x = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
         const y = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
         points.push(...x, ...x, ...y, ...y);
-        widths.push(0, 5, 5, 0);
+        widths.push(0, 3, 3, 0);
       }
     }
 
     const line = createLine(regl, {
-      color: [1.0, 1.0, 1.0, 1.0],
+      color: [1.0, 0.0, 0.0, 1.0],
       widths,
       points,
     });
 
     line.draw({
-      projection: projection,
-      view: view,
+      model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
     } as any);
+  }
+
+  function drawCellBorders(
+    mesh: TriangleMesh,
+    { t_xyz },
+  ) {
+    const points = [];
+    const line_rgba = [];
+    for (let r = 0; r < mesh.numRegions * 7; r++) {
+      const sides = mesh.r_circulate_s([], r);
+      for (let s of sides) {
+        const inner_t = mesh.s_inner_t(s);
+        const outer_t = mesh.s_outer_t(s);
+        const x = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+        const y = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+        points.push(x, y);
+        line_rgba.push([0, 0, 0, 1]);
+      }
+    }
+
+    renderLines({
+      scale: mat4.fromScaling(mat4.create(), [1.0001, 1.0001, 1.0001]),
+      u_multiply_rgba: [1, 1, 1, 1],
+      // u_add_rgba: [0, 0, 0, 1],
+      u_add_rgba: [1, 1, 1, 1],
+      a_xyz: points,
+      a_rgba: line_rgba,
+      count: points.length / 2,
+    });
   }
 
   function drawRivers(
@@ -373,6 +419,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
 
     drawPlateVectors,
     drawPlateBoundaries,
+    drawCellBorders,
     drawRivers,
   };
 }
