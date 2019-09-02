@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { IGlobeOptions } from './types';
-import { useObservable } from './utils/hooks';
+import { IGlobeOptions, IDrawOptions } from './types';
+import { useObservable, useObservableDict } from './utils/hooks';
 import { ObservableDict } from './utils/ObservableDict';
 import { Globe } from './Globe';
 import Renderer from './Renderer';
@@ -10,9 +10,6 @@ import { clamp } from 'lodash';
 
 
 let drawMode = 'centroid';
-let draw_plateVectors = false;
-let draw_plateBoundaries = false;
-let drawCellCenter = false;
 
 const initialOptions: IGlobeOptions = {
   seed: 123,
@@ -21,8 +18,16 @@ const initialOptions: IGlobeOptions = {
   numberPlates: 20,
   flowModifier: 0.5,
 }
+const initialDrawOptions: IDrawOptions = {
+  grid: false,
+  plateBorders: false,
+  plateVectors: false,
+  rivers: true,
+  cellCenters: false,
+};
 class GameManager {
   options$: ObservableDict<IGlobeOptions>;
+  drawOptions$: ObservableDict<IDrawOptions>;
   renderer: ReturnType<typeof Renderer>;
   camera: any;
   globe: Globe;
@@ -31,14 +36,17 @@ class GameManager {
 
   constructor(canvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
+    this.drawOptions$ = new ObservableDict(initialDrawOptions);
 
+    
     const renderer = Renderer(canvas, this.onLoad(canvas));
     this.renderer = renderer;
+    this.drawOptions$.subscribe(() => renderer.camera.dirty = true);
     this.removeDrawLoop = renderer.regl.frame(() => {
       renderer.camera((state) => {
         if (!state.dirty) return;
         renderer.regl.clear({ color: [0, 0, 0, 1], depth: 1 });
-        this.draw(state);
+        this.draw();
       });
     });
 
@@ -58,7 +66,7 @@ class GameManager {
     this.renderer.camera.dirty = true;
   }
 
-  draw(state) {
+  draw() {
     const { mesh, triangleGeometry, quadGeometry, r_xyz } = this.globe;
 
     if (drawMode === 'centroid') {
@@ -75,22 +83,26 @@ class GameManager {
       } as any);
     }
 
-    this.renderer.drawRivers(
-      mesh,
-      this.globe,
-      0.5
-    );
-
-    if (draw_plateVectors) {
-      // this.renderer.drawPlateVectors(mesh, this.globe, this.options$.toObject());
+    if (this.drawOptions$.get('rivers')) {
+      this.renderer.drawRivers(
+        mesh,
+        this.globe,
+        0.5
+      );
     }
-    if (draw_plateBoundaries) {
+
+    if (this.drawOptions$.get('plateVectors')) {
+      this.renderer.drawPlateVectors(mesh, this.globe, this.options$.toObject());
+    }
+    if (this.drawOptions$.get('plateBorders')) {
       this.renderer.drawPlateBoundaries(mesh, this.globe);
     }
 
-    this.renderer.drawCellBorders(mesh, this.globe);
+    if (this.drawOptions$.get('grid')) {
+      this.renderer.drawCellBorders(mesh, this.globe);
+    }
 
-    if (drawCellCenter) {
+    if (this.drawOptions$.get('cellCenters')) {
       let u_pointsize = 10.0 + (100 / Math.sqrt(this.options$.get('numberCells')));
       this.renderer.renderPoints({
         u_pointsize,
@@ -122,10 +134,18 @@ function Input({
 }
 
 function Controls({ manager }: { manager: GameManager }) {
-  const seed = useObservable(manager.options$.ofKey('seed'), manager.options$.value.seed);
-  const cells = useObservable(manager.options$.ofKey('numberCells'), manager.options$.value.numberCells);
-  const plates = useObservable(manager.options$.ofKey('numberPlates'), manager.options$.value.numberPlates);
-  const flowModifier = useObservable(manager.options$.ofKey('flowModifier'), manager.options$.value.flowModifier);
+  const seed = useObservableDict(manager.options$, 'seed');
+  const cells = useObservableDict(manager.options$, 'numberCells');
+  const jitter = useObservableDict(manager.options$, 'jitter');
+  const plates = useObservableDict(manager.options$, 'numberPlates');
+  const flowModifier = useObservableDict(manager.options$, 'flowModifier');
+
+  const drawGrid = useObservableDict(manager.drawOptions$, 'grid');
+  const drawPlateVectors = useObservableDict(manager.drawOptions$, 'plateVectors');
+  const drawPlateBorders = useObservableDict(manager.drawOptions$, 'plateBorders');
+  const drawCellCenters = useObservableDict(manager.drawOptions$, 'cellCenters');
+  const drawRivers = useObservableDict(manager.drawOptions$, 'rivers');
+
   return (
     <div id="controls">
       <h1>Terra</h1>
@@ -151,6 +171,19 @@ function Controls({ manager }: { manager: GameManager }) {
       </fieldset>
 
       <fieldset>
+        <legend>Cell Jitter:</legend>
+
+        <Input
+          type="number"
+          value={jitter}
+          min={0}
+          max={1}
+          step={0.05}
+          onChange={value => manager.options$.set('jitter', value)}
+        />
+      </fieldset>
+
+      <fieldset>
         <legend>Number of Plates:</legend>
 
         <Input
@@ -171,6 +204,56 @@ function Controls({ manager }: { manager: GameManager }) {
           max={1}
           step={0.1}
           onChange={value => manager.options$.set('flowModifier', value)}
+        />
+      </fieldset>
+
+      <fieldset>
+        <legend>Draw Grid:</legend>
+
+        <input
+          type="checkbox"
+          checked={drawGrid}
+          onChange={event => manager.drawOptions$.set('grid', event.target.checked)}
+        />
+      </fieldset>
+
+      <fieldset>
+        <legend>Draw Plate Borders:</legend>
+
+        <input
+          type="checkbox"
+          checked={drawPlateBorders}
+          onChange={event => manager.drawOptions$.set('plateBorders', event.target.checked)}
+        />
+      </fieldset>
+
+      <fieldset>
+        <legend>Draw Plate Vectors:</legend>
+
+        <input
+          type="checkbox"
+          checked={drawPlateVectors}
+          onChange={event => manager.drawOptions$.set('plateVectors', event.target.checked)}
+        />
+      </fieldset>
+
+      <fieldset>
+        <legend>Draw Cell Centers:</legend>
+
+        <input
+          type="checkbox"
+          checked={drawCellCenters}
+          onChange={event => manager.drawOptions$.set('cellCenters', event.target.checked)}
+        />
+      </fieldset>
+
+      <fieldset>
+        <legend>Draw Rivers:</legend>
+
+        <input
+          type="checkbox"
+          checked={drawRivers}
+          onChange={event => manager.drawOptions$.set('rivers', event.target.checked)}
         />
       </fieldset>
     </div>
