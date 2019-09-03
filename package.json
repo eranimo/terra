@@ -34,6 +34,7 @@
     "@types/seedrandom": "^2.4.28",
     "delaunator": "^3.0",
     "flatqueue": "*",
+    "gl-mat4": "*",
     "gl-matrix": "*",
     "hash-int": "*",
     "lodash": "^4.17.15",
