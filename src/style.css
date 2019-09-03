@@ -7,6 +7,8 @@ body {
 body, html {
   font-size: 14px;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 #screen {
