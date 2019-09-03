@@ -50,18 +50,18 @@ export class Globe {
     this.t_flow = new Float32Array(mesh.numTriangles);
     this.s_flow = new Float32Array(mesh.numSides);
 
-    this.generateMap();
+    this.generateMap(options.oceanPlatePercent);
     this.setupGeometry();
   }
 
-  generateMap() {
+  generateMap(oceanPlatePercent: number) {
     let result = generatePlates(this.mesh, this.options, this.r_xyz);
     this.plate_r = result.plate_r;
     this.r_plate = result.r_plate;
     this.plate_vec = result.plate_vec;
     this.plate_is_ocean = new Set();
     for (let r of this.plate_r) {
-      if (makeRandInt(r)(10) < 5) {
+      if (makeRandInt(r)(100) < (100 * oceanPlatePercent)) {
         this.plate_is_ocean.add(r);
         // TODO: either make tiny plates non-ocean, or make sure tiny plates don't create seeds for rivers
       }

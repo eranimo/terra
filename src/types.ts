@@ -9,6 +9,7 @@ export interface IGlobeOptions {
   jitter: number,
   numberPlates: number,
   flowModifier: number,
+  oceanPlatePercent: number,
 }
 
 export interface IDrawOptions {

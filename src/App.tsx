@@ -14,11 +14,13 @@ let drawMode = 'centroid';
 
 const initialOptions: IGlobeOptions = {
   seed: 123,
-  numberCells: 10_000,
+  numberCells: 35_000,
   jitter: 0.6,
-  numberPlates: 20,
-  flowModifier: 0.5,
-}
+  numberPlates: 12,
+  flowModifier: 0.2,
+  oceanPlatePercent: 0.7,
+};
+
 const initialDrawOptions: IDrawOptions = {
   grid: false,
   plateBorders: false,
@@ -27,6 +29,7 @@ const initialDrawOptions: IDrawOptions = {
   cellCenters: false,
   surface: true,
 };
+
 class GameManager {
   options$: ObservableDict<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
@@ -238,6 +241,7 @@ function Controls({ manager }: { manager: GameManager }) {
   const jitter = useObservableDict(manager.options$, 'jitter');
   const plates = useObservableDict(manager.options$, 'numberPlates');
   const flowModifier = useObservableDict(manager.options$, 'flowModifier');
+  const oceanPlatePercent = useObservableDict(manager.options$, 'oceanPlatePercent');
 
   const drawGrid = useObservableDict(manager.drawOptions$, 'grid');
   const drawPlateVectors = useObservableDict(manager.drawOptions$, 'plateVectors');
@@ -294,6 +298,17 @@ function Controls({ manager }: { manager: GameManager }) {
           max={1}
           step={0.1}
           onChange={value => manager.options$.set('flowModifier', value)}
+        />
+      </Field>
+
+      <Field title="Ocean Plate Percent">
+        <Input
+          type="number"
+          value={oceanPlatePercent}
+          min={0}
+          max={1}
+          step={0.1}
+          onChange={value => manager.options$.set('oceanPlatePercent', value)}
         />
       </Field>
 
