@@ -180,12 +180,20 @@ export default function createCamera(regl: Regl, props: any = {}) {
   const reset = () => {
     cameraState.theta = 0;
     cameraState.phi = 0;
+    prevX = 0;
+    prevY = 0;
+    cameraState.dtheta = 0;
+    cameraState.dphi = 0;
     cameraState.dirty = true;
   }
 
   const centerLatLong = (lat: number, long: number) => {
     cameraState.theta = (long * Math.PI) / 180;
     cameraState.phi = (lat * Math.PI) / 180;
+    prevX = 0;
+    prevY = 0;
+    cameraState.dtheta = 0;
+    cameraState.dphi = 0;
     cameraState.dirty = true;
   }
 

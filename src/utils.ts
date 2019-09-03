@@ -89,3 +89,14 @@ export function intersectTriangle (out, pt, dir, tri) {
   out[2] = pt[2] + t * dir[2]
   return t;
 }
+
+export function getLatLng(vector: vec3 | number[], radius: number = 1) {
+  radius = radius || 200;
+
+  var latRads = Math.acos(vector[1] / radius);
+  var lngRads = Math.atan2(vector[2], vector[0]);
+  var lat = (Math.PI / 2 - latRads) * (180 / Math.PI);
+  var lng = (Math.PI - lngRads) * (180 / Math.PI);
+
+  return [lat, lng - 180];
+}

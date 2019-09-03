@@ -7,7 +7,7 @@ import Renderer from './Renderer';
 import { mat4, vec3 } from 'gl-matrix';
 import { useWindowSize } from 'react-use';
 import { clamp } from 'lodash';
-import { intersectTriangle } from './utils';
+import { intersectTriangle, getLatLng } from './utils';
 
 
 let drawMode = 'centroid';
@@ -63,7 +63,15 @@ class GameManager {
   onLoad = (canvas) => () => {
     let isPanning = false;
     canvas.addEventListener('mouseup', () => isPanning = false );
-    canvas.addEventListener('mousedown', () => {
+    canvas.addEventListener('mousedown', (event) => {
+      if (this.hoveredCell && event.shiftKey) {
+        const { r_xyz } = this.globe;
+        const h_xyz = [r_xyz[3 * this.hoveredCell], r_xyz[3 * this.hoveredCell + 1], r_xyz[3 * this.hoveredCell + 2]];
+        console.log(h_xyz);
+        const [lat, long] = getLatLng(h_xyz);
+        console.log(lat, long);
+        this.renderer.camera.centerLatLong(lat, long);
+      }
       isPanning = true;
       this.hoveredCell = null;
     });
