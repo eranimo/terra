@@ -8,6 +8,7 @@ import { mat4, vec3 } from 'gl-matrix';
 import { useWindowSize } from 'react-use';
 import { clamp } from 'lodash';
 import { intersectTriangle, getLatLng } from './utils';
+import classNames from 'classnames';
 
 
 let drawMode = 'centroid';
@@ -235,6 +236,31 @@ function Field({ title, children }) {
   );
 }
 
+function Tabs({ children }) {
+  const tabs = children();
+  const firstTab = Object.keys(tabs)[0];
+  const [activeTab, setActiveTab] = useState(firstTab);
+  return (
+    <div>
+      <div className="tab-row">
+        {Object.keys(tabs).map(tabID => (
+          <a
+            className={classNames(
+              'tab',
+              activeTab === tabID && 'tab--active'
+            )}
+            onClick={() => setActiveTab(tabID)}>
+            {tabs[tabID].title}
+          </a>
+        ))}
+      </div>
+      <div>
+        {tabs[activeTab].render()}
+      </div>
+    </div>
+  )
+}
+
 function Controls({ manager }: { manager: GameManager }) {
   const seed = useObservableDict(manager.options$, 'seed');
   const cells = useObservableDict(manager.options$, 'numberCells');
@@ -253,112 +279,129 @@ function Controls({ manager }: { manager: GameManager }) {
   return (
     <div id="controls">
       <h1>Terra</h1>
-      <Field title="Seed">
-        <Input
-          type="number"
-          value={seed}
-          onChange={value => manager.options$.set('seed', value)}
-        />
-      </Field>
+      <Tabs>
+        {() => ({
+          generate: {
+            title: 'Generate',
+            render: () => (
+              <div>
+                <Field title="Seed">
+                  <Input
+                    type="number"
+                    value={seed}
+                    onChange={value => manager.options$.set('seed', value)}
+                  />
+                </Field>
 
-      <Field title="Number of Cells">
-        <Input
-          type="number"
-          value={cells}
-          min={0}
-          onChange={value => manager.options$.set('numberCells', parseInt(value, 10))}
-        />
-      </Field>
+                <Field title="Number of Cells">
+                  <Input
+                    type="number"
+                    value={cells}
+                    min={0}
+                    onChange={value => manager.options$.set('numberCells', parseInt(value, 10))}
+                  />
+                </Field>
 
-      <Field title="Cell Jitter">
-        <Input
-          type="number"
-          value={jitter}
-          min={0}
-          max={1}
-          step={0.05}
-          onChange={value => manager.options$.set('jitter', value)}
-        />
-      </Field>
+                <Field title="Cell Jitter">
+                  <Input
+                    type="number"
+                    value={jitter}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onChange={value => manager.options$.set('jitter', value)}
+                  />
+                </Field>
 
-      <Field title="Number of Plates">
-        <Input
-          type="number"
-          value={plates}
-          min={0}
-          onChange={value => manager.options$.set('numberPlates', parseInt(value, 10))}
-        />
-      </Field>
+                <Field title="Number of Plates">
+                  <Input
+                    type="number"
+                    value={plates}
+                    min={0}
+                    onChange={value => manager.options$.set('numberPlates', parseInt(value, 10))}
+                  />
+                </Field>
 
-      <Field title="Flow modifier">
-        <Input
-          type="number"
-          value={flowModifier}
-          min={0}
-          max={1}
-          step={0.1}
-          onChange={value => manager.options$.set('flowModifier', value)}
-        />
-      </Field>
+                <Field title="Flow modifier">
+                  <Input
+                    type="number"
+                    value={flowModifier}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    onChange={value => manager.options$.set('flowModifier', value)}
+                  />
+                </Field>
 
-      <Field title="Ocean Plate Percent">
-        <Input
-          type="number"
-          value={oceanPlatePercent}
-          min={0}
-          max={1}
-          step={0.1}
-          onChange={value => manager.options$.set('oceanPlatePercent', value)}
-        />
-      </Field>
+                <Field title="Ocean Plate Percent">
+                  <Input
+                    type="number"
+                    value={oceanPlatePercent}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    onChange={value => manager.options$.set('oceanPlatePercent', value)}
+                  />
+                </Field>
+              </div>
+            )
+          },
+          render: {
+            title: 'Render',
+            render: () => (
+              <div>
+                <Field title="Draw Grid">
+                <input
+                  type="checkbox"
+                  checked={drawGrid}
+                  onChange={event => manager.drawOptions$.set('grid', event.target.checked)}
+                />
+              </Field>
 
-      <Field title="Draw Grid">
-        <input
-          type="checkbox"
-          checked={drawGrid}
-          onChange={event => manager.drawOptions$.set('grid', event.target.checked)}
-        />
-      </Field>
+              <Field title="Draw Plate Borders">
+                <input
+                  type="checkbox"
+                  checked={drawPlateBorders}
+                  onChange={event => manager.drawOptions$.set('plateBorders', event.target.checked)}
+                />
+              </Field>
 
-      <Field title="Draw Plate Borders">
-        <input
-          type="checkbox"
-          checked={drawPlateBorders}
-          onChange={event => manager.drawOptions$.set('plateBorders', event.target.checked)}
-        />
-      </Field>
+              <Field title="Draw Plate Vectors">
+                <input
+                  type="checkbox"
+                  checked={drawPlateVectors}
+                  onChange={event => manager.drawOptions$.set('plateVectors', event.target.checked)}
+                />
+              </Field>
 
-      <Field title="Draw Plate Vectors">
-        <input
-          type="checkbox"
-          checked={drawPlateVectors}
-          onChange={event => manager.drawOptions$.set('plateVectors', event.target.checked)}
-        />
-      </Field>
+              <Field title="Draw Cell Centers">
+                <input
+                  type="checkbox"
+                  checked={drawCellCenters}
+                  onChange={event => manager.drawOptions$.set('cellCenters', event.target.checked)}
+                />
+              </Field>
 
-      <Field title="Draw Cell Centers">
-        <input
-          type="checkbox"
-          checked={drawCellCenters}
-          onChange={event => manager.drawOptions$.set('cellCenters', event.target.checked)}
-        />
-      </Field>
+              <Field title="Draw Rivers">
+                <input
+                  type="checkbox"
+                  checked={drawRivers}
+                  onChange={event => manager.drawOptions$.set('rivers', event.target.checked)}
+                />
+              </Field>
 
-      <Field title="Draw Rivers">
-        <input
-          type="checkbox"
-          checked={drawRivers}
-          onChange={event => manager.drawOptions$.set('rivers', event.target.checked)}
-        />
-      </Field>
-
-      <Field title="Draw Surface">
-        <input
-          type="checkbox"
-          checked={drawSurface}
-          onChange={event => manager.drawOptions$.set('surface', event.target.checked)}
-        />
-      </Field>
+              <Field title="Draw Surface">
+                <input
+                  type="checkbox"
+                  checked={drawSurface}
+                  onChange={event => manager.drawOptions$.set('surface', event.target.checked)}
+                />
+              </Field>
+              </div>
+            )
+          }
+        })}
+      </Tabs>
     </div>
   );
 }

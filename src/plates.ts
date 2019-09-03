@@ -51,8 +51,8 @@ export function generatePlates(mesh: TriangleMesh, options: IGlobeOptions, r_xyz
   let plate_vec = [];
   plate_r.forEach(center_r => {
     let neighbor_r = mesh.r_circulate_r([], center_r)[0];
-    let p0 = r_xyz.slice(3 * center_r, 3 * center_r + 3),
-      p1 = r_xyz.slice(3 * neighbor_r, 3 * neighbor_r + 3);
+    const p0 = r_xyz.slice(3 * center_r, 3 * center_r + 3);
+    const p1 = r_xyz.slice(3 * neighbor_r, 3 * neighbor_r + 3);
     plate_vec[center_r] = vec3.normalize([] as any, vec3.subtract([] as any, p1, p0));
   });
 

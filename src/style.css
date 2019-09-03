@@ -49,7 +49,6 @@ body, html {
   align-items: center;
   border-top: 1px solid #333;
   cursor: pointer;
-  /* margin: 1rem; */
 }
 .field:hover {
   background-color: rgba(255, 255, 255, 0.05);
@@ -60,6 +59,27 @@ body, html {
   align-items: center;
   cursor: pointer;
   user-select: none;
+}
+
+.tab-row {
+  margin: 1rem;
+  margin-bottom: 0;
+  padding-bottom: 0.5rem;
+  margin-left: 0;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab {
+  margin-right: 0.5rem;
+  padding: 0.5rem;
+  margin-bottom: 0;
+  color: #C0C0C0;
+  cursor: pointer;
+}
+
+.tab--active {
+  color: #306496;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 h1, h2 {

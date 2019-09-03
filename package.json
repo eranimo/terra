@@ -25,6 +25,7 @@
   "dependencies": {
     "@redblobgames/dual-mesh": "https://github.com/redblobgames/dual-mesh",
     "@redblobgames/prng": "https://github.com/redblobgames/prng",
+    "@types/classnames": "^2.2.9",
     "@types/delaunator": "^3.0.0",
     "@types/gl-matrix": "^2.4.5",
     "@types/lodash": "^4.14.136",
@@ -32,6 +33,7 @@
     "@types/react": "^16.8.24",
     "@types/react-dom": "^16.8.5",
     "@types/seedrandom": "^2.4.28",
+    "classnames": "^2.2.6",
     "delaunator": "^3.0",
     "flatqueue": "*",
     "gl-matrix": "*",

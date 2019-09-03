@@ -1,8 +1,9 @@
 import mouseChange from 'mouse-change';
 import mouseWheel from 'mouse-wheel';
-import identity from 'gl-mat4/identity';
-import perspective from 'gl-mat4/perspective';
-import lookAt from 'gl-mat4/lookAt';
+// import identity from 'gl-mat4/identity';
+// import perspective from 'gl-mat4/perspective';
+// import lookAt from 'gl-mat4/lookAt';
+import { mat4 } from 'gl-matrix';
 import { Regl } from 'regl';
 
 
@@ -15,8 +16,8 @@ export default function createCamera(regl: Regl, props: any = {}) {
   }
 
   var cameraState = {
-    view: identity(new Float32Array(16)),
-    projection: identity(new Float32Array(16)),
+    view: mat4.identity(new Float32Array(16) as any),
+    projection: mat4.identity(new Float32Array(16) as any),
     center: new Float32Array(props.center || 3),
     theta: props.theta || 0,
     phi: props.phi || 0,
@@ -130,7 +131,7 @@ export default function createCamera(regl: Regl, props: any = {}) {
       eye[i] = center[i] + vf * front[i] + vr * right[i] + vu * up[i]
     }
 
-    lookAt(cameraState.view, eye, center, up)
+    mat4.lookAt(cameraState.view, eye as any, center as any, up as any)
   }
 
   cameraState.dirty = true;
@@ -141,11 +142,13 @@ export default function createCamera(regl: Regl, props: any = {}) {
         return cameraState.dirty;
       },
       projection: function (context) {
-        perspective(cameraState.projection,
+        mat4.perspective(
+          cameraState.projection,
           cameraState.fovy,
           context.viewportWidth / context.viewportHeight,
           cameraState.near,
-          cameraState.far)
+          cameraState.far
+        )
         if (cameraState.flipY) { cameraState.projection[5] *= -1 }
         return cameraState.projection
       }
