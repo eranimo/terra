@@ -41,6 +41,7 @@ body, html {
   top: 0;
   z-index: 100;
   width: auto;
+  transform: translate(-1px, -1px);
 }
 
 .field {
@@ -75,12 +76,12 @@ body, html {
   margin-right: 0.5rem;
   padding: 0.5rem;
   margin-bottom: 0;
-  color: #C0C0C0;
+  color: rgb(134, 134, 134);
   cursor: pointer;
 }
 
 .tab--active {
-  color: #306496;
+  color: #FFF;
   background-color: rgba(255, 255, 255, 0.1);
 }
 
