@@ -1,7 +1,7 @@
 import { makeSphere } from "./SphereMesh";
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import TriangleMesh from '@redblobgames/dual-mesh';
-import { QuadGeometry, generateTriangleCenters, generateVoronoiGeometry } from './geometry';
+import { QuadGeometry, generateTriangleCenters, generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
 import { generatePlates, assignRegionElevation } from './plates';
 import { assignTriangleValues, assignDownflow, assignFlow } from './rivers';
 import { IGlobeOptions } from './types';
@@ -13,6 +13,7 @@ export class Globe {
   r_xyz: number[];
   latlong: number[];
   triangleGeometry: any;
+  minimapGeometry: any;
   quadGeometry: QuadGeometry;
 
   t_xyz: number[];
@@ -89,5 +90,6 @@ export class Globe {
     }
 
     this.triangleGeometry = generateVoronoiGeometry(this.mesh, this, r_color_fn);
+    this.minimapGeometry = generateMinimapGeometry(this.mesh, this, r_color_fn);
   }
 }

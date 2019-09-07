@@ -20,7 +20,7 @@ body, html {
   bottom: 0;
 }
 
-#minimap {
+.minimap {
   width: calc(360px * 1);
   height: calc(180px * 1);
   border: 1px solid white;

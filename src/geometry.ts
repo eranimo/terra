@@ -10,6 +10,7 @@ import { makeRandFloat } from '@redblobgames/prng';
 import SimplexNoise from 'simplex-noise';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { Globe } from './Globe';
+import { getLatLng } from './utils';
 
 
 const SEED = 123;
@@ -60,12 +61,43 @@ export function generateVoronoiGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
       outer_t = mesh.s_outer_t(s),
       begin_r = mesh.s_begin_r(s);
     let rgb = r_color_fn(begin_r);
-    xyz.push(t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2],
+    xyz.push(
+      t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2],
       t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2],
-      r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]);
+      r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]
+    );
     tm.push(rgb, rgb, rgb);
   }
   return { xyz, tm };
+}
+
+function getUV([x, y, z]) {
+  return [
+    0.5 + (Math.asin(y) / Math.PI),
+    0.5 + (Math.atan2(z, x) / (Math.PI * 2)),
+  ];
+}
+
+export function generateMinimapGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
+  const { numSides } = mesh;
+  let xy = [], tm = [];
+
+  for (let s = 0; s < numSides; s++) {
+    let inner_t = mesh.s_inner_t(s),
+      outer_t = mesh.s_outer_t(s),
+      begin_r = mesh.s_begin_r(s);
+    let rgb = r_color_fn(begin_r);
+    const p1 = getUV([t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]]);
+    const p2 = getUV([t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]]);
+    const p3 = getUV([r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]]);
+    xy.push(...p1, ...p2, ...p3);
+    tm.push(
+      rgb, rgb,
+      rgb, rgb,
+      rgb, rgb,
+    );
+  }
+  return { xy, tm };
 }
 
 export class QuadGeometry {

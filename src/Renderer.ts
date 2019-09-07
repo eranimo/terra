@@ -43,6 +43,17 @@ type TrianglesProps = {
   a_tm: number[],
 }
 
+type MinimapUniforms = {
+  u_colormap_minimap: REGL.Texture
+}
+
+type MinimapProps = {
+  u_colormap?: number[],
+  count: number,
+  a_xy: number[],
+  a_tm: number[],
+}
+
 type IndexedTrianglesUniforms = {
   u_colormap: REGL.Texture,
   u_light_angle: REGL.Vec2,
@@ -61,11 +72,20 @@ type IndexedTrianglesProps = {
   a_tm: number[],
 }
 
-export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) {
+export default function Renderer(
+  screenCanvas: HTMLCanvasElement,
+  minimapCanvas: HTMLCanvasElement,
+  onLoad: () => void
+) {
   const regl = REGL({
-    canvas: canvas,
+    canvas: screenCanvas,
     extensions: ['OES_element_index_uint', 'OES_standard_derivatives', 'ANGLE_instanced_arrays'],
     onDone: onLoad,
+  });
+
+  const reglMinimap = REGL({
+    canvas: minimapCanvas,
+    extensions: ['OES_element_index_uint', 'OES_standard_derivatives', 'ANGLE_instanced_arrays'],
   });
 
   const camera = setupCamera(regl, {
@@ -79,6 +99,14 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
   });
 
   const u_colormap = regl.texture({
+    width: colormap.width,
+    height: colormap.height,
+    data: colormap.data,
+    wrapS: 'clamp',
+    wrapT: 'clamp'
+  });
+
+  const u_colormap_minimap = reglMinimap.texture({
     width: colormap.width,
     height: colormap.height,
     data: colormap.data,
@@ -222,6 +250,49 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     attributes: {
       a_xyz: regl.prop<TrianglesProps, 'a_xyz'>('a_xyz'),
       a_tm: regl.prop<TrianglesProps, 'a_tm'>('a_tm'),
+    },
+
+    cull: {
+      enable: true,
+      face: 'front'
+    },
+  });
+
+  const renderMinimap = reglMinimap<MinimapUniforms, any, MinimapProps, any>({
+    frag: `
+  precision mediump float;
+  uniform sampler2D u_colormap_minimap;
+  varying vec2 v_tm;
+
+  void main() {
+    float e = v_tm.x > 0.0
+      ? 0.5 * (v_tm.x * v_tm.x + 1.0)
+      : 0.5 * (v_tm.x + 1.0);
+    gl_FragColor = texture2D(u_colormap_minimap, vec2(e, v_tm.y));
+  }
+  `,
+
+    vert: `
+  precision mediump float;
+  attribute vec2 a_xy;
+  attribute vec2 a_tm;
+  varying vec2 v_tm;
+  uniform mat4 vv;
+
+  void main() {
+    v_tm = a_tm;
+    gl_Position = vec4(a_xy, 0, 0.5) - 0.25;
+  }
+  `,
+
+    uniforms: {
+      u_colormap_minimap
+    },
+
+    count: regl.prop<MinimapProps, 'count'>('count'),
+    attributes: {
+      a_xy: regl.prop<MinimapProps, 'a_xy'>('a_xy'),
+      a_tm: regl.prop<MinimapProps, 'a_tm'>('a_tm'),
     },
 
     cull: {
@@ -473,6 +544,7 @@ export default function Renderer(canvas: HTMLCanvasElement, onLoad: () => void) 
     renderLines,
     renderTriangles,
     renderIndexedTriangles,
+    renderMinimap,
 
     drawCell,
     drawPlateVectors,

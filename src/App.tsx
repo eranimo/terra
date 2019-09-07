@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, createContext } from 'react';
 import { IGlobeOptions, IDrawOptions } from './types';
 import { useObservable, useObservableDict } from './utils/hooks';
 import { ObservableDict } from './utils/ObservableDict';
@@ -6,7 +6,7 @@ import { Globe } from './Globe';
 import Renderer from './Renderer';
 import { mat4, vec3 } from 'gl-matrix';
 import { useWindowSize } from 'react-use';
-import { clamp } from 'lodash';
+import { random } from 'lodash';
 import { intersectTriangle, getLatLng } from './utils';
 import classNames from 'classnames';
 
@@ -40,14 +40,19 @@ class GameManager {
 
   removeDrawLoop: any;
   hoveredCell: any;
+  minimapContext: CanvasRenderingContext2D;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(screenCanvas: HTMLCanvasElement, public minimapCanvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
 
     this.hoveredCell = null;
     
-    const renderer = Renderer(canvas, this.onLoad(canvas));
+    const renderer = Renderer(
+      screenCanvas,
+      minimapCanvas,
+      this.onLoad(screenCanvas)
+    );
     this.renderer = renderer;
     this.drawOptions$.subscribe(() => renderer.camera.setDirty());
     this.removeDrawLoop = renderer.regl.frame(() => {
@@ -146,7 +151,7 @@ class GameManager {
   }
 
   draw() {
-    const { mesh, triangleGeometry, quadGeometry, r_xyz } = this.globe;
+    const { mesh, triangleGeometry, minimapGeometry, quadGeometry, r_xyz } = this.globe;
 
     if (this.drawOptions$.get('surface')) {
       if (drawMode === 'centroid') {
@@ -199,6 +204,13 @@ class GameManager {
         this.hoveredCell,
       );
     }
+
+    // draw minimap
+    this.renderer.renderMinimap({
+      a_xy: minimapGeometry.xy,
+      a_tm: minimapGeometry.tm,
+      count: minimapGeometry.xy.length / 2,
+    });
   }
 }
 
@@ -409,10 +421,11 @@ function Controls({ manager }: { manager: GameManager }) {
 
 export function App() {
   const screenRef = useRef();
+  const minimapRef = useRef();
   const [manager, setManager] = useState(null);
 
   useEffect(() => {
-    const manager = new GameManager(screenRef.current);
+    const manager = new GameManager(screenRef.current, minimapRef.current);
     console.log('manager', manager);
     setManager(manager);
 
@@ -430,6 +443,12 @@ export function App() {
         ref={screenRef}
         width={width}
         height={height}
+      />
+      <canvas
+        className="minimap"
+        ref={minimapRef}
+        width={360}
+        height={180}
       />
       {manager && <Controls manager={manager} />}
     </div>
