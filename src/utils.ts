@@ -98,5 +98,5 @@ export function getLatLng(vector: vec3 | number[], radius: number = 1) {
   var lat = (Math.PI / 2 - latRads) * (180 / Math.PI);
   var lng = (Math.PI - lngRads) * (180 / Math.PI);
 
-  return [lat, lng - 180];
+  return [lat, -lng + 180];
 }

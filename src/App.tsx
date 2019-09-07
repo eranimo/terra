@@ -72,7 +72,7 @@ class GameManager {
         const { r_xyz } = this.globe;
         const h_xyz = [r_xyz[3 * this.hoveredCell], r_xyz[3 * this.hoveredCell + 1], r_xyz[3 * this.hoveredCell + 2]];
         console.log(h_xyz);
-        const [lat, long] = getLatLng(h_xyz);
+        const [long, lat] = getLatLng(h_xyz);
         console.log(lat, long);
         this.renderer.camera.centerLatLong(lat, long);
       }
@@ -245,6 +245,7 @@ function Tabs({ children }) {
       <div className="tab-row">
         {Object.keys(tabs).map(tabID => (
           <a
+            key={tabID}
             className={classNames(
               'tab',
               activeTab === tabID && 'tab--active'

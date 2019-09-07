@@ -75,7 +75,7 @@ export default function createCamera(regl: Regl, props: any = {}) {
       prevY = y
     })
 
-    mouseWheel(source, function (dx, dy) {
+    mouseWheel(source, function (dx: number, dy: number) {
       ddistance += dy / getHeight() * cameraState.zoomSpeed
       cameraState.dirty = true;
     }, props.noScroll)
@@ -90,7 +90,7 @@ export default function createCamera(regl: Regl, props: any = {}) {
     return xd
   }
 
-  function clamp(x, lo, hi) {
+  function clamp(x: number, lo: number, hi: number): number {
     return Math.min(Math.max(x, lo), hi)
   }
 
@@ -99,35 +99,37 @@ export default function createCamera(regl: Regl, props: any = {}) {
       cameraState[prop] = props[prop]
     })
 
-    var center = cameraState.center
-    var eye = cameraState.eye
-    var up = cameraState.up
-    var dtheta = cameraState.dtheta
-    var dphi = cameraState.dphi
+    const center = cameraState.center;
+    const eye = cameraState.eye;
+    const up = cameraState.up;
+    const dtheta = cameraState.dtheta;
+    const dphi = cameraState.dphi;
 
     cameraState.theta += dtheta
     cameraState.phi = clamp(
       cameraState.phi + dphi,
       -Math.PI / 2.0,
-      Math.PI / 2.0)
+      Math.PI / 2.0
+    );
     cameraState.distance = clamp(
       cameraState.distance + ddistance,
       minDistance,
-      maxDistance)
+      maxDistance,
+    );
 
     cameraState.dtheta = damp(dtheta)
     cameraState.dphi = damp(dphi)
     ddistance = damp(ddistance)
 
-    var theta = cameraState.theta
-    var phi = cameraState.phi
-    var r = Math.exp(cameraState.distance)
+    const theta = cameraState.theta
+    const phi = cameraState.phi
+    const r = Math.exp(cameraState.distance)
 
-    var vf = r * Math.sin(theta) * Math.cos(phi)
-    var vr = r * Math.cos(theta) * Math.cos(phi)
-    var vu = r * Math.sin(phi)
+    const vf = r * Math.sin(theta) * Math.cos(phi)
+    const vr = r * Math.cos(theta) * Math.cos(phi)
+    const vu = r * Math.sin(phi)
 
-    for (var i = 0; i < 3; ++i) {
+    for (let i = 0; i < 3; ++i) {
       eye[i] = center[i] + vf * front[i] + vr * right[i] + vu * up[i]
     }
 
@@ -191,12 +193,8 @@ export default function createCamera(regl: Regl, props: any = {}) {
   }
 
   const centerLatLong = (lat: number, long: number) => {
-    cameraState.theta = (long * Math.PI) / 180;
-    cameraState.phi = (lat * Math.PI) / 180;
-    prevX = 0;
-    prevY = 0;
-    cameraState.dtheta = 0;
-    cameraState.dphi = 0;
+    cameraState.theta = (lat * Math.PI) / 180;
+    cameraState.phi = (long * Math.PI) / 180;
     cameraState.dirty = true;
   }
 
@@ -205,6 +203,12 @@ export default function createCamera(regl: Regl, props: any = {}) {
     run: setupCamera,
     setDirty() {
       cameraState.dirty = true;
+    },
+    getLatLong() {
+      return [
+        ((cameraState.theta * 180) / Math.PI) % 360,
+        (cameraState.phi * 180) / Math.PI,
+      ];
     },
     reset,
     centerLatLong
