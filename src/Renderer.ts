@@ -281,7 +281,7 @@ export default function Renderer(
 
   void main() {
     v_tm = a_tm;
-    gl_Position = vec4(a_xy, 0, 0.5) - 0.25;
+    gl_Position = vec4(a_xy, 0, 0.5);
   }
   `,
 

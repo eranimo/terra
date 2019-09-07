@@ -73,8 +73,8 @@ export function generateVoronoiGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
 
 function getUV([x, y, z]) {
   return [
-    0.5 + (Math.asin(y) / Math.PI),
-    0.5 + (Math.atan2(z, x) / (Math.PI * 2)),
+    0 + (Math.asin(y) / Math.PI),
+    0 + (Math.atan2(z, x) / (Math.PI * 2)),
   ];
 }
 
