@@ -21,6 +21,7 @@ body, html {
 }
 
 .minimap {
+  background-color: black;
   width: calc(360px * 1);
   height: calc(180px * 1);
   border: 1px solid white;
