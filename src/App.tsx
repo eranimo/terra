@@ -10,6 +10,7 @@ import { random } from 'lodash';
 import { intersectTriangle, getLatLng } from './utils';
 import classNames from 'classnames';
 
+(window as any)._ = require('lodash');
 
 let drawMode = 'centroid';
 
