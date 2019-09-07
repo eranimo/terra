@@ -149,6 +149,7 @@ class GameManager {
     const globe = new Globe(this.options$.toObject() as any);
     this.globe = globe;
     this.renderer.camera.setDirty();
+    this.drawMinimap();
   }
 
   draw() {
@@ -205,6 +206,11 @@ class GameManager {
         this.hoveredCell,
       );
     }
+
+  }
+
+  drawMinimap() {
+    const { minimapGeometry } = this.globe;
 
     // draw minimap
     this.renderer.renderMinimap({
