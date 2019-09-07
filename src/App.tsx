@@ -448,8 +448,8 @@ export function App() {
       <canvas
         className="minimap"
         ref={minimapRef}
-        width={360}
-        height={180}
+        width={360 * 5}
+        height={180 * 5}
       />
       {manager && <Controls manager={manager} />}
     </div>
