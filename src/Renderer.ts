@@ -43,6 +43,17 @@ type TrianglesProps = {
   a_tm: number[],
 }
 
+type CellColorUniforms = {
+  scale: REGL.Mat4,
+}
+
+type CellColorProps = {
+  scale: mat4,
+  a_rgba?: number[],
+  a_xyz: number[],
+  count: number,
+}
+
 type MinimapUniforms = {
   u_colormap_minimap: REGL.Texture
 }
@@ -214,7 +225,6 @@ export default function Renderer(
     },
   });
 
-
   const renderTriangles = regl<TrianglesUniforms, any, TrianglesProps, any>({
     frag: `
   precision mediump float;
@@ -250,6 +260,45 @@ export default function Renderer(
     attributes: {
       a_xyz: regl.prop<TrianglesProps, 'a_xyz'>('a_xyz'),
       a_tm: regl.prop<TrianglesProps, 'a_tm'>('a_tm'),
+    },
+
+    cull: {
+      enable: true,
+      face: 'front'
+    },
+  });
+
+  const renderCellColor = regl<any, any, CellColorProps, any>({
+    frag: `
+  precision mediump float;
+  uniform sampler2D u_rgba;
+  varying vec4 v_rgba;
+
+  void main() {
+    gl_FragColor = v_rgba;
+  }
+  `,
+
+    vert: `
+  precision mediump float;
+  uniform mat4 projection, view, scale;
+  attribute vec3 a_xyz;
+  attribute vec4 a_rgba;
+  varying vec4 v_rgba;
+
+  void main() {
+    v_rgba = a_rgba;
+    gl_Position = projection * view * scale * vec4(a_xyz, 1);
+  }
+  `,
+    count: regl.prop<CellColorProps, 'count'>('count'),
+    uniforms: {
+      scale: regl.prop<CellColorUniforms, 'scale'>('scale'),
+    },
+    attributes: {
+      scale: regl.prop<CellColorProps, 'scale'>('scale'),
+      a_rgba: regl.prop<CellColorProps, 'a_rgba'>('a_rgba'),
+      a_xyz: regl.prop<CellColorProps, 'a_xyz'>('a_xyz'),
     },
 
     cull: {
@@ -517,7 +566,7 @@ export default function Renderer(
     } as any);
   }
 
-  function drawCell(mesh: TriangleMesh, { t_xyz }, region: number) {
+  function drawCellBorder(mesh: TriangleMesh, { t_xyz }, region: number) {
     let points = [];
     let sides = [];
     mesh.r_circulate_s(sides, region);
@@ -548,10 +597,11 @@ export default function Renderer(
     renderPoints,
     renderLines,
     renderTriangles,
+    renderCellColor,
     renderIndexedTriangles,
     renderMinimap,
 
-    drawCell,
+    drawCellBorder,
     drawPlateVectors,
     drawPlateBoundaries,
     drawCellBorders,

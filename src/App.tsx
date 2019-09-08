@@ -6,9 +6,11 @@ import { Globe } from './Globe';
 import Renderer from './Renderer';
 import { mat4, vec3 } from 'gl-matrix';
 import { useWindowSize } from 'react-use';
-import { random } from 'lodash';
+import { times } from 'lodash';
 import { intersectTriangle, getLatLng } from './utils';
 import classNames from 'classnames';
+import createLine from 'regl-line';
+
 
 (window as any)._ = require('lodash');
 
@@ -32,6 +34,21 @@ const initialDrawOptions: IDrawOptions = {
   surface: true,
 };
 
+class Region {
+  cells: number[];
+  constructor(
+    public name: string,
+    public color: number[],
+    cells: number[] = [],
+  ) {
+    this.cells = cells;
+  }
+
+  get size() {
+    return this.cells.length;
+  }
+}
+
 class GameManager {
   options$: ObservableDict<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
@@ -43,12 +60,23 @@ class GameManager {
   hoveredCell: any;
   minimapContext: CanvasRenderingContext2D;
 
+  regions: Set<Region>;
+  region_xyz: number[];
+  region_rgba: number[];
+  region_lines: any[];
+  cell_region: Record<number, Region>;
+
   constructor(screenCanvas: HTMLCanvasElement, public minimapCanvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
 
     this.hoveredCell = null;
-    
+
+    this.regions = new Set();
+    this.cell_region = {};
+    this.region_lines = [];
+    this.regions.add(new Region('foo', [0.5, 0.5, 0.5, 1], [15881, 16114, 16258, 16347, 16491]))
+
     const renderer = Renderer(
       screenCanvas,
       minimapCanvas,
@@ -67,6 +95,7 @@ class GameManager {
     (window as any).renderer = renderer;
     
     this.generate();
+    this.calculateRegions();
     (window as any).globe = this.globe;
 
 
@@ -106,6 +135,8 @@ class GameManager {
         const [long, lat] = getLatLng(h_xyz);
         console.log(lat, long);
         this.renderer.camera.centerLatLong(lat, long);
+      } else {
+        console.log(this.hoveredCell);
       }
       isPanning = true;
       this.hoveredCell = null;
@@ -170,6 +201,45 @@ class GameManager {
     this.destroy();
   }
 
+  calculateRegions() {
+    this.region_xyz = [];
+    this.region_rgba = [];
+    for (const region of this.regions) {
+      for (const cell of region.cells) {
+        const xyz = this.globe.coordinatesForCell(cell);
+        this.cell_region[cell] = region;
+        this.region_xyz.push(...xyz);
+        this.region_rgba.push(...times(xyz.length / 3).map(() => region.color) as any);
+      }
+
+      // find all points for sides not facing this region
+      let points = [];
+      let widths = [];
+      for (const cell of region.cells) {
+        let sides = [];
+        this.globe.mesh.r_circulate_s(sides, cell);
+        for (const s of sides) {
+          const begin_r = this.globe.mesh.s_begin_r(s);
+          const end_r = this.globe.mesh.s_end_r(s);
+          const inner_t = this.globe.mesh.s_inner_t(s);
+          const outer_t = this.globe.mesh.s_outer_t(s);
+          const p1 = this.globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+          const p2 = this.globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+          if (this.cell_region[end_r] != region) {
+            points.push(...p1, ...p1, ...p2, ...p2);
+            widths.push(0, 2, 2, 0);
+          }
+        }
+      }
+      const line = createLine(this.renderer.regl, {
+        color: [0.0, 0.0, 0.0, 0.5],
+        widths,
+        points,
+      });
+      this.region_lines.push(line);
+    }
+  }
+
   generate() {
     const globe = new Globe(this.options$.toObject() as any);
     this.globe = globe;
@@ -225,13 +295,25 @@ class GameManager {
     }
 
     if (this.hoveredCell) {
-      this.renderer.drawCell(
+      this.renderer.drawCellBorder(
         mesh,
         this.globe,
         this.hoveredCell,
       );
     }
 
+    this.renderer.renderCellColor({
+      scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+      a_xyz: this.region_xyz,
+      a_rgba: this.region_rgba,
+      count: this.region_xyz.length / 3,
+    } as any);
+
+    for (const line of this.region_lines) {
+      line.draw({
+        model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
+      });
+    }
   }
 
   drawMinimap() {

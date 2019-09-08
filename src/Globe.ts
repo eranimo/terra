@@ -1,7 +1,7 @@
 import { makeSphere } from "./SphereMesh";
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import TriangleMesh from '@redblobgames/dual-mesh';
-import { QuadGeometry, generateTriangleCenters, generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
+import { QuadGeometry, generateTriangleCenters, generateVoronoiGeometry, generateMinimapGeometry, coordinateForSide } from './geometry';
 import { generatePlates, assignRegionElevation } from './plates';
 import { assignTriangleValues, assignDownflow, assignFlow } from './rivers';
 import { IGlobeOptions } from './types';
@@ -80,6 +80,16 @@ export class Globe {
 
     this.quadGeometry.setMap(this.mesh, this);
     console.log('map', this);
+  }
+
+  coordinatesForCell(cell: number) {
+    const sides = [];
+    this.mesh.r_circulate_s(sides, cell);
+    const xyz = [];
+    for (const side of sides) {
+      xyz.push(...coordinateForSide(this.mesh, this, side));
+    }
+    return xyz;
   }
 
   setupGeometry() {

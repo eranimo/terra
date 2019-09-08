@@ -52,6 +52,18 @@ export function generateTriangleCenters(mesh, { r_xyz }) {
   return t_xyz;
 }
 
+export function coordinateForSide(mesh, { r_xyz, t_xyz }, s: number) {
+  const inner_t = mesh.s_inner_t(s);
+  const outer_t = mesh.s_outer_t(s);
+  const begin_r = mesh.s_begin_r(s);
+
+  return [
+    t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2],
+    t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2],
+    r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2],
+  ];
+}
+
 export function generateVoronoiGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
   const { numSides } = mesh;
   const xyz = [];
