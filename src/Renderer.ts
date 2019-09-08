@@ -491,10 +491,8 @@ export default function Renderer(
     }
 
     return createLine(regl, {
-      color: [0.0, 0.0, 1.0, 1.0],
       widths,
       points,
-      miter: 1
     });
   }
 
@@ -508,6 +506,11 @@ export default function Renderer(
       line = createRivers(mesh, t_xyz, s_flow, zoomLevel);
       riversCache.set(mesh, line);
     }
+
+    line.setStyle({
+      miter: 1,
+      color: [0.0, 0.0, 1.0, 1.0],
+    });
 
     line.draw({
       model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
@@ -534,7 +537,7 @@ export default function Renderer(
     });
 
     line.draw({
-      model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
+      model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
     } as any);
   }
 
