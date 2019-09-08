@@ -131,7 +131,7 @@ export default function Renderer(
 
   void main() {
     gl_Position = projection * view * vec4(a_xyz, 1);
-    gl_PointSize = 10.0; //gl_Position.z > 0.0 ? 0.0 : u_pointsize;
+    gl_PointSize = gl_Position.z > 0.0 ? 0.0 : u_pointsize;
   }
   `,
 

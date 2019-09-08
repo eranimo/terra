@@ -68,6 +68,31 @@ class GameManager {
     
     this.generate();
     (window as any).globe = this.globe;
+
+
+    // minimap events
+    const jumpToPosition = (x: number, y: number) => {
+      const { width, height } = minimapCanvas.getBoundingClientRect();
+      const cx = (x / width) - 0.5;
+      const cy = (y / height) - 0.5;
+      const lat = cx * 360;
+      const long = cy * 180;
+      this.renderer.camera.centerLatLong(lat, long);
+    }
+
+    let isPanningMinimap = false;
+    minimapCanvas.addEventListener('mousedown', (event: MouseEvent) => {
+      jumpToPosition(event.offsetX, event.offsetY);
+      isPanningMinimap = true;
+    });
+    minimapCanvas.addEventListener('mouseup', (event: MouseEvent) => {
+      isPanningMinimap = false;
+    });
+    minimapCanvas.addEventListener('mousemove', (event: MouseEvent) => {
+      if (isPanningMinimap) {
+        jumpToPosition(event.offsetX, event.offsetY);
+      }
+    });
   }
   
   onLoad = (canvas) => () => {
