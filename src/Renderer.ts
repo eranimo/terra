@@ -471,6 +471,8 @@ export default function Renderer(
 
   const riversCache = new Map();
 
+  const MIN_RIVER_WIDTH = 1;
+  const MAX_RIVER_WIDTH = 5;
   function createRivers(mesh: TriangleMesh, t_xyz, s_flow, zoomLevel: number) {
     let points = [];
     let widths = [];
@@ -483,7 +485,7 @@ export default function Renderer(
         const p1 = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
         const p2 = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
         points.push(...p1, ...p1, ...p2, ...p2);
-        const width = Math.max(2, flow * 5) * zoomLevel;
+        const width = Math.max(MIN_RIVER_WIDTH, flow * MAX_RIVER_WIDTH) * zoomLevel;
         widths.push(0, width, width, 0);
       }
     }
