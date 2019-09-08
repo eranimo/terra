@@ -34,7 +34,7 @@ const initialDrawOptions: IDrawOptions = {
   cellCenters: false,
   surface: true,
   regions: true,
-  mapMode: EMapMode.ELEVATION,
+  mapMode: EMapMode.NONE,
 };
 
 class Region {
