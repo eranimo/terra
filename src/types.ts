@@ -19,4 +19,5 @@ export interface IDrawOptions {
   cellCenters: boolean,
   rivers: boolean,
   surface: boolean,
+  regions: boolean,
 }

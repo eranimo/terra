@@ -233,8 +233,8 @@ export default function Renderer(
 
   void main() {
     float e = v_tm.x > 0.0
-      ? 0.5 * (v_tm.x * v_tm.x + 1.0)
-      : 0.5 * (v_tm.x + 1.0);
+      ? 0.5 * (v_tm.x * v_tm.x + 1.0) // if land
+      : 0.5 * (v_tm.x + 1.0); // if water
     gl_FragColor = texture2D(u_colormap, vec2(e, v_tm.y));
   }
   `,

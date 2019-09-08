@@ -32,6 +32,7 @@ const initialDrawOptions: IDrawOptions = {
   rivers: true,
   cellCenters: false,
   surface: true,
+  regions: true,
 };
 
 class Region {
@@ -75,7 +76,7 @@ class GameManager {
     this.regions = new Set();
     this.cell_region = {};
     this.region_lines = [];
-    this.regions.add(new Region('foo', [0.5, 0.5, 0.5, 1], [15881, 16114, 16258, 16347, 16491]))
+    this.regions.add(new Region('foo', [0.5, 0.5, 0.5, 1], [15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]))
 
     const renderer = Renderer(
       screenCanvas,
@@ -302,17 +303,19 @@ class GameManager {
       );
     }
 
-    this.renderer.renderCellColor({
-      scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-      a_xyz: this.region_xyz,
-      a_rgba: this.region_rgba,
-      count: this.region_xyz.length / 3,
-    } as any);
+    if (this.drawOptions$.get('regions')) {
+      this.renderer.renderCellColor({
+        scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+        a_xyz: this.region_xyz,
+        a_rgba: this.region_rgba,
+        count: this.region_xyz.length / 3,
+      } as any);
 
-    for (const line of this.region_lines) {
-      line.draw({
-        model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
-      });
+      for (const line of this.region_lines) {
+        line.draw({
+          model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
+        });
+      }
     }
   }
 
@@ -402,6 +405,7 @@ function Controls({ manager }: { manager: GameManager }) {
   const drawCellCenters = useObservableDict(manager.drawOptions$, 'cellCenters');
   const drawRivers = useObservableDict(manager.drawOptions$, 'rivers');
   const drawSurface = useObservableDict(manager.drawOptions$, 'surface');
+  const drawRegions = useObservableDict(manager.drawOptions$, 'regions');
 
   return (
     <div id="controls">
@@ -409,7 +413,7 @@ function Controls({ manager }: { manager: GameManager }) {
       <Tabs>
         {() => ({
           generate: {
-            title: 'Generate',
+            title: 'Map options',
             render: () => (
               <div>
                 <Field title="Seed">
@@ -474,56 +478,64 @@ function Controls({ manager }: { manager: GameManager }) {
             )
           },
           render: {
-            title: 'Render',
+            title: 'Draw options',
             render: () => (
               <div>
                 <Field title="Draw Grid">
-                <input
-                  type="checkbox"
-                  checked={drawGrid}
-                  onChange={event => manager.drawOptions$.set('grid', event.target.checked)}
-                />
-              </Field>
+                  <input
+                    type="checkbox"
+                    checked={drawGrid}
+                    onChange={event => manager.drawOptions$.set('grid', event.target.checked)}
+                  />
+                </Field>
 
-              <Field title="Draw Plate Borders">
-                <input
-                  type="checkbox"
-                  checked={drawPlateBorders}
-                  onChange={event => manager.drawOptions$.set('plateBorders', event.target.checked)}
-                />
-              </Field>
+                <Field title="Draw Plate Borders">
+                  <input
+                    type="checkbox"
+                    checked={drawPlateBorders}
+                    onChange={event => manager.drawOptions$.set('plateBorders', event.target.checked)}
+                  />
+                </Field>
 
-              <Field title="Draw Plate Vectors">
-                <input
-                  type="checkbox"
-                  checked={drawPlateVectors}
-                  onChange={event => manager.drawOptions$.set('plateVectors', event.target.checked)}
-                />
-              </Field>
+                <Field title="Draw Plate Vectors">
+                  <input
+                    type="checkbox"
+                    checked={drawPlateVectors}
+                    onChange={event => manager.drawOptions$.set('plateVectors', event.target.checked)}
+                  />
+                </Field>
 
-              <Field title="Draw Cell Centers">
-                <input
-                  type="checkbox"
-                  checked={drawCellCenters}
-                  onChange={event => manager.drawOptions$.set('cellCenters', event.target.checked)}
-                />
-              </Field>
+                <Field title="Draw Cell Centers">
+                  <input
+                    type="checkbox"
+                    checked={drawCellCenters}
+                    onChange={event => manager.drawOptions$.set('cellCenters', event.target.checked)}
+                  />
+                </Field>
 
-              <Field title="Draw Rivers">
-                <input
-                  type="checkbox"
-                  checked={drawRivers}
-                  onChange={event => manager.drawOptions$.set('rivers', event.target.checked)}
-                />
-              </Field>
+                <Field title="Draw Rivers">
+                  <input
+                    type="checkbox"
+                    checked={drawRivers}
+                    onChange={event => manager.drawOptions$.set('rivers', event.target.checked)}
+                  />
+                </Field>
 
-              <Field title="Draw Surface">
-                <input
-                  type="checkbox"
-                  checked={drawSurface}
-                  onChange={event => manager.drawOptions$.set('surface', event.target.checked)}
-                />
-              </Field>
+                <Field title="Draw Surface">
+                  <input
+                    type="checkbox"
+                    checked={drawSurface}
+                    onChange={event => manager.drawOptions$.set('surface', event.target.checked)}
+                  />
+                </Field>
+
+                <Field title="Draw Regions">
+                  <input
+                    type="checkbox"
+                    checked={drawRegions}
+                    onChange={event => manager.drawOptions$.set('regions', event.target.checked)}
+                  />
+                </Field>
               </div>
             )
           }
