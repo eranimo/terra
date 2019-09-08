@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState, createContext } from 'react';
-import { IGlobeOptions, IDrawOptions } from './types';
+import { IGlobeOptions, IDrawOptions, EMapMode, mapModeTitles } from './types';
 import { useObservable, useObservableDict } from './utils/hooks';
 import { ObservableDict } from './utils/ObservableDict';
 import { Globe } from './Globe';
 import Renderer from './Renderer';
 import { mat4, vec3 } from 'gl-matrix';
 import { useWindowSize } from 'react-use';
-import { times } from 'lodash';
+import { times, clamp } from 'lodash';
 import { intersectTriangle, getLatLng } from './utils';
 import classNames from 'classnames';
 import createLine from 'regl-line';
+import colormap from 'colormap';
 
 
 (window as any)._ = require('lodash');
@@ -33,6 +34,7 @@ const initialDrawOptions: IDrawOptions = {
   cellCenters: false,
   surface: true,
   regions: true,
+  mapMode: EMapMode.ELEVATION,
 };
 
 class Region {
@@ -50,6 +52,83 @@ class Region {
   }
 }
 
+
+const colormapEarth = colormap({
+  colormap: 'earth',
+  nshades: 100,
+  format: 'float',
+  alpha: 1,
+})
+
+
+interface IMapModeColorMap {
+  colormap: string;
+  color: (values: { moisture: number, height: number }) => number[];
+}
+
+class MapMode {
+  xyz: number[];
+  rgba: number[];
+  
+  constructor(
+    public globe: Globe,
+    public mapMode: EMapMode,
+    mapModeColor: IMapModeColorMap
+  ) {
+    this.xyz = [];
+    this.rgba = [];
+    let values = { moisture: null, height: null };
+    const { r_xyz, t_xyz } = globe;
+    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
+      values.moisture = this.globe.r_moisture[r];
+      values.height = this.globe.r_elevation[r];
+      const color = mapModeColor.color(values);
+      const sides = [];
+      globe.mesh.r_circulate_s(sides, r);
+      for (const s of sides) {
+        const inner_t = globe.mesh.s_inner_t(s);
+        const outer_t = globe.mesh.s_outer_t(s);
+        const begin_r = globe.mesh.s_begin_r(s);
+        this.xyz.push(
+          t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2],
+          t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2],
+          r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2],
+        )
+        this.rgba.push(
+          ...color,
+          ...color,
+          ...color,
+        );
+      }
+    }
+  }
+}
+
+const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
+  [EMapMode.ELEVATION, {
+    colormap: 'earth',
+    color: ({ height }) => {
+      const heightFixed = (height + 1) / 2;
+      const index = clamp(Math.round(heightFixed * 100), 0, 99);
+      if (colormapEarth[index]) {
+        return colormapEarth[index];
+      }
+      return [0, 0, 0, 1];
+    },
+  }],
+  [EMapMode.MOISTURE, {
+    colormap: 'YiGnBu',
+    color: ({ moisture }) => {
+      const moistureFixed = (moisture + 1) / 2;
+      const index = clamp(Math.round(moistureFixed * 100), 0, 99);
+      if (colormapEarth[index]) {
+        return colormapEarth[index];
+      }
+      return [0, 0, 0, 1];
+    },
+  }],
+]);
+
 class GameManager {
   options$: ObservableDict<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
@@ -66,6 +145,7 @@ class GameManager {
   region_rgba: number[];
   region_lines: any[];
   cell_region: Record<number, Region>;
+  mapModes: Record<string, MapMode>;
 
   constructor(screenCanvas: HTMLCanvasElement, public minimapCanvas: HTMLCanvasElement) {
     this.options$ = new ObservableDict(initialOptions);
@@ -97,6 +177,13 @@ class GameManager {
     
     this.generate();
     this.calculateRegions();
+
+    // initialize map modes
+    this.mapModes = {};
+    for (const [mapMode, def] of mapModeDefs) {
+      this.mapModes[mapMode] = new MapMode(this.globe, mapMode as any, def as any);
+    }
+
     (window as any).globe = this.globe;
 
 
@@ -132,12 +219,10 @@ class GameManager {
       if (this.hoveredCell && event.shiftKey) {
         const { r_xyz } = this.globe;
         const h_xyz = [r_xyz[3 * this.hoveredCell], r_xyz[3 * this.hoveredCell + 1], r_xyz[3 * this.hoveredCell + 2]];
-        console.log(h_xyz);
         const [long, lat] = getLatLng(h_xyz);
-        console.log(lat, long);
         this.renderer.camera.centerLatLong(lat, long);
       } else {
-        console.log(this.hoveredCell);
+        // console.log(this.hoveredCell);
       }
       isPanning = true;
       this.hoveredCell = null;
@@ -317,6 +402,19 @@ class GameManager {
         });
       }
     }
+
+    if (this.drawOptions$.get('mapMode')) {
+      const mapMode = this.mapModes[this.drawOptions$.get('mapMode')];
+      if (mapMode) {
+        const { xyz, rgba } = mapMode;
+        this.renderer.renderCellColor({
+          scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+          a_xyz: xyz,
+          a_rgba: rgba,
+          count: xyz.length / 3,
+        } as any);
+      }
+    }
   }
 
   drawMinimap() {
@@ -399,6 +497,7 @@ function Controls({ manager }: { manager: GameManager }) {
   const flowModifier = useObservableDict(manager.options$, 'flowModifier');
   const oceanPlatePercent = useObservableDict(manager.options$, 'oceanPlatePercent');
 
+  const mapMode = useObservableDict(manager.drawOptions$, 'mapMode');
   const drawGrid = useObservableDict(manager.drawOptions$, 'grid');
   const drawPlateVectors = useObservableDict(manager.drawOptions$, 'plateVectors');
   const drawPlateBorders = useObservableDict(manager.drawOptions$, 'plateBorders');
@@ -481,6 +580,16 @@ function Controls({ manager }: { manager: GameManager }) {
             title: 'Draw options',
             render: () => (
               <div>
+                <Field title="Map Mode">
+                  <select
+                    value={mapMode}
+                    onChange={event => manager.drawOptions$.set('mapMode', event.target.value as any)}
+                  >
+                    {Object.entries(mapModeTitles).map(([mapMode, title]) => (
+                      <option key={title} value={mapMode}>{title}</option>
+                    ))}
+                  </select>
+                </Field>
                 <Field title="Draw Grid">
                   <input
                     type="checkbox"

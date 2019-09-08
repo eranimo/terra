@@ -20,4 +20,17 @@ export interface IDrawOptions {
   rivers: boolean,
   surface: boolean,
   regions: boolean,
+  mapMode: EMapMode,
+}
+
+export enum EMapMode {
+  NONE = 'NONE',
+  ELEVATION = 'ELEVATION',
+  MOISTURE = 'MOISTURE',
+}
+
+export const mapModeTitles = {
+  [EMapMode.NONE]: 'None',
+  [EMapMode.ELEVATION]: 'Elevation',
+  [EMapMode.MOISTURE]: 'Moisture',
 }

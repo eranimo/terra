@@ -34,6 +34,7 @@
     "@types/react-dom": "^16.8.5",
     "@types/seedrandom": "^2.4.28",
     "classnames": "^2.2.6",
+    "colormap": "^2.3.1",
     "delaunator": "^3.0",
     "flatqueue": "*",
     "gl-matrix": "*",
