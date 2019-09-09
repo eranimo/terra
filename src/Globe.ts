@@ -17,6 +17,7 @@ export class Globe {
   quadGeometry: QuadGeometry;
 
   t_xyz: number[];
+  minimap_t_xyz: number[]; // without height added
   r_elevation: Float32Array;
   t_elevation: Float32Array;
   r_moisture: Float32Array;
@@ -42,6 +43,7 @@ export class Globe {
     this.quadGeometry.setMesh(mesh);
 
     this.t_xyz = generateTriangleCenters(mesh, this);
+    this.minimap_t_xyz = null;
     this.r_elevation = new Float32Array(mesh.numRegions);
     this.t_elevation = new Float32Array(mesh.numTriangles);
     this.r_moisture = new Float32Array(mesh.numRegions);
@@ -77,6 +79,8 @@ export class Globe {
     assignTriangleValues(this.mesh, this);
     assignDownflow(this.mesh, this);
     assignFlow(this.mesh, this.options, this);
+
+    this.minimap_t_xyz = Array.from(this.t_xyz);
 
     this.quadGeometry.setMap(this.mesh, this);
     console.log('map', this);

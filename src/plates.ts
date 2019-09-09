@@ -110,11 +110,13 @@ function findCollisions(mesh: TriangleMesh, r_xyz: number[], plate_is_ocean, r_p
     mesh.r_circulate_r(r_out, current_r);
     for (let neighbor_r of r_out) {
       if (r_plate[current_r] !== r_plate[neighbor_r]) {
-        let current_pos = r_xyz.slice(3 * current_r, 3 * current_r + 3),
-          neighbor_pos = r_xyz.slice(3 * neighbor_r, 3 * neighbor_r + 3);
-        let distanceBefore = vec3.distance(current_pos, neighbor_pos),
-          distanceAfter = vec3.distance(vec3.add([] as any, current_pos, vec3.scale([] as any, plate_vec[r_plate[current_r]], epsilon)),
-            vec3.add([] as any, neighbor_pos, vec3.scale([] as any, plate_vec[r_plate[neighbor_r]], epsilon)));
+        const current_pos = r_xyz.slice(3 * current_r, 3 * current_r + 3);
+        const neighbor_pos = r_xyz.slice(3 * neighbor_r, 3 * neighbor_r + 3);
+        const distanceBefore = vec3.distance(current_pos, neighbor_pos);
+        const distanceAfter = vec3.distance(
+          vec3.add([] as any, current_pos, vec3.scale([] as any, plate_vec[r_plate[current_r]], epsilon)),
+          vec3.add([] as any, neighbor_pos, vec3.scale([] as any, plate_vec[r_plate[neighbor_r]], epsilon))
+        );
         let collision = distanceBefore - distanceAfter;
         if (collision < bestCollision) {
           best_r = neighbor_r;
@@ -146,7 +148,8 @@ export function assignRegionElevation(
   let { numRegions } = mesh;
 
   let { mountain_r, coastline_r, ocean_r } = findCollisions(
-    mesh, r_xyz, plate_is_ocean, r_plate, plate_vec);
+    mesh, r_xyz, plate_is_ocean, r_plate, plate_vec
+  );
 
   for (let r = 0; r < numRegions; r++) {
     if (r_plate[r] === r) {
@@ -165,9 +168,9 @@ export function assignRegionElevation(
   let r_distance_c = assignDistanceField(mesh, options, coastline_r, stop_r);
 
   for (let r = 0; r < numRegions; r++) {
-    let a = r_distance_a[r] + epsilon,
-      b = r_distance_b[r] + epsilon,
-      c = r_distance_c[r] + epsilon;
+    const a = r_distance_a[r] + epsilon;
+    const b = r_distance_b[r] + epsilon;
+    const c = r_distance_c[r] + epsilon;
     if (a === Infinity && b === Infinity) {
       r_elevation[r] = 0.1;
     } else {

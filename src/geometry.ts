@@ -13,12 +13,12 @@ import { Globe } from './Globe';
 import { getLatLng } from './utils';
 
 
+// TODO: use options.seed
 const SEED = 123;
 
 let _randomNoise = new SimplexNoise(makeRandFloat(SEED));
 const persistence = 2 / 3;
 const amplitudes = Array.from({ length: 5 }, (_, octave) => Math.pow(persistence, octave));
-let triangleGeometry;
 
 export function fbm_noise(nx, ny, nz) {
   let sum = 0, sumOfAmplitudes = 0;
@@ -93,7 +93,7 @@ function getUV([x, y, z]) {
   ];
 }
 
-export function generateMinimapGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
+export function generateMinimapGeometry(mesh, { r_xyz, minimap_t_xyz }, r_color_fn) {
   const { numSides } = mesh;
   let xy = [], tm = [];
 
@@ -102,8 +102,8 @@ export function generateMinimapGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
     const outer_t = mesh.s_outer_t(s);
     const begin_r = mesh.s_begin_r(s);
     let rgb = r_color_fn(begin_r);
-    const p1 = getUV([t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]]);
-    const p2 = getUV([t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]]);
+    const p1 = getUV([minimap_t_xyz[3 * inner_t], minimap_t_xyz[3 * inner_t + 1], minimap_t_xyz[3 * inner_t + 2]]);
+    const p2 = getUV([minimap_t_xyz[3 * outer_t], minimap_t_xyz[3 * outer_t + 1], minimap_t_xyz[3 * outer_t + 2]]);
     const p3 = getUV([r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]]);
     xy.push(...p1, ...p2, ...p3);
     tm.push(
@@ -114,15 +114,9 @@ export function generateMinimapGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
 }
 
 export class QuadGeometry {
-  I: Int32Array;
-  xyz: Float32Array;
-  tm: Float32Array;
-
-  constructor() {
-    /* xyz = position in 3-space;
-       tm = temperature, moisture
-       I = indices for indexed drawing mode */
-  }
+  I: Int32Array; // I = indices for indexed drawing mode
+  xyz: Float32Array; // position in 3-space
+  tm: Float32Array; // temperature, moisture
 
   setMesh({ numSides, numRegions, numTriangles }) {
     this.I = new Int32Array(3 * numSides);
@@ -135,13 +129,19 @@ export class QuadGeometry {
     globe: Globe,
   ) {
     const { r_xyz, t_xyz, s_flow, r_elevation, t_elevation, r_moisture, t_moisture } = globe;
-    const V = 0.95;
     const { numSides, numRegions, numTriangles } = mesh;
     const { xyz, tm, I } = this;
-
+    
     xyz.set(r_xyz);
     xyz.set(t_xyz, r_xyz.length);
-    // TODO: multiply all the r, t points by the elevation, taking V into account
+
+    const V = 0.05;
+    for (let t = 0; t < numTriangles; t++) {
+      const e = Math.max(0, t_elevation[t]) * V;
+      t_xyz[3 * t] = t_xyz[3 * t] + (t_xyz[3 * t] * e);
+      t_xyz[3 * t + 1] = t_xyz[3 * t + 1] + (t_xyz[3 * t + 1] * e);
+      t_xyz[3 * t + 2] = t_xyz[3 * t + 2] + (t_xyz[3 * t + 2] * e);
+    }
 
     let p = 0;
     for (let r = 0; r < numRegions; r++) {
@@ -156,11 +156,11 @@ export class QuadGeometry {
     let i = 0, count_valley = 0, count_ridge = 0;
     let { _halfedges, _triangles } = mesh;
     for (let s = 0; s < numSides; s++) {
-      let opposite_s = mesh.s_opposite_s(s),
-        r1 = mesh.s_begin_r(s),
-        r2 = mesh.s_begin_r(opposite_s),
-        t1 = mesh.s_inner_t(s),
-        t2 = mesh.s_inner_t(opposite_s);
+      const opposite_s = mesh.s_opposite_s(s);
+      const r1 = mesh.s_begin_r(s);
+      const r2 = mesh.s_begin_r(opposite_s);
+      const t1 = mesh.s_inner_t(s);
+      const t2 = mesh.s_inner_t(opposite_s);
 
       // Each quadrilateral is turned into two triangles, so each
       // half-edge gets turned into one. There are two ways to fold
@@ -170,11 +170,15 @@ export class QuadGeometry {
       let coast = r_elevation[r1] < 0.0 || r_elevation[r2] < 0.0;
       if (coast || s_flow[s] > 0 || s_flow[opposite_s] > 0) {
         // It's a coastal or river edge, forming a valley
-        I[i++] = r1; I[i++] = numRegions + t2; I[i++] = numRegions + t1;
+        I[i++] = r1;
+        I[i++] = numRegions + t2;
+        I[i++] = numRegions + t1;
         count_valley++;
       } else {
         // It's a ridge
-        I[i++] = r1; I[i++] = r2; I[i++] = numRegions + t1;
+        I[i++] = r1;
+        I[i++] = r2;
+        I[i++] = numRegions + t1;
         count_ridge++;
       }
     }
