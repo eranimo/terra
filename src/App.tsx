@@ -53,17 +53,10 @@ class Region {
 }
 
 
-const colormapEarth = colormap({
-  colormap: 'earth',
-  nshades: 100,
-  format: 'float',
-  alpha: 1,
-})
-
-
 interface IMapModeColorMap {
   colormap: string;
-  color: (values: { moisture: number, height: number }) => number[];
+  colors: Record<string, any>;
+  color: (values: { moisture: number, height: number }, colors) => number[];
 }
 
 class MapMode {
@@ -82,7 +75,7 @@ class MapMode {
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
       values.moisture = this.globe.r_moisture[r];
       values.height = this.globe.r_elevation[r];
-      const color = mapModeColor.color(values);
+      const color = mapModeColor.color(values, mapModeColor.colors);
       const sides = [];
       globe.mesh.r_circulate_s(sides, r);
       for (const s of sides) {
@@ -107,22 +100,38 @@ class MapMode {
 const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   [EMapMode.ELEVATION, {
     colormap: 'earth',
-    color: ({ height }) => {
+    colors: {
+      earth: colormap({
+        colormap: 'earth',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      })
+    },
+    color: ({ height }, colors) => {
       const heightFixed = (height + 1) / 2;
       const index = clamp(Math.round(heightFixed * 100), 0, 99);
-      if (colormapEarth[index]) {
-        return colormapEarth[index];
+      if (colors.earth[index]) {
+        return colors.earth[index];
       }
       return [0, 0, 0, 1];
     },
   }],
   [EMapMode.MOISTURE, {
-    colormap: 'YiGnBu',
-    color: ({ moisture }) => {
+    colormap: 'cool',
+    colors: {
+      main: colormap({
+        colormap: 'YiGnBu',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+    },
+    color: ({ moisture }, colors) => {
       const moistureFixed = (moisture + 1) / 2;
       const index = clamp(Math.round(moistureFixed * 100), 0, 99);
-      if (colormapEarth[index]) {
-        return colormapEarth[index];
+      if (colors.main[index]) {
+        return colors.main[index];
       }
       return [0, 0, 0, 1];
     },
@@ -336,19 +345,21 @@ class GameManager {
   draw() {
     const { mesh, triangleGeometry, minimapGeometry, quadGeometry, r_xyz } = this.globe;
 
-    if (this.drawOptions$.get('surface')) {
-      if (drawMode === 'centroid') {
-        this.renderer.renderTriangles({
-          a_xyz: triangleGeometry.xyz,
-          a_tm: triangleGeometry.tm,
-          count: triangleGeometry.xyz.length / 3,
-        });
-      } else if (drawMode === 'quads') {
-        this.renderer.renderIndexedTriangles({
-          a_xyz: quadGeometry.xyz,
-          a_tm: quadGeometry.tm,
-          elements: quadGeometry.I,
-        } as any);
+    if (this.drawOptions$.get('mapMode') === EMapMode.NONE) {
+      if (this.drawOptions$.get('surface')) {
+        if (drawMode === 'centroid') {
+          this.renderer.renderTriangles({
+            a_xyz: triangleGeometry.xyz,
+            a_tm: triangleGeometry.tm,
+            count: triangleGeometry.xyz.length / 3,
+          });
+        } else if (drawMode === 'quads') {
+          this.renderer.renderIndexedTriangles({
+            a_xyz: quadGeometry.xyz,
+            a_tm: quadGeometry.tm,
+            elements: quadGeometry.I,
+          } as any);
+        }
       }
     }
 
@@ -403,7 +414,7 @@ class GameManager {
       }
     }
 
-    if (this.drawOptions$.get('mapMode')) {
+    if (this.drawOptions$.get('surface') && this.drawOptions$.get('mapMode')) {
       const mapMode = this.mapModes[this.drawOptions$.get('mapMode')];
       if (mapMode) {
         const { xyz, rgba } = mapMode;
