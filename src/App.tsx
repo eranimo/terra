@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, createContext } from 'react';
-import { IGlobeOptions, IDrawOptions, EMapMode, mapModeTitles } from './types';
+import { IGlobeOptions, IDrawOptions, EMapMode, mapModeTitles, EDrawMode, drawModeTitles } from './types';
 import { useObservable, useObservableDict } from './utils/hooks';
 import { ObservableDict } from './utils/ObservableDict';
 import { Globe } from './Globe';
@@ -15,8 +15,6 @@ import colormap from 'colormap';
 
 (window as any)._ = require('lodash');
 
-let drawMode = 'centroid';
-
 const initialOptions: IGlobeOptions = {
   seed: 123,
   numberCells: 35_000,
@@ -27,6 +25,7 @@ const initialOptions: IGlobeOptions = {
 };
 
 const initialDrawOptions: IDrawOptions = {
+  drawMode: EDrawMode.CENTROID,
   grid: false,
   plateBorders: false,
   plateVectors: false,
@@ -346,20 +345,18 @@ class GameManager {
     const { mesh, triangleGeometry, minimapGeometry, quadGeometry, r_xyz } = this.globe;
 
     if (this.drawOptions$.get('mapMode') === EMapMode.NONE) {
-      if (this.drawOptions$.get('surface')) {
-        if (drawMode === 'centroid') {
-          this.renderer.renderTriangles({
-            a_xyz: triangleGeometry.xyz,
-            a_tm: triangleGeometry.tm,
-            count: triangleGeometry.xyz.length / 3,
-          });
-        } else if (drawMode === 'quads') {
-          this.renderer.renderIndexedTriangles({
-            a_xyz: quadGeometry.xyz,
-            a_tm: quadGeometry.tm,
-            elements: quadGeometry.I,
-          } as any);
-        }
+      if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.CENTROID]) {
+        this.renderer.renderTriangles({
+          a_xyz: triangleGeometry.xyz,
+          a_tm: triangleGeometry.tm,
+          count: triangleGeometry.xyz.length / 3,
+        });
+      } else if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.QUADS]) {
+        this.renderer.renderIndexedTriangles({
+          a_xyz: quadGeometry.xyz,
+          a_tm: quadGeometry.tm,
+          elements: quadGeometry.I,
+        } as any);
       }
     }
 
@@ -508,6 +505,7 @@ function Controls({ manager }: { manager: GameManager }) {
   const flowModifier = useObservableDict(manager.options$, 'flowModifier');
   const oceanPlatePercent = useObservableDict(manager.options$, 'oceanPlatePercent');
 
+  const drawMode = useObservableDict(manager.drawOptions$, 'drawMode');
   const mapMode = useObservableDict(manager.drawOptions$, 'mapMode');
   const drawGrid = useObservableDict(manager.drawOptions$, 'grid');
   const drawPlateVectors = useObservableDict(manager.drawOptions$, 'plateVectors');
@@ -591,6 +589,16 @@ function Controls({ manager }: { manager: GameManager }) {
             title: 'Draw options',
             render: () => (
               <div>
+                <Field title="Draw Mode">
+                  <select
+                    value={drawMode}
+                    onChange={event => manager.drawOptions$.set('drawMode', event.target.value as any)}
+                  >
+                    {Object.entries(drawModeTitles).map(([drawMode, title]) => (
+                      <option key={title} value={drawMode}>{title}</option>
+                    ))}
+                  </select>
+                </Field>
                 <Field title="Map Mode">
                   <select
                     value={mapMode}

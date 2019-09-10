@@ -396,7 +396,7 @@ export default function Renderer(
       u_c: 0.15,
       u_slope: 6,
       u_flat: 2.5,
-      u_outline_strength: 5,
+      u_outline_strength: 10,
     },
 
     elements: regl.prop<IndexedTrianglesProps, 'elements'>('elements'),

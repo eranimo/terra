@@ -131,17 +131,23 @@ export class QuadGeometry {
     const { r_xyz, t_xyz, s_flow, r_elevation, t_elevation, r_moisture, t_moisture } = globe;
     const { numSides, numRegions, numTriangles } = mesh;
     const { xyz, tm, I } = this;
-    
-    xyz.set(r_xyz);
-    xyz.set(t_xyz, r_xyz.length);
 
-    const V = 0.05;
+    const V = 0.1;
     for (let t = 0; t < numTriangles; t++) {
       const e = Math.max(0, t_elevation[t]) * V;
       t_xyz[3 * t] = t_xyz[3 * t] + (t_xyz[3 * t] * e);
       t_xyz[3 * t + 1] = t_xyz[3 * t + 1] + (t_xyz[3 * t + 1] * e);
       t_xyz[3 * t + 2] = t_xyz[3 * t + 2] + (t_xyz[3 * t + 2] * e);
     }
+    for (let r = 0; r < numRegions; r++) {
+      const e = Math.max(0, r_elevation[r]) * V;
+      r_xyz[3 * r] = r_xyz[3 * r] + (r_xyz[3 * r] * e);
+      r_xyz[3 * r + 1] = r_xyz[3 * r + 1] + (r_xyz[3 * r + 1] * e);
+      r_xyz[3 * r + 2] = r_xyz[3 * r + 2] + (r_xyz[3 * r + 2] * e);
+    }
+
+    xyz.set(r_xyz);
+    xyz.set(t_xyz, r_xyz.length);
 
     let p = 0;
     for (let r = 0; r < numRegions; r++) {

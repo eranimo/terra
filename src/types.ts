@@ -18,9 +18,15 @@ export interface IDrawOptions {
   plateVectors: boolean,
   cellCenters: boolean,
   rivers: boolean,
+  drawMode: EDrawMode,
   surface: boolean,
   regions: boolean,
   mapMode: EMapMode,
+}
+
+export enum EDrawMode {
+  QUADS = 'QUADS',
+  CENTROID = 'CENTROID',
 }
 
 export enum EMapMode {
@@ -33,4 +39,9 @@ export const mapModeTitles = {
   [EMapMode.NONE]: 'None',
   [EMapMode.ELEVATION]: 'Elevation',
   [EMapMode.MOISTURE]: 'Moisture',
+}
+
+export const drawModeTitles = {
+  [EDrawMode.QUADS]: 'Quads',
+  [EDrawMode.CENTROID]: 'Centroids',
 }
