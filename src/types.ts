@@ -11,6 +11,7 @@ export interface IGlobeOptions {
   flowModifier: number,
   oceanPlatePercent: number,
   protrudeHeight: number,
+  terrainRoughness: number,
 }
 
 export interface IDrawOptions {

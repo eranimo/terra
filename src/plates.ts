@@ -177,6 +177,6 @@ export function assignRegionElevation(
     } else {
       r_elevation[r] = (1 / a - 1 / b) / (1 / a + 1 / b + 1 / c);
     }
-    r_elevation[r] += 0.1 * fbm_noise(r_xyz[3 * r], r_xyz[3 * r + 1], r_xyz[3 * r + 2]);
+    r_elevation[r] += options.terrainRoughness * fbm_noise(r_xyz[3 * r], r_xyz[3 * r + 1], r_xyz[3 * r + 2]);
   }
 }
