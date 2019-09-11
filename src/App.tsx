@@ -22,7 +22,7 @@ const initialOptions: IGlobeOptions = {
   numberPlates: 12,
   flowModifier: 0.2,
   oceanPlatePercent: 0.7,
-  protrudeHeight: 0.1,
+  protrudeHeight: 0.05,
 };
 
 const initialDrawOptions: IDrawOptions = {

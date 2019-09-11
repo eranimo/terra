@@ -8,7 +8,7 @@
 import { makeRandInt } from '@redblobgames/prng';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { vec3 } from 'gl-matrix';
-import { fbm_noise } from './geometry';
+import { generateNoize } from './geometry';
 import { IGlobeOptions } from './types';
 
 
@@ -145,6 +145,7 @@ export function assignRegionElevation(
   { r_xyz, plate_is_ocean, r_plate, plate_vec, /* out */ r_elevation }
 ) {
   const epsilon = 1e-3;
+  const fbm_noise = generateNoize(options.seed);
   let { numRegions } = mesh;
 
   let { mountain_r, coastline_r, ocean_r } = findCollisions(

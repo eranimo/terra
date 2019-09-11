@@ -10,24 +10,22 @@ import { makeRandFloat } from '@redblobgames/prng';
 import SimplexNoise from 'simplex-noise';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { Globe } from './Globe';
-import { getLatLng } from './utils';
 
 
-// TODO: use options.seed
-const SEED = 123;
+export function generateNoize(seed: number) {
+  let _randomNoise = new SimplexNoise(makeRandFloat(seed));
+  const persistence = 2 / 3;
+  const amplitudes = Array.from({ length: 5 }, (_, octave) => Math.pow(persistence, octave));
 
-let _randomNoise = new SimplexNoise(makeRandFloat(SEED));
-const persistence = 2 / 3;
-const amplitudes = Array.from({ length: 5 }, (_, octave) => Math.pow(persistence, octave));
-
-export function fbm_noise(nx, ny, nz) {
-  let sum = 0, sumOfAmplitudes = 0;
-  for (let octave = 0; octave < amplitudes.length; octave++) {
-    let frequency = 1 << octave;
-    sum += amplitudes[octave] * _randomNoise.noise3D(nx * frequency, ny * frequency, nz * frequency);
-    sumOfAmplitudes += amplitudes[octave];
+  return function fbm_noise(nx: number, ny: number, nz: number): number {
+    let sum = 0, sumOfAmplitudes = 0;
+    for (let octave = 0; octave < amplitudes.length; octave++) {
+      let frequency = 1 << octave;
+      sum += amplitudes[octave] * _randomNoise.noise3D(nx * frequency, ny * frequency, nz * frequency);
+      sumOfAmplitudes += amplitudes[octave];
+    }
+    return sum / sumOfAmplitudes;
   }
-  return sum / sumOfAmplitudes;
 }
 
 /* Calculate the centroid and push it onto an array */
