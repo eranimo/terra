@@ -1,10 +1,12 @@
 import { makeSphere } from "./SphereMesh";
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import TriangleMesh from '@redblobgames/dual-mesh';
-import { QuadGeometry, generateTriangleCenters, generateVoronoiGeometry, generateMinimapGeometry, coordinateForSide } from './geometry';
+import { QuadGeometry, generateTriangleCenters, generateVoronoiGeometry, generateMinimapGeometry, coordinateForSide, generateNoize3D, generateNoize2D } from './geometry';
 import { generatePlates, assignRegionElevation } from './plates';
 import { assignTriangleValues, assignDownflow, assignFlow } from './rivers';
 import { IGlobeOptions } from './types';
+import SimplexNoise from 'simplex-noise';
+import { getLatLng } from './utils';
 
 
 
@@ -32,6 +34,7 @@ export class Globe {
   r_plate: Int32Array;
   plate_vec: any[];
   plate_is_ocean: Set<unknown>;
+  r_lat_long: number[][];
 
   constructor(public options: IGlobeOptions) {
     console.log('options', options)
@@ -54,6 +57,14 @@ export class Globe {
     this.t_flow = new Float32Array(mesh.numTriangles);
     this.s_flow = new Float32Array(mesh.numSides);
 
+    this.r_lat_long = [];
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      const x = this.r_xyz[3 * r];
+      const y = this.r_xyz[3 * r + 1];
+      const z = this.r_xyz[3 * r + 2];
+      this.r_lat_long[r] = getLatLng([x, y, z]);
+    }
+
     this.generateMap(options.oceanPlatePercent, options.protrudeHeight);
     this.setupGeometry();
   }
@@ -72,9 +83,14 @@ export class Globe {
     }
     assignRegionElevation(this.mesh, this.options, this);
 
+    const noise3D = generateNoize3D(makeRandFloat(this.options.seed), 1 / 3, 5);
+
     // TODO: assign region moisture in a better way!
     for (let r = 0; r < this.mesh.numRegions; r++) {
-      this.r_moisture[r] = (this.r_plate[r] % 10) / 10.0;
+      const x = this.r_xyz[3 * r];
+      const y = this.r_xyz[3 * r + 1];
+      const z = this.r_xyz[3 * r + 2];
+      this.r_moisture[r] = ((noise3D(x / 2, y / 2, z / 2) + 1 / 2) * 0.75) + (((this.r_elevation[r] / -1) + 1 / 2) * 0.25);
     }
 
     assignTriangleValues(this.mesh, this);

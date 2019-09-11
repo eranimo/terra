@@ -12,16 +12,30 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { Globe } from './Globe';
 
 
-export function generateNoize(seed: number) {
-  let _randomNoise = new SimplexNoise(makeRandFloat(seed));
-  const persistence = 2 / 3;
-  const amplitudes = Array.from({ length: 5 }, (_, octave) => Math.pow(persistence, octave));
+export function generateNoize3D(seed: number, persistence: number = 2 / 3, length: number = 5) {
+  let randomNoise = new SimplexNoise(makeRandFloat(seed));
+  const amplitudes = Array.from({ length }, (_, octave) => Math.pow(persistence, octave));
 
   return function fbm_noise(nx: number, ny: number, nz: number): number {
     let sum = 0, sumOfAmplitudes = 0;
     for (let octave = 0; octave < amplitudes.length; octave++) {
       let frequency = 1 << octave;
-      sum += amplitudes[octave] * _randomNoise.noise3D(nx * frequency, ny * frequency, nz * frequency);
+      sum += amplitudes[octave] * randomNoise.noise3D(nx * frequency, ny * frequency, nz * frequency);
+      sumOfAmplitudes += amplitudes[octave];
+    }
+    return sum / sumOfAmplitudes;
+  }
+}
+
+export function generateNoize2D(seed: number, persistence: number = 2 / 3, length: number = 5) {
+  let randomNoise = new SimplexNoise(makeRandFloat(seed));
+  const amplitudes = Array.from({ length }, (_, octave) => Math.pow(persistence, octave));
+
+  return function fbm_noise(nx: number, ny: number): number {
+    let sum = 0, sumOfAmplitudes = 0;
+    for (let octave = 0; octave < amplitudes.length; octave++) {
+      let frequency = 1 << octave;
+      sum += amplitudes[octave] * randomNoise.noise2D(nx * frequency, ny * frequency);
       sumOfAmplitudes += amplitudes[octave];
     }
     return sum / sumOfAmplitudes;
