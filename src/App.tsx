@@ -24,6 +24,7 @@ const initialOptions: IGlobeOptions = {
   oceanPlatePercent: 0.7,
   protrudeHeight: 0.25,
   terrainRoughness: 0.1,
+  heightModifier: 0,
 };
 
 const initialDrawOptions: IDrawOptions = {
@@ -508,6 +509,7 @@ function Controls({ manager }: { manager: GameManager }) {
   const oceanPlatePercent = useObservableDict(manager.options$, 'oceanPlatePercent');
   const protrudeHeight = useObservableDict(manager.options$, 'protrudeHeight');
   const terrainRoughness = useObservableDict(manager.options$, 'terrainRoughness');
+  const heightModifier = useObservableDict(manager.options$, 'heightModifier');
 
   const drawMode = useObservableDict(manager.drawOptions$, 'drawMode');
   const mapMode = useObservableDict(manager.drawOptions$, 'mapMode');
@@ -604,6 +606,16 @@ function Controls({ manager }: { manager: GameManager }) {
                     max={1}
                     step={0.1}
                     onChange={value => manager.options$.set('terrainRoughness', value)}
+                  />
+                </Field>
+                <Field title="Height Modifier">
+                  <Input
+                    type="number"
+                    value={heightModifier}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    onChange={value => manager.options$.set('heightModifier', value)}
                   />
                 </Field>
               </div>

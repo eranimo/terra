@@ -12,6 +12,7 @@ export interface IGlobeOptions {
   oceanPlatePercent: number,
   protrudeHeight: number,
   terrainRoughness: number,
+  heightModifier: number,
 }
 
 export interface IDrawOptions {

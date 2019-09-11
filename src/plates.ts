@@ -10,6 +10,7 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { vec3 } from 'gl-matrix';
 import { generateNoize3D } from './geometry';
 import { IGlobeOptions } from './types';
+import { clamp } from 'lodash';
 
 
 function pickRandomRegions(
@@ -33,6 +34,7 @@ export function generatePlates(mesh: TriangleMesh, options: IGlobeOptions, r_xyz
   let queue = Array.from(plate_r);
   for (let r of queue) { r_plate[r] = r; }
   let out_r = [];
+
   const randInt = makeRandInt(options.seed);
   for (let queue_out = 0; queue_out < mesh.numRegions; queue_out++) {
     let pos = queue_out + randInt(queue.length - queue_out);
@@ -178,5 +180,9 @@ export function assignRegionElevation(
       r_elevation[r] = (1 / a - 1 / b) / (1 / a + 1 / b + 1 / c);
     }
     r_elevation[r] += options.terrainRoughness * fbm_noise(r_xyz[3 * r], r_xyz[3 * r + 1], r_xyz[3 * r + 2]);
+  }
+
+  for (let r = 0; r < numRegions; r++) {
+    r_elevation[r] = clamp(r_elevation[r] + options.heightModifier, -1, 1);
   }
 }
