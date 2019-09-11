@@ -104,8 +104,8 @@ export default function Renderer(
     distance: 2,
     rotationSpeed: 0.8,
     damping: 0,
-    fovy: Math.PI / 4.0,
-    maxDistance: 3,
+    fovy: Math.PI / 8.0,
+    maxDistance: 10,
     minDistance: 1.2,
   });
 
