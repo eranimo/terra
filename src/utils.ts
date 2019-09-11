@@ -100,3 +100,31 @@ export function getLatLng(vector: vec3 | number[], radius: number = 1) {
 
   return [lat, -lng + 180];
 }
+
+export function loadImage(imageURL: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = imageURL;
+    img.onload = () => resolve(img);
+    img.onerror = (error: ErrorEvent) => reject(error);
+  });
+}
+
+
+export type ImageRef = {
+  name: string,
+  image: HTMLImageElement,
+}
+export async function loadImages(
+  images: Record<string, string>
+): Promise<ImageRef[]> {
+  const result = [];
+  const promises: Promise<HTMLImageElement>[] = [];
+  for (const [name, url] of Object.entries(images)) {
+    const promise = loadImage(url);
+    promise.then(image => result.push({ name, image }))
+    promises.push(promise);
+  }
+  await Promise.all(promises);
+  return result;
+}

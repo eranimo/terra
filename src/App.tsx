@@ -6,8 +6,8 @@ import { Globe } from './Globe';
 import Renderer from './Renderer';
 import { mat4, vec3 } from 'gl-matrix';
 import { useWindowSize } from 'react-use';
-import { times, clamp } from 'lodash';
-import { intersectTriangle, getLatLng } from './utils';
+import { times, clamp, mapValues } from 'lodash';
+import { intersectTriangle, getLatLng, loadImage, loadImages, ImageRef } from './utils';
 import classNames from 'classnames';
 import createLine from 'regl-line';
 import colormap from 'colormap';
@@ -177,7 +177,11 @@ class GameManager {
   cell_region: Record<number, Region>;
   mapModes: Record<string, MapMode>;
 
-  constructor(screenCanvas: HTMLCanvasElement, public minimapCanvas: HTMLCanvasElement) {
+  constructor(
+    protected screenCanvas: HTMLCanvasElement,
+    protected minimapCanvas: HTMLCanvasElement,
+    protected images: ImageRef[],
+  ) {
     this.options$ = new ObservableDict(initialOptions);
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
 
@@ -191,7 +195,8 @@ class GameManager {
     const renderer = Renderer(
       screenCanvas,
       minimapCanvas,
-      this.onLoad(screenCanvas)
+      this.onLoad(screenCanvas),
+      images,
     );
     this.renderer = renderer;
     this.drawOptions$.subscribe(() => renderer.camera.setDirty());
@@ -445,6 +450,8 @@ class GameManager {
         } as any);
       }
     }
+
+    this.renderer.renderStarbox();
   }
 
   drawMinimap() {
@@ -728,18 +735,29 @@ function Controls({ manager }: { manager: GameManager }) {
   );
 }
 
+const IMAGES = {
+  stars: require('./images/stars2.png')
+};
+
 export function App() {
   const screenRef = useRef();
   const minimapRef = useRef();
   const [manager, setManager] = useState(null);
 
   useEffect(() => {
-    const manager = new GameManager(screenRef.current, minimapRef.current);
-    console.log('manager', manager);
-    setManager(manager);
+    loadImages(IMAGES)
+      .then(images => {
+      const manager = new GameManager(
+        screenRef.current,
+        minimapRef.current,
+        images,
+      );
+      console.log('manager', manager);
+      setManager(manager);
 
-    manager.options$.subscribe(() => {
-      manager.generate();
+      manager.options$.subscribe(() => {
+        manager.generate();
+      });
     });
   }, []);
 
