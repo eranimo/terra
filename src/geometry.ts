@@ -93,7 +93,7 @@ function getUV([x, y, z]) {
   ];
 }
 
-export function generateMinimapGeometry(mesh, { r_xyz, minimap_t_xyz }, r_color_fn) {
+export function generateMinimapGeometry(mesh, { minimap_r_xyz, minimap_t_xyz }, r_color_fn) {
   const { numSides } = mesh;
   let xy = [], tm = [];
 
@@ -104,7 +104,7 @@ export function generateMinimapGeometry(mesh, { r_xyz, minimap_t_xyz }, r_color_
     let rgb = r_color_fn(begin_r);
     const p1 = getUV([minimap_t_xyz[3 * inner_t], minimap_t_xyz[3 * inner_t + 1], minimap_t_xyz[3 * inner_t + 2]]);
     const p2 = getUV([minimap_t_xyz[3 * outer_t], minimap_t_xyz[3 * outer_t + 1], minimap_t_xyz[3 * outer_t + 2]]);
-    const p3 = getUV([r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]]);
+    const p3 = getUV([minimap_r_xyz[3 * begin_r], minimap_r_xyz[3 * begin_r + 1], minimap_r_xyz[3 * begin_r + 2]]);
     xy.push(...p1, ...p2, ...p3);
     tm.push(
       rgb, rgb, rgb
@@ -127,20 +127,20 @@ export class QuadGeometry {
   setMap(
     mesh: TriangleMesh,
     globe: Globe,
+    protrudeHeight: number = 0.1
   ) {
     const { r_xyz, t_xyz, s_flow, r_elevation, t_elevation, r_moisture, t_moisture } = globe;
     const { numSides, numRegions, numTriangles } = mesh;
     const { xyz, tm, I } = this;
 
-    const V = 0.1;
     for (let t = 0; t < numTriangles; t++) {
-      const e = Math.max(0, t_elevation[t]) * V;
+      const e = Math.max(0, t_elevation[t]) * protrudeHeight;
       t_xyz[3 * t] = t_xyz[3 * t] + (t_xyz[3 * t] * e);
       t_xyz[3 * t + 1] = t_xyz[3 * t + 1] + (t_xyz[3 * t + 1] * e);
       t_xyz[3 * t + 2] = t_xyz[3 * t + 2] + (t_xyz[3 * t + 2] * e);
     }
     for (let r = 0; r < numRegions; r++) {
-      const e = Math.max(0, r_elevation[r]) * V;
+      const e = Math.max(0, r_elevation[r]) * protrudeHeight;
       r_xyz[3 * r] = r_xyz[3 * r] + (r_xyz[3 * r] * e);
       r_xyz[3 * r + 1] = r_xyz[3 * r + 1] + (r_xyz[3 * r + 1] * e);
       r_xyz[3 * r + 2] = r_xyz[3 * r + 2] + (r_xyz[3 * r + 2] * e);

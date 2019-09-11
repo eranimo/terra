@@ -10,6 +10,7 @@ export interface IGlobeOptions {
   numberPlates: number,
   flowModifier: number,
   oceanPlatePercent: number,
+  protrudeHeight: number,
 }
 
 export interface IDrawOptions {

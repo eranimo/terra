@@ -22,6 +22,7 @@ const initialOptions: IGlobeOptions = {
   numberPlates: 12,
   flowModifier: 0.2,
   oceanPlatePercent: 0.7,
+  protrudeHeight: 0.1,
 };
 
 const initialDrawOptions: IDrawOptions = {
@@ -335,7 +336,7 @@ class GameManager {
   }
 
   generate() {
-    const globe = new Globe(this.options$.toObject() as any);
+    const globe = new Globe(this.options$.toObject() as IGlobeOptions);
     this.globe = globe;
     this.renderer.camera.setDirty();
     this.drawMinimap();
@@ -504,6 +505,7 @@ function Controls({ manager }: { manager: GameManager }) {
   const plates = useObservableDict(manager.options$, 'numberPlates');
   const flowModifier = useObservableDict(manager.options$, 'flowModifier');
   const oceanPlatePercent = useObservableDict(manager.options$, 'oceanPlatePercent');
+  const protrudeHeight = useObservableDict(manager.options$, 'protrudeHeight');
 
   const drawMode = useObservableDict(manager.drawOptions$, 'drawMode');
   const mapMode = useObservableDict(manager.drawOptions$, 'mapMode');
@@ -580,6 +582,16 @@ function Controls({ manager }: { manager: GameManager }) {
                     max={1}
                     step={0.1}
                     onChange={value => manager.options$.set('oceanPlatePercent', value)}
+                  />
+                </Field>
+                <Field title="Protrude Height">
+                  <Input
+                    type="number"
+                    value={protrudeHeight}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    onChange={value => manager.options$.set('protrudeHeight', value)}
                   />
                 </Field>
               </div>

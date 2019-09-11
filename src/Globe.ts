@@ -18,6 +18,7 @@ export class Globe {
 
   t_xyz: number[];
   minimap_t_xyz: number[]; // without height added
+  minimap_r_xyz: number[]; // without height added
   r_elevation: Float32Array;
   t_elevation: Float32Array;
   r_moisture: Float32Array;
@@ -53,11 +54,11 @@ export class Globe {
     this.t_flow = new Float32Array(mesh.numTriangles);
     this.s_flow = new Float32Array(mesh.numSides);
 
-    this.generateMap(options.oceanPlatePercent);
+    this.generateMap(options.oceanPlatePercent, options.protrudeHeight);
     this.setupGeometry();
   }
 
-  generateMap(oceanPlatePercent: number) {
+  generateMap(oceanPlatePercent: number, protrudeHeight: number) {
     let result = generatePlates(this.mesh, this.options, this.r_xyz);
     this.plate_r = result.plate_r;
     this.r_plate = result.r_plate;
@@ -81,8 +82,9 @@ export class Globe {
     assignFlow(this.mesh, this.options, this);
 
     this.minimap_t_xyz = Array.from(this.t_xyz);
+    this.minimap_r_xyz = Array.from(this.r_xyz);
 
-    this.quadGeometry.setMap(this.mesh, this);
+    this.quadGeometry.setMap(this.mesh, this, protrudeHeight);
     console.log('map', this);
   }
 
