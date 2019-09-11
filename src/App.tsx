@@ -624,7 +624,7 @@ function Controls({ manager }: { manager: GameManager }) {
                     min={0}
                     max={1}
                     step={0.1}
-                    onChange={value => manager.options$.set('terrainRoughness', value)}
+                    onChange={value => manager.options$.set('terrainRoughness', parseFloat(value))}
                   />
                 </Field>
                 <Field title="Height Modifier">
@@ -634,7 +634,7 @@ function Controls({ manager }: { manager: GameManager }) {
                     min={0}
                     max={1}
                     step={0.1}
-                    onChange={value => manager.options$.set('heightModifier', value)}
+                    onChange={value => manager.options$.set('heightModifier', parseFloat(value))}
                   />
                 </Field>
               </div>
