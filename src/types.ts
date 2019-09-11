@@ -36,12 +36,14 @@ export enum EMapMode {
   NONE = 'NONE',
   ELEVATION = 'ELEVATION',
   MOISTURE = 'MOISTURE',
+  TEMPERATURE = 'TEMPERATURE',
 }
 
 export const mapModeTitles = {
   [EMapMode.NONE]: 'None',
   [EMapMode.ELEVATION]: 'Elevation',
   [EMapMode.MOISTURE]: 'Moisture',
+  [EMapMode.TEMPERATURE]: 'Temperature',
 }
 
 export const drawModeTitles = {

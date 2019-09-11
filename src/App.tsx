@@ -56,9 +56,12 @@ class Region {
 
 
 interface IMapModeColorMap {
-  colormap: string;
   colors: Record<string, any>;
-  color: (values: { moisture: number, height: number }, colors) => number[];
+  color: (values: {
+    moisture: number,
+    height: number,
+    temperature: number
+  }, colors) => number[];
 }
 
 class MapMode {
@@ -72,11 +75,12 @@ class MapMode {
   ) {
     this.xyz = [];
     this.rgba = [];
-    let values = { moisture: null, height: null };
+    let values = { moisture: null, height: null, temperature: null };
     const { r_xyz, t_xyz } = globe;
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
       values.moisture = this.globe.r_moisture[r];
       values.height = this.globe.r_elevation[r];
+      values.temperature = this.globe.r_temperature[r];
       const color = mapModeColor.color(values, mapModeColor.colors);
       const sides = [];
       globe.mesh.r_circulate_s(sides, r);
@@ -101,7 +105,6 @@ class MapMode {
 
 const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   [EMapMode.ELEVATION, {
-    colormap: 'earth',
     colors: {
       earth: colormap({
         colormap: 'earth',
@@ -120,7 +123,6 @@ const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.MOISTURE, {
-    colormap: 'cool',
     colors: {
       main: colormap({
         colormap: 'YiGnBu',
@@ -132,6 +134,23 @@ const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     color: ({ moisture }, colors) => {
       const moistureFixed = (moisture + 1) / 2;
       const index = clamp(Math.round(moistureFixed * 100), 0, 99);
+      if (colors.main[index]) {
+        return colors.main[index];
+      }
+      return [0, 0, 0, 1];
+    },
+  }],
+  [EMapMode.TEMPERATURE, {
+    colors: {
+      main: colormap({
+        colormap: 'jet',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+    },
+    color: ({ temperature }, colors) => {
+      const index = clamp(Math.round(temperature * 100), 0, 99);
       if (colors.main[index]) {
         return colors.main[index];
       }

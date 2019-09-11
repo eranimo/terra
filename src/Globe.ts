@@ -35,6 +35,7 @@ export class Globe {
   plate_vec: any[];
   plate_is_ocean: Set<unknown>;
   r_lat_long: number[][];
+  r_temperature: number[];
 
   constructor(public options: IGlobeOptions) {
     console.log('options', options)
@@ -56,6 +57,9 @@ export class Globe {
     this.order_t = new Int32Array(mesh.numTriangles);
     this.t_flow = new Float32Array(mesh.numTriangles);
     this.s_flow = new Float32Array(mesh.numSides);
+
+
+    this.r_temperature = [];
 
     this.r_lat_long = [];
     for (let r = 0; r < this.mesh.numRegions; r++) {
@@ -83,14 +87,31 @@ export class Globe {
     }
     assignRegionElevation(this.mesh, this.options, this);
 
-    const noise3D = generateNoize3D(makeRandFloat(this.options.seed), 1 / 3, 5);
+    let noise3D = generateNoize3D(makeRandFloat(this.options.seed), 1 / 3, 5);
 
-    // TODO: assign region moisture in a better way!
+    // moisture
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
       const y = this.r_xyz[3 * r + 1];
       const z = this.r_xyz[3 * r + 2];
       this.r_moisture[r] = ((noise3D(x / 2, y / 2, z / 2) + 1 / 2) * 0.75) + (((this.r_elevation[r] / -1) + 1 / 2) * 0.25);
+    }
+
+    noise3D = generateNoize3D(makeRandFloat(this.options.seed * 2), 1 / 3, 5);
+
+    // temperature
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      const x = this.r_xyz[3 * r];
+      const y = this.r_xyz[3 * r + 1];
+      const z = this.r_xyz[3 * r + 2];
+      const altitude = 1 - Math.max(0, this.r_elevation[r]) / 1;
+      const [lat, long] = this.r_lat_long[r];
+      const latRatio = 1 - (Math.abs(lat) / 90);
+      this.r_temperature[r] = (
+        (0.25 * (noise3D(x, y, z) + 1 / 2)) +
+        (0.50 * latRatio) + 
+        (0.25 * altitude)
+      );
     }
 
     assignTriangleValues(this.mesh, this);
