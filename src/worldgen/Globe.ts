@@ -1,13 +1,11 @@
-import { makeSphere } from "./SphereMesh";
-import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import TriangleMesh from '@redblobgames/dual-mesh';
-import { QuadGeometry, generateTriangleCenters, generateVoronoiGeometry, generateMinimapGeometry, coordinateForSide, generateNoize3D, generateNoize2D } from './geometry';
-import { generatePlates, assignRegionElevation } from './plates';
-import { assignTriangleValues, assignDownflow, assignFlow } from './rivers';
-import { IGlobeOptions } from './types';
-import SimplexNoise from 'simplex-noise';
-import { getLatLng } from './utils';
-
+import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
+import { makeSphere } from "../SphereMesh";
+import { IGlobeOptions } from '../types';
+import { getLatLng } from '../utils';
+import { coordinateForSide, generateMinimapGeometry, generateNoize3D, generateTriangleCenters, generateVoronoiGeometry, QuadGeometry } from './geometry';
+import { assignRegionElevation, generatePlates } from './plates';
+import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
 
 
 export class Globe {

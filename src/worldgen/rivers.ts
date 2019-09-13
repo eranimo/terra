@@ -8,7 +8,7 @@
 
 import FlatQueue from 'flatqueue';
 import TriangleMesh from '@redblobgames/dual-mesh';
-import { IGlobeOptions } from './types';
+import { IGlobeOptions } from '../types';
 
 
 export function assignTriangleValues(mesh: TriangleMesh, { r_elevation, r_moisture, /* out */ t_elevation, t_moisture }) {

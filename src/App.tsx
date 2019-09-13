@@ -12,21 +12,22 @@ const IMAGES = {
   stars: require('./images/stars2.png')
 };
 
+let manager: GameManager;
+
 export function App() {
   const screenRef = useRef();
   const minimapRef = useRef();
-  const [manager, setManager] = useState(null);
+  const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadImages(IMAGES)
-      .then(images => {
-      const manager = new GameManager(
+    loadImages(IMAGES).then(images => {
+      manager = new GameManager(
         screenRef.current,
         minimapRef.current,
         images,
       );
       console.log('manager', manager);
-      setManager(manager);
+      setLoading(false);
 
       manager.options$.subscribe(() => {
         manager.generate();
@@ -38,7 +39,7 @@ export function App() {
 
   return (
     <div>
-      {!manager && <div id="loading">Loading...</div>}
+      {isLoading && <div id="loading">Loading...</div>}
       <canvas
         ref={screenRef}
         width={width}
@@ -50,7 +51,7 @@ export function App() {
         width={360 * 5}
         height={180 * 5}
       />
-      {manager && <Controls manager={manager} />}
+      {!isLoading && <Controls manager={manager} />}
     </div>
   );
 }

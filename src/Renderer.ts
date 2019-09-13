@@ -1,5 +1,5 @@
 import REGL = require('regl');
-import * as colormap from './colormap';
+import * as colormap from './worldgen/colormap';
 import { vec3, mat4 } from 'gl-matrix';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import createLine from 'regl-line';

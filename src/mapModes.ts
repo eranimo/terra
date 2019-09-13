@@ -1,6 +1,6 @@
 import colormap from 'colormap';
 import { clamp } from 'lodash';
-import { Globe } from './Globe';
+import { Globe } from './worldgen/Globe';
 import { EMapMode } from './types';
 
 

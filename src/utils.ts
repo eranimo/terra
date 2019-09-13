@@ -38,6 +38,20 @@ export function getGeoPointsSpiral(
   return geoPoints
 }
 
+export function logGroupTime(label: string) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalMethod = descriptor.value;
+    descriptor.value = function (...args: any[]) {
+      console.group(label);
+      console.time(label);
+      const result = originalMethod.apply(this, args);
+      console.timeEnd(label);
+      console.groupEnd();
+      return result;
+    }
+  }
+}
+
 export function measure(label: string, thresholdMS: number = 0) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;

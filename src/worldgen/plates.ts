@@ -9,7 +9,7 @@ import { makeRandInt } from '@redblobgames/prng';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { vec3 } from 'gl-matrix';
 import { generateNoize3D } from './geometry';
-import { IGlobeOptions } from './types';
+import { IGlobeOptions } from '../types';
 import { clamp } from 'lodash';
 
 

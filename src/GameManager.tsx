@@ -1,11 +1,11 @@
 import { mat4, vec3 } from 'gl-matrix';
 import { times } from 'lodash';
 import createLine from 'regl-line';
-import { Globe } from './Globe';
+import { Globe } from './worldgen/Globe';
 import { MapMode, mapModeDefs } from './mapModes';
 import Renderer from './Renderer';
 import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions } from './types';
-import { getLatLng, ImageRef, intersectTriangle } from './utils';
+import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { CellGroup } from "./CellGroup";
 
@@ -35,6 +35,10 @@ const initialDrawOptions: IDrawOptions = {
 };
 
 
+/**
+ * Renders a Globe instance
+ * Contains CellGroups
+ */
 export class GameManager {
   options$: ObservableDict<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
@@ -44,7 +48,7 @@ export class GameManager {
   removeDrawLoop: any;
   hoveredCell: any;
   minimapContext: CanvasRenderingContext2D;
-  regions: Set<CellGroup>;
+  cellGroups: Set<CellGroup>;
   cell_group_xyz: number[];
   cell_group_rgba: number[];
   cell_group_lines: any[];
@@ -55,10 +59,10 @@ export class GameManager {
     this.options$ = new ObservableDict(initialOptions);
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
     this.hoveredCell = null;
-    this.regions = new Set();
+    this.cellGroups = new Set();
     this.cell_cell_group = {};
     this.cell_group_lines = [];
-    this.regions.add(new CellGroup('foo', [0.5, 0.5, 0.5, 1], [15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]));
+    this.cellGroups.add(new CellGroup('foo', [0.5, 0.5, 0.5, 1], [15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]));
     const renderer = Renderer(screenCanvas, minimapCanvas, this.onLoad(screenCanvas), images);
     this.renderer = renderer;
     this.drawOptions$.subscribe(() => renderer.camera.setDirty());
@@ -79,7 +83,6 @@ export class GameManager {
     for (const [mapMode, def] of mapModeDefs) {
       this.mapModes[mapMode] = new MapMode(this.globe, mapMode as any, def as any);
     }
-    (window as any).globe = this.globe;
     // minimap events
     const jumpToPosition = (x: number, y: number) => {
       const { width, height } = minimapCanvas.getBoundingClientRect();
@@ -103,6 +106,7 @@ export class GameManager {
       }
     });
   }
+
   onLoad = (canvas) => () => {
     let isPanning = false;
     canvas.addEventListener('mouseup', () => isPanning = false);
@@ -164,16 +168,19 @@ export class GameManager {
       this.renderer.camera.setDirty();
     });
   };
+
   destroy() {
     this.removeDrawLoop();
   }
+
   resetCamera() {
     this.destroy();
   }
+
   calculateCellGroups() {
     this.cell_group_xyz = [];
     this.cell_group_rgba = [];
-    for (const region of this.regions) {
+    for (const region of this.cellGroups) {
       for (const cell of region.cells) {
         const xyz = this.globe.coordinatesForCell(cell);
         this.cell_cell_group[cell] = region;
@@ -207,12 +214,18 @@ export class GameManager {
       this.cell_group_lines.push(line);
     }
   }
+
+  @logGroupTime('generate')
   generate() {
     const globe = new Globe(this.options$.toObject() as IGlobeOptions);
+    delete (window as any).globe;
+    delete this.globe;
+    (window as any).globe = this.globe;
     this.globe = globe;
     this.renderer.camera.setDirty();
     this.drawMinimap();
   }
+
   draw() {
     const { mesh, triangleGeometry, minimapGeometry, quadGeometry, r_xyz } = this.globe;
     if (this.drawOptions$.get('mapMode') === EMapMode.NONE) {
@@ -281,6 +294,7 @@ export class GameManager {
     }
     this.renderer.renderStarbox();
   }
+
   drawMinimap() {
     const { minimapGeometry } = this.globe;
     // draw minimap
