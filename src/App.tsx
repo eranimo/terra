@@ -28,10 +28,6 @@ export function App() {
       );
       console.log('manager', manager);
       setLoading(false);
-
-      manager.options$.subscribe(() => {
-        manager.generate();
-      });
     });
   }, []);
 

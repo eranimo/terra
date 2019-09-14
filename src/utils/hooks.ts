@@ -20,9 +20,16 @@ export function useObservable<T>(
   return value;
 };
 
-export function useObservableDict<T extends object, K extends keyof T>(
+export function useObservableDictKey<T extends object, K extends keyof T>(
   dict: ObservableDict<T>,
   key: K,
 ): T[K] {
   return useObservable(dict.ofKey(key), dict.get(key));
+}
+
+
+export function useObservableDict<T extends object>(
+  dict: ObservableDict<T>
+): T {
+  return useObservable(dict, dict.toObject());
 }

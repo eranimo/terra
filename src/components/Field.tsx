@@ -1,11 +1,16 @@
 import React from 'react';
 
 
-export function Field({ title, children }) {
-  return (<label className="field">
-    <span className="field__title">
+type FieldProps = {
+  title?: string,
+  desc?: string,
+}
+
+export const Field: React.FC<FieldProps> = ({ title, desc, children }) => {
+  return (<label className="field" title={desc}>
+    {title && <span className="field__title">
       {title}
-    </span>
+    </span>}
     {children}
   </label>);
 }

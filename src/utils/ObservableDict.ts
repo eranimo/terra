@@ -39,6 +39,13 @@ export class ObservableDict<T extends object> extends BehaviorSubject<T> {
     return this.data[key].asObservable() as Observable<T[K]>;
   }
 
+  replace(values: T) {
+    // this.next(values);
+    for (const key of this.keys()) {
+      this.data[key].next(values[key]);
+    }
+  }
+
   set<K extends keyof T>(key: K, value: T[K]) {
     this.data[key].next(value);
   }

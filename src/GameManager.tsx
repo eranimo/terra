@@ -8,6 +8,7 @@ import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions } from './types';
 import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { CellGroup } from "./CellGroup";
+import { BehaviorSubject } from 'rxjs';
 
 
 const initialOptions: IGlobeOptions = {
@@ -40,7 +41,7 @@ const initialDrawOptions: IDrawOptions = {
  * Contains CellGroups
  */
 export class GameManager {
-  options$: ObservableDict<IGlobeOptions>;
+  globeOptions$: BehaviorSubject<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
   renderer: ReturnType<typeof Renderer>;
   camera: any;
@@ -56,8 +57,9 @@ export class GameManager {
   mapModes: Record<string, MapMode>;
 
   constructor(protected screenCanvas: HTMLCanvasElement, protected minimapCanvas: HTMLCanvasElement, protected images: ImageRef[]) {
-    this.options$ = new ObservableDict(initialOptions);
+    this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(initialOptions);
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
+
     this.hoveredCell = null;
     this.cellGroups = new Set();
     this.cell_cell_group = {};
@@ -76,7 +78,9 @@ export class GameManager {
     });
     (window as any).manager = this;
     (window as any).renderer = renderer;
-    this.generate();
+    this.globeOptions$.subscribe(() => {
+      this.generate();
+    });
     this.calculateCellGroups();
     // initialize map modes
     this.mapModes = {};
@@ -217,7 +221,7 @@ export class GameManager {
 
   @logGroupTime('generate')
   generate() {
-    const globe = new Globe(this.options$.toObject() as IGlobeOptions);
+    const globe = new Globe(this.globeOptions$.value as IGlobeOptions);
     delete (window as any).globe;
     delete this.globe;
     (window as any).globe = this.globe;
@@ -248,7 +252,7 @@ export class GameManager {
       this.renderer.drawRivers(mesh, this.globe, 0.5);
     }
     if (this.drawOptions$.get('plateVectors')) {
-      this.renderer.drawPlateVectors(mesh, this.globe, this.options$.toObject());
+      this.renderer.drawPlateVectors(mesh, this.globe, this.globeOptions$.value);
     }
     if (this.drawOptions$.get('plateBorders')) {
       this.renderer.drawPlateBoundaries(mesh, this.globe);
@@ -257,7 +261,7 @@ export class GameManager {
       this.renderer.drawCellBorders(mesh, this.globe);
     }
     if (this.drawOptions$.get('cellCenters')) {
-      let u_pointsize = 10.0 + (100 / Math.sqrt(this.options$.get('numberCells')));
+      let u_pointsize = 10.0 + (100 / Math.sqrt(this.globeOptions$.value['numberCells']));
       this.renderer.renderPoints({
         u_pointsize,
         a_xyz: r_xyz,
