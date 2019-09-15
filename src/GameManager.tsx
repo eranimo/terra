@@ -82,6 +82,9 @@ export class GameManager {
       this.generate();
     });
 
+    // redraw minimap when draw option changes
+    this.drawOptions$.ofKey('mapMode').subscribe(() => this.drawMinimap());
+
     // minimap events
     const jumpToPosition = (x: number, y: number) => {
       const { width, height } = minimapCanvas.getBoundingClientRect();
@@ -291,7 +294,7 @@ export class GameManager {
     if (this.drawOptions$.get('surface') && this.drawOptions$.get('mapMode')) {
       const mapMode = this.mapModes[this.drawOptions$.get('mapMode')];
       if (mapMode) {
-        const { xyz, rgba } = mapMode;
+        const { xyz, rgba } = mapMode.surface;
         this.renderer.renderCellColor({
           scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
           a_xyz: xyz,
@@ -306,10 +309,23 @@ export class GameManager {
   drawMinimap() {
     const { minimapGeometry } = this.globe;
     // draw minimap
-    this.renderer.renderMinimap({
-      a_xy: minimapGeometry.xy,
-      a_tm: minimapGeometry.tm,
-      count: minimapGeometry.xy.length / 2,
-    });
+    if (this.drawOptions$.get('mapMode') !== EMapMode.NONE) {
+      const mapMode = this.mapModes[this.drawOptions$.get('mapMode')];
+      if (mapMode) {
+        const { xy, rgba } = mapMode.minimap;
+        this.renderer.renderMinimapCellColor({
+          scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+          a_xy: xy,
+          a_rgba: rgba,
+          count: xy.length / 2,
+        });
+      }
+    } else {
+      this.renderer.renderMinimap({
+        a_xy: minimapGeometry.xy,
+        a_tm: minimapGeometry.tm,
+        count: minimapGeometry.xy.length / 2,
+      });
+    }
   }
 }

@@ -142,3 +142,10 @@ export async function loadImages(
   await Promise.all(promises);
   return result;
 }
+
+export function getUV([x, y, z]) {
+  return [
+    0.5 + (Math.atan2(z, x) / (Math.PI * 2)),
+    0.5 - (Math.asin(y) / Math.PI),
+  ];
+}

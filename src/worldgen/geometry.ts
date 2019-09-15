@@ -10,6 +10,7 @@ import { makeRandFloat } from '@redblobgames/prng';
 import SimplexNoise from 'simplex-noise';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { Globe } from './Globe';
+import { getUV } from '../utils';
 
 
 export function generateNoize3D(seed: number, persistence: number = 2 / 3, length: number = 5) {
@@ -96,13 +97,6 @@ export function generateVoronoiGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
     tm.push(rgb, rgb, rgb);
   }
   return { xyz, tm };
-}
-
-function getUV([x, y, z]) {
-  return [
-    0.5 + (Math.atan2(z, x) / (Math.PI * 2)),
-    0.5 - (Math.asin(y) / Math.PI),
-  ];
 }
 
 export function generateMinimapGeometry(mesh, { minimap_r_xyz, minimap_t_xyz }, r_color_fn) {

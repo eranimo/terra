@@ -66,6 +66,17 @@ type MinimapProps = {
   a_tm: number[],
 }
 
+type MinimapCellColorUniforms = {
+  scale: REGL.Mat4,
+}
+
+type MinimapCellColorProps = {
+  scale: mat4,
+  count: number,
+  a_xy: number[],
+  a_rgba?: number[][],
+}
+
 type IndexedTrianglesUniforms = {
   u_colormap: REGL.Texture,
   u_light_angle: REGL.Vec2,
@@ -417,6 +428,45 @@ export default function Renderer(
     },
   });
 
+  const renderMinimapCellColor = reglMinimap<MinimapCellColorUniforms, any, MinimapCellColorProps, any>({
+    frag: `
+  precision mediump float;
+  varying vec4 v_rgba;
+
+  void main() {
+    gl_FragColor = v_rgba;
+  }
+  `,
+
+    vert: `
+  precision mediump float;
+  attribute vec2 a_xy;
+  varying vec4 v_rgba;
+  attribute vec4 a_rgba;
+
+  void main() {
+    v_rgba = a_rgba;
+    gl_Position = vec4(a_xy, 0.5, 1) - 0.5;
+  }
+  `,
+
+    uniforms: {
+      scale: regl.prop<MinimapCellColorUniforms, 'scale'>('scale'),
+    },
+
+    count: regl.prop<MinimapCellColorProps, 'count'>('count'),
+    attributes: {
+      scale: regl.prop<MinimapCellColorProps, 'scale'>('scale'),
+      a_xy: regl.prop<MinimapCellColorProps, 'a_xy'>('a_xy'),
+      a_rgba: regl.prop<MinimapCellColorProps, 'a_rgba'>('a_rgba'),
+    },
+
+    cull: {
+      enable: true,
+      face: 'front'
+    },
+  });
+
 
   const renderIndexedTriangles = regl<IndexedTrianglesUniforms, any, IndexedTrianglesProps, any>({
     frag: `
@@ -667,7 +717,9 @@ export default function Renderer(
     renderTriangles,
     renderCellColor,
     renderIndexedTriangles,
+
     renderMinimap,
+    renderMinimapCellColor,
 
     drawCellBorder,
     drawPlateVectors,
