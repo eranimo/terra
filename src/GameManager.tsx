@@ -81,12 +81,7 @@ export class GameManager {
     this.globeOptions$.subscribe(() => {
       this.generate();
     });
-    this.calculateCellGroups();
-    // initialize map modes
-    this.mapModes = {};
-    for (const [mapMode, def] of mapModeDefs) {
-      this.mapModes[mapMode] = new MapMode(this.globe, mapMode as any, def as any);
-    }
+
     // minimap events
     const jumpToPosition = (x: number, y: number) => {
       const { width, height } = minimapCanvas.getBoundingClientRect();
@@ -109,6 +104,13 @@ export class GameManager {
         jumpToPosition(event.offsetX, event.offsetY);
       }
     });
+  }
+
+  initMapModes() {
+    this.mapModes = {};
+    for (const [mapMode, def] of mapModeDefs) {
+      this.mapModes[mapMode] = new MapMode(this.globe, mapMode as any, def as any);
+    }
   }
 
   onLoad = (canvas) => () => {
@@ -226,6 +228,8 @@ export class GameManager {
     delete this.globe;
     (window as any).globe = this.globe;
     this.globe = globe;
+    this.initMapModes();
+    this.calculateCellGroups();
     this.renderer.camera.setDirty();
     this.drawMinimap();
   }

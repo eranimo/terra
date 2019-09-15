@@ -91,7 +91,7 @@ const GLOBE_OPTIONS: ControlDef[] = [
     key: 'jitter',
     title: 'Cell Jitter',
     desc: 'Maximum random jitter for cell vertices, in spherical space',
-    type: 'integer',
+    type: 'float',
     options: { min: 0, max: 1, step: 0.05 },
   },
   {
