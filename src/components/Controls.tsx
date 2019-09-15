@@ -290,7 +290,7 @@ export function Controls({ manager }: { manager: GameManager }) {
       left="0"
       top="0"
       width="350px"
-      bg="gray.900"
+      bg="rgba(23, 25, 35, 0.9)"
       borderWidth="1px"
       borderColor="gray.600"
       transform="translate(-1px, -1px)"
