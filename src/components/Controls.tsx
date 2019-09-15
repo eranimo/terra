@@ -1,4 +1,4 @@
-import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse } from '@chakra-ui/core';
+import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse, Slider, SliderTrack, SliderFilledTrack, SliderThumb } from '@chakra-ui/core';
 import React, { useState } from 'react';
 import { GameManager } from "../GameManager";
 import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles } from '../types';
@@ -13,21 +13,24 @@ interface IControlOptions {
   options?: { [key: string]: any }
 }
 interface IControlProps {
+  key: string;
   value: any;
   onChange: (value: any) => any;
   options?: IControlOptions;
 }
 const controlTypes: Record<string, React.FC<IControlProps>> = {
-  string: ({ value, onChange }) => (
+  string: ({ key, value, onChange }) => (
     <Input
+      id={key}
       size="sm"
       type="text"
       value={value}
       onChange={event => onChange(event.target.value)}
     />
   ),
-  select: ({ value, onChange, options }) => (
+  select: ({ key, value, onChange, options }) => (
     <Select
+      id={key}
       size="sm"
       aria-labelledby=""
       value={value}
@@ -38,15 +41,17 @@ const controlTypes: Record<string, React.FC<IControlProps>> = {
       ))}
     </Select>
   ),
-  boolean: ({ value, onChange }) => (
+  boolean: ({ key, value, onChange }) => (
     <Checkbox
+      id={key}
       size="sm"
       isChecked={value}
       onChange={event => onChange(event.target.checked)}
     />
   ),
-  integer: ({ value, onChange, options }) => (
+  integer: ({ key, value, onChange, options }) => (
     <Input
+      id={key}
       size="sm"
       type="number"
       value={value}
@@ -56,8 +61,9 @@ const controlTypes: Record<string, React.FC<IControlProps>> = {
       onChange={event => onChange(parseInt(event.target.value, 10))}
     />
   ),
-  float: ({ value, onChange, options }) => (
+  float: ({ key, value, onChange, options }) => (
     <Input
+      id={key}
       size="sm"
       type="number"
       value={value}
@@ -67,6 +73,23 @@ const controlTypes: Record<string, React.FC<IControlProps>> = {
       onChange={event => onChange(parseFloat(event.target.value))}
     />
   ),
+  slider: ({ key, value, onChange, options }) => (
+    <Stack isInline mt={2}>
+      <Text width="40px" textAlign="right">{value}</Text>
+      <Slider
+        id={key}
+        defaultValue={value as any}
+        min={options.min}
+        max={options.max}
+        step={options.step}
+        onChange={onChange}
+      >
+        <SliderTrack />
+        <SliderFilledTrack />
+        <SliderThumb />
+      </Slider>
+    </Stack>
+  )
 }
 
 type ControlDef = {
@@ -95,7 +118,7 @@ const GLOBE_OPTIONS: ControlDef[] = [
     key: 'jitter',
     title: 'Cell Jitter',
     desc: 'Maximum random jitter for cell vertices, in spherical space',
-    type: 'float',
+    type: 'slider',
     options: { min: 0, max: 1, step: 0.05 },
   },
   {
@@ -103,41 +126,42 @@ const GLOBE_OPTIONS: ControlDef[] = [
     title: 'Number of Plates',
     desc: 'Number of plates to generate',
     type: 'integer',
+    options: { min: 0 },
   },
   {
     key: 'flowModifier',
     title: 'Flow modifier',
     desc: 'What percentage of flow to take from each cell edge',
-    type: 'float',
+    type: 'slider',
     options: { min: 0, max: 1, step: 0.1 },
   },
   {
     key: 'oceanPlatePercent',
     title: 'Ocean Plate Percent',
     desc: 'Percentage of each plate that is ocean',
-    type: 'float',
+    type: 'slider',
     options: { min: 0, max: 1, step: 0.1 },
   },
   {
     key: 'protrudeHeight',
     title: 'Protrude Height',
     desc: 'Amount of height (in 3D coordinate space) to protrude from the sphere to represent altitude',
-    type: 'float',
+    type: 'slider',
     options: { min: 0, max: 1, step: 0.05 },
   },
   {
     key: 'terrainRoughness',
     title: 'Terrain Roughness',
     desc: 'Roughness value of the terrain generator',
-    type: 'float',
-    options: { min: 0, max: 1, step: 0.1 },
+    type: 'slider',
+    options: { min: 0, max: 1, step: 0.05 },
   },
   {
     key: 'heightModifier',
     title: 'Height Modifier',
     desc: 'Amount to add to the height at each cell',
-    type: 'float',
-    options: { min: -1, max: 1, step: 0.1 },
+    type: 'slider',
+    options: { min: -1, max: 1, step: 0.05 },
   },
 ];
 
@@ -215,8 +239,9 @@ const GlobeOptionsTab = ({ manager }: { manager: GameManager }) => {
         {GLOBE_OPTIONS.map(({ title, desc, type, key, options }) => {
           const Renderer = controlTypes[type];
           return (
-            <Field title={title} key={title} desc={desc}>
+            <Field key={key} title={title} desc={desc}>
               <Renderer
+                key={key}
                 onChange={value => setGlobeOptionsForm({
                   ...globeOptionsForm,
                   [key as keyof IGlobeOptions]: value
@@ -242,8 +267,9 @@ const DrawOptionsTab = ({ manager }: { manager: GameManager }) => {
       {DRAW_OPTIONS.map(({ title, type, key, desc, options }) => {
         const Renderer = controlTypes[type];
         return (
-          <Field title={title} key={title} desc={desc}>
+          <Field key={key} title={title} desc={desc}>
             <Renderer
+              key={key}
               onChange={value => manager.drawOptions$.set(key as keyof IDrawOptions,  value)}
               value={drawOptions[key]}
               options={options  || {}}
