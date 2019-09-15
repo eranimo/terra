@@ -1,18 +1,11 @@
-body {
-  background-color: #111;
-  color: #DDD;
-  font-family: sans-serif
-}
-
 body, html {
-  font-size: 14px;
+  font-size: 12px;
   overflow: hidden;
   margin: 0;
   padding: 0;
 }
 
 #screen {
-  background-image: url('./images/stars.png');
   position: fixed;
   top: 0;
   left: 0;
@@ -34,100 +27,18 @@ body, html {
 }
 
 #controls {
-  background-color: rgba(10, 10, 10, 0.8);
+  background-color: rgba(10, 10, 10, 1);
   border: 1px solid #333;
   z-index: 100;
+  overflow-y: auto;
+  width: 300px;
+  height: 500px;
 
   position: fixed;
   left: 0;
   top: 0;
   z-index: 100;
-  width: auto;
   transform: translate(-1px, -1px);
-}
-
-.field {
-  height: 2rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  display: flex;
-  align-items: center;
-  border-top: 1px solid #333;
-  cursor: pointer;
-}
-.field:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-.field__title {
-  margin-right: 1rem;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-}
-
-.tab-row {
-  margin: 1rem;
-  margin-bottom: 0;
-  padding-bottom: 0.5rem;
-  margin-left: 0;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.tab {
-  margin-right: 0.5rem;
-  padding: 0.5rem;
-  margin-bottom: 0;
-  color: rgb(134, 134, 134);
-  cursor: pointer;
-}
-
-.tab--active {
-  color: #FFF;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-h1, h2 {
-  margin: 1rem;
-  padding: 0;
-}
-
-button {
-  border: 1px solid #C0C0C0;
-  padding: 0.25rem 0.5rem;
-  background-color: rgb(255, 255, 255, 0.1);
-  color: #C0C0C0;
-  cursor: pointer;
-  border-radius: 2px;
-  transition: background-color .1s ease-in-out;
-}
-button:hover {
-  background-color: #C0C0C0;
-  color: #111;
-}
-input {
-  border: 1px solid #666;
-  padding: 0.25rem 0.5rem;
-  border-radius: 2px;
-  background-color: transparent;
-  color: #C0C0C0;
-}
-input:focus {
-  outline: none;
-  border-color: #306496;
-}
-
-fieldset {
-  margin: 1rem 0;
-  border: none;
-  padding: 0;
-}
-
-legend {
-  margin: 0;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
 }
 
 #loading {

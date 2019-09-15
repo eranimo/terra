@@ -1,10 +1,9 @@
+import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text } from '@chakra-ui/core';
 import React, { useState } from 'react';
 import { GameManager } from "../GameManager";
-import { Input } from "./Input";
+import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles } from '../types';
+import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
-import { Tabs } from "./Tabs";
-import { drawModeTitles, mapModeTitles, IGlobeOptions, IDrawOptions } from '../types';
-import { useObservableDictKey, useObservable, useObservableDict } from '../utils/hooks';
 
 
 interface IControlOptions {
@@ -21,30 +20,33 @@ interface IControlProps {
 const controlTypes: Record<string, React.FC<IControlProps>> = {
   string: ({ value, onChange }) => (
     <Input
+      size="sm"
       type="text"
       value={value}
       onChange={event => onChange(event.target.value)}
     />
   ),
   select: ({ value, onChange, options }) => (
-    <select
+    <Select
+      aria-labelledby=""
       value={value}
       onChange={event => onChange(event.target.value as any)}
     >
       {Object.entries(options.options).map(([key, title]) => (
         <option key={title} value={key}>{title}</option>
       ))}
-    </select>
+    </Select>
   ),
   boolean: ({ value, onChange }) => (
-    <input
-      type="checkbox"
-      checked={value}
+    <Checkbox
+      size="sm"
+      isChecked={value}
       onChange={event => onChange(event.target.checked)}
     />
   ),
   integer: ({ value, onChange, options }) => (
-    <input
+    <Input
+      size="sm"
       type="number"
       value={value}
       min={options.min}
@@ -54,7 +56,8 @@ const controlTypes: Record<string, React.FC<IControlProps>> = {
     />
   ),
   float: ({ value, onChange, options }) => (
-    <input
+    <Input
+      size="sm"
       type="number"
       value={value}
       min={options.min}
@@ -196,72 +199,75 @@ const DRAW_OPTIONS: ControlDef[] = [
   },
 ]
 
-export function Controls({ manager }: {
-  manager: GameManager;
-}) {
+const GlobeOptionsTab = ({ manager }: { manager: GameManager }) => {
   const globeOptions = useObservable(manager.globeOptions$, manager.globeOptions$.value);
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
-  const drawOptions = useObservableDict(manager.drawOptions$);
-
   return (
-    <div id="controls">
-      <h1>Terra</h1>
-      <Tabs>
-        {() => ({
-          generate: {
-            title: 'Map options',
-            render: () => (
-              <form
-                onSubmit={event => {
-                  manager.globeOptions$.next(globeOptionsForm);
-                  event.preventDefault();
-                }}
-              >
-                {GLOBE_OPTIONS.map(({ title, desc, type, key, options }) => {
-                  const Renderer = controlTypes[type];
-                  return (
-                    <Field title={title} key={title} desc={desc}>
-                      <Renderer
-                        onChange={value => setGlobeOptionsForm({
-                          ...globeOptionsForm,
-                          [key as keyof IGlobeOptions]: value
-                        })}
-                        value={globeOptionsForm[key]}
-                        options={options  || {}}
-                      />
-                    </Field>
-                  );
+    <form
+      onSubmit={event => {
+        manager.globeOptions$.next(globeOptionsForm);
+        event.preventDefault();
+      }}
+    >
+      <Box pt={5}>
+        {GLOBE_OPTIONS.map(({ title, desc, type, key, options }) => {
+          const Renderer = controlTypes[type];
+          return (
+            <Field title={title} key={title} desc={desc}>
+              <Renderer
+                onChange={value => setGlobeOptionsForm({
+                  ...globeOptionsForm,
+                  [key as keyof IGlobeOptions]: value
                 })}
-                <Field>
-                  <button type="submit">
-                    Generate
-                  </button>
-                </Field>
-              </form>
-            )
-          },
-          render: {
-            title: 'Draw options',
-            render: () => (
-              <div>
-                {DRAW_OPTIONS.map(({ title, type, key, desc, options }) => {
-                  const Renderer = controlTypes[type];
-                  return (
-                    <Field title={title} key={title} desc={desc}>
-                      <Renderer
-                        onChange={value => manager.drawOptions$.set(key as keyof IDrawOptions,  value)}
-                        value={drawOptions[key]}
-                        options={options  || {}}
-                      />
-                    </Field>
-                  );
-                })}
-              </div>
-            ),
-          }
+                value={globeOptionsForm[key]}
+                options={options  || {}}
+              />
+            </Field>
+          );
         })}
+        <Button type="submit" size="lg">
+          Generate
+        </Button>
+      </Box>
+    </form>
+  )
+}
+
+const DrawOptionsTab = ({ manager }: { manager: GameManager }) => {
+  const drawOptions = useObservableDict(manager.drawOptions$);
+  return (
+    <Box pt={5}>
+      {DRAW_OPTIONS.map(({ title, type, key, desc, options }) => {
+        const Renderer = controlTypes[type];
+        return (
+          <Field title={title} key={title} desc={desc}>
+            <Renderer
+              onChange={value => manager.drawOptions$.set(key as keyof IDrawOptions,  value)}
+              value={drawOptions[key]}
+              options={options  || {}}
+            />
+          </Field>
+        );
+      })}
+    </Box>
+  );
+}
+
+export function Controls({ manager }: { manager: GameManager }) {
+  return (
+    <Box id="controls" p="5">
+      <Text fontSize="lg">Terra</Text>
+      <Tabs size="sm">
+        <TabList>
+          <Tab>Map options</Tab>
+          <Tab>Draw options</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel><GlobeOptionsTab manager={manager} /></TabPanel>
+          <TabPanel><DrawOptionsTab manager={manager} /></TabPanel>
+        </TabPanels>
       </Tabs>
-    </div>
+    </Box>
   );
 }
