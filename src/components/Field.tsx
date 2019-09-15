@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, Flex, Box, Stack, PseudoBox, Tooltip, IconButton } from '@chakra-ui/core';
+import { Text, Flex, Box, Stack, PseudoBox, Tooltip, Icon } from '@chakra-ui/core';
 
 
 type FieldProps = {
@@ -22,7 +22,7 @@ export const Field: React.FC<FieldProps> = ({ title, desc, children }) => {
         <Box flex={1}>
           {title}
           <Tooltip aria-label={desc} label={desc} placement="top" hasArrow>
-            <IconButton variant="ghost" size="sm" icon="help" aria-label="help" />
+            <Icon m="3" name="help" aria-label="help" />
           </Tooltip>
         </Box>
         <Box flex={1}>
