@@ -263,7 +263,7 @@ export function Controls({ manager }: { manager: GameManager }) {
       position="fixed"
       left="0"
       top="0"
-      width="300px"
+      width="350px"
       bg="gray.900"
       borderWidth="1px"
       borderColor="gray.600"
