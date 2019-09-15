@@ -1,4 +1,4 @@
-import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text } from '@chakra-ui/core';
+import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse } from '@chakra-ui/core';
 import React, { useState } from 'react';
 import { GameManager } from "../GameManager";
 import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles } from '../types';
@@ -28,6 +28,7 @@ const controlTypes: Record<string, React.FC<IControlProps>> = {
   ),
   select: ({ value, onChange, options }) => (
     <Select
+      size="sm"
       aria-labelledby=""
       value={value}
       onChange={event => onChange(event.target.value as any)}
@@ -255,19 +256,45 @@ const DrawOptionsTab = ({ manager }: { manager: GameManager }) => {
 }
 
 export function Controls({ manager }: { manager: GameManager }) {
+  const [isOpen, setIsOpen] = useState(false);
   return (
-    <Box id="controls" p="5">
-      <Text fontSize="lg">Terra</Text>
-      <Tabs size="sm">
-        <TabList>
-          <Tab>Map options</Tab>
-          <Tab>Draw options</Tab>
-        </TabList>
-        <TabPanels>
-          <TabPanel><GlobeOptionsTab manager={manager} /></TabPanel>
-          <TabPanel><DrawOptionsTab manager={manager} /></TabPanel>
-        </TabPanels>
-      </Tabs>
+    <Box
+      p="5"
+      position="fixed"
+      left="0"
+      top="0"
+      width="300px"
+      bg="gray.900"
+      borderWidth="1px"
+      borderColor="gray.600"
+      transform="translate(-1px, -1px)"
+    >
+      <Stack justify="space-between" align="center" isInline>
+        <Box><Heading>Terra</Heading></Box>
+        <Box>
+          <Button
+            variant="ghost"
+            size="sm"
+            rightIcon={isOpen ? 'chevron-up' : 'chevron-down'}
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            Toggle Config
+          </Button>
+        </Box>
+      </Stack>
+
+      <Collapse isOpen={isOpen}>
+        <Tabs size="sm" mt={5}>
+          <TabList>
+            <Tab>Map options</Tab>
+            <Tab>Draw options</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel><GlobeOptionsTab manager={manager} /></TabPanel>
+            <TabPanel><DrawOptionsTab manager={manager} /></TabPanel>
+          </TabPanels>
+        </Tabs>
+      </Collapse>
     </Box>
   );
 }
