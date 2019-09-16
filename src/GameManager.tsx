@@ -15,7 +15,7 @@ const initialOptions: IGlobeOptions = {
   seed: 123,
   numberCells: 35_000,
   jitter: 0.6,
-  numberPlates: 15,
+  numberPlates: 12,
   flowModifier: 0.2,
   oceanPlatePercent: 1,
   protrudeHeight: 0.25,
