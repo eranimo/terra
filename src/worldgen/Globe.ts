@@ -1,7 +1,7 @@
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import { makeSphere } from "../SphereMesh";
-import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges } from '../types';
+import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome } from '../types';
 import { getLatLng } from '../utils';
 import { coordinateForSide, generateMinimapGeometry, generateNoize3D, generateTriangleCenters, generateVoronoiGeometry, QuadGeometry } from './geometry';
 import { assignRegionElevation, generatePlates } from './plates';
@@ -105,7 +105,7 @@ export class Globe {
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
       this.r_moisture[r] = (
-        ((noise3D(x / 2, y / 2, z / 2) + 1 / 2) * 0.75) +
+        ((noise3D(x / 2, y / 2, z / 2) + 1 / 2) * 0.50) +
         (latRatio * 0.25) +
         (((this.r_elevation[r] / -1) + 1 / 2) * 0.25)
       );
@@ -121,8 +121,9 @@ export class Globe {
       const altitude = 1 - Math.max(0, this.r_elevation[r]) / 1;
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
+      const random = (noise3D(x, y, z) + 1) / 2;
       this.r_temperature[r] = (
-        (0.25 * (noise3D(x, y, z) + 1 / 2)) +
+        (0.25 * random) +
         (0.50 * latRatio) + 
         (0.25 * altitude)
       );
@@ -160,29 +161,35 @@ export class Globe {
     this.r_temperature_zone = [];
     
     for (let r = 0; r < this.mesh.numRegions; r++) {
-      const moisture = clamp(this.r_moisture[r], 0, 1);
-      const temperature = clamp(this.r_temperature[r], 0, 1);
-      let moistureZone = null;
-      for (const [zone, { start, end }] of Object.entries(moistureZoneRanges)) {
-        if (moisture >= start && moisture <= end) {
-          moistureZone = zone;
+      if (this.r_elevation[r] < -0.1) {
+        this.r_biome[r] = EBiome.OCEAN;
+      } else if (this.r_elevation[r] < 0) {
+        this.r_biome[r] = EBiome.COAST;
+      } else {
+        const moisture = clamp(this.r_moisture[r], 0, 1);
+        const temperature = clamp(this.r_temperature[r], 0, 1);
+        let moistureZone = null;
+        for (const [zone, { start, end }] of Object.entries(moistureZoneRanges)) {
+          if (moisture >= start && moisture <= end) {
+            moistureZone = zone;
+          }
         }
-      }
-      this.r_moisture_zone[r] = moistureZone;
-      let temperatureZone = null;
-      for (const [zone, { start, end }] of Object.entries(temperatureZoneRanges)) {
-        if (temperature >= start && temperature <= end) {
-          temperatureZone = zone;
+        this.r_moisture_zone[r] = moistureZone;
+        let temperatureZone = null;
+        for (const [zone, { start, end }] of Object.entries(temperatureZoneRanges)) {
+          if (temperature >= start && temperature <= end) {
+            temperatureZone = zone;
+          }
         }
+        this.r_temperature_zone[r] = temperatureZone;
+        if (moistureZone === null) {
+          throw new Error(`Failed to find biome for moisture: ${moisture}`);
+        }
+        if (temperatureZone === null) {
+          throw new Error(`Failed to find biome for temperature: ${temperature}`);
+        }
+        this.r_biome[r] = biomeRanges[moistureZone][temperatureZone];
       }
-      this.r_temperature_zone[r] = temperatureZone;
-      if (moistureZone === null) {
-        throw new Error(`Failed to find biome for moisture: ${moisture}`);
-      }
-      if (temperatureZone === null) {
-        throw new Error(`Failed to find biome for temperature: ${temperature}`);
-      }
-      this.r_biome[r] = biomeRanges[moistureZone][temperatureZone];
     }
 
     // protrude

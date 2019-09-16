@@ -1,3 +1,4 @@
+import { hexToRgb } from './utils/color';
 export type Size = {
   width: number,
   height: number,
@@ -38,6 +39,7 @@ export enum EMapMode {
   MOISTURE = 'MOISTURE',
   TEMPERATURE = 'TEMPERATURE',
   ROUGHNESS = 'ROUGHNESS',
+  BIOME = 'BIOME',
 }
 
 export const mapModeTitles = {
@@ -46,6 +48,7 @@ export const mapModeTitles = {
   [EMapMode.MOISTURE]: 'Moisture',
   [EMapMode.TEMPERATURE]: 'Temperature',
   [EMapMode.ROUGHNESS]: 'Terrain Roughness',
+  [EMapMode.BIOME]: 'Biomes',
 }
 
 export const drawModeTitles = {
@@ -55,6 +58,10 @@ export const drawModeTitles = {
 
 export enum EBiome {
   NONE,
+
+  OCEAN,
+  COAST,
+  
   GLACIAL,
   TUNDRA,
   BOREAL_FOREST,
@@ -104,14 +111,14 @@ export const temperatureZoneRanges = {
 // mapping between moisture zones and temperatures which returns biome
 export const biomeRanges = {
   [EMoistureZone.BARREN]: {
-    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
     [ETemperatureZone.SUBARCTIC]: EBiome.TUNDRA,
     [ETemperatureZone.TEMPERATE]: EBiome.GRASSLAND,
     [ETemperatureZone.SUBTROPICAL]: EBiome.GRASSLAND,
     [ETemperatureZone.TROPICAL]: EBiome.DESERT,
   },
   [EMoistureZone.ARID]: {
-    [ETemperatureZone.ARCTIC]: EBiome.TUNDRA,
+    [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
     [ETemperatureZone.SUBARCTIC]: EBiome.TUNDRA,
     [ETemperatureZone.TEMPERATE]: EBiome.SHRUBLAND,
     [ETemperatureZone.SUBTROPICAL]: EBiome.SAVANNA,
@@ -162,4 +169,38 @@ export const temperatureZoneTitles = {
   [ETemperatureZone.TEMPERATE]: 'Temperate',
   [ETemperatureZone.SUBTROPICAL]: 'Subtropical',
   [ETemperatureZone.TROPICAL]: 'Tropical',
+};
+
+export const biomeLabelColors = {
+  [EBiome.NONE]: '#4783A0',
+  [EBiome.GLACIAL]: '#FFFFFF',
+  [EBiome.TUNDRA]: '#96D1C3',
+  [EBiome.BOREAL_FOREST]: '#006259',
+  [EBiome.SHRUBLAND]: '#B26A47',
+  [EBiome.WOODLAND]: '#B26A47',
+  [EBiome.GRASSLAND]: '#F6EB64',
+  [EBiome.SAVANNA]: '#C7C349',
+  [EBiome.DESERT]: '#8B4D32',
+  [EBiome.TEMPERATE_FOREST]: '#92D847',
+  [EBiome.TEMPERATE_RAINFOREST]: '#6B842A',
+  [EBiome.TROPICAL_FOREST]: '#097309',
+  [EBiome.TROPICAL_RAINFOREST]: '#005100',
+};
+
+export const biomeColors = {
+  [EBiome.NONE]: hexToRgb('#000000'),
+  [EBiome.OCEAN]: [ (48 + 5) / 255, (80 + 5) / 255, (140 + 5) / 255, 1],
+  [EBiome.COAST]: [ (58 + 10) / 255, (90 + 10) / 255, (150 + 10) / 255, 1],
+  [EBiome.GLACIAL]: hexToRgb('#FFFFFF'),
+  [EBiome.TUNDRA]: hexToRgb('#6e7c59'),
+  [EBiome.BOREAL_FOREST]: hexToRgb('#42562F'),
+  [EBiome.SHRUBLAND]: hexToRgb('#D7CC9E'),
+  [EBiome.WOODLAND]: hexToRgb('#9fb277'),
+  [EBiome.GRASSLAND]: hexToRgb('#9fb981'),
+  [EBiome.SAVANNA]: hexToRgb('#C9CD7C'),
+  [EBiome.DESERT]: hexToRgb('#D9BF8C'),
+  [EBiome.TEMPERATE_FOREST]: hexToRgb('#4d703a'),
+  [EBiome.TEMPERATE_RAINFOREST]: hexToRgb('#425D27'),
+  [EBiome.TROPICAL_FOREST]: hexToRgb('#4d703a'),
+  [EBiome.TROPICAL_RAINFOREST]: hexToRgb('#426D18'),
 };

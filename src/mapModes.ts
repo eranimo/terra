@@ -1,11 +1,12 @@
 import colormap from 'colormap';
 import { clamp } from 'lodash';
 import { Globe } from './worldgen/Globe';
-import { EMapMode } from './types';
+import { EMapMode, biomeColors } from './types';
 import { getUV } from './utils';
 
 
 interface ICellData {
+  biome: number;
   roughness: number;
   moisture: number;
   height: number;
@@ -13,7 +14,7 @@ interface ICellData {
 }
 
 export interface IMapModeColorMap {
-  colors: Record<string, any>;
+  colors?: Record<string, any>;
   key: keyof ICellData,
   color: (
     value: number,
@@ -44,10 +45,11 @@ export class MapMode {
       xy: [],
       rgba: [],
     };
-    let values = { roughness: null, moisture: null, height: null, temperature: null };
+    let values = { biome: null, roughness: null, moisture: null, height: null, temperature: null };
     const { r_xyz, t_xyz } = globe;
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
 
+      values.biome = this.globe.r_biome[r];
       values.moisture = this.globe.r_moisture[r];
       values.height = this.globe.r_elevation[r];
       values.temperature = this.globe.r_temperature[r];
@@ -104,7 +106,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     key: 'moisture',
     colors: {
       main: colormap({
-        colormap: 'YiGnBu',
+        colormap: 'bluered',
         nshades: 100,
         format: 'float',
         alpha: 1,
@@ -153,6 +155,12 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
         return colors.main[index];
       }
       return [0, 0, 0, 1];
+    },
+  }],
+  [EMapMode.BIOME, {
+    key: 'biome',
+    color: (value) => {
+      return biomeColors[value] || [0, 0, 0, 1];
     },
   }],
 ]);
