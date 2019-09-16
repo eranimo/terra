@@ -5,13 +5,17 @@ import { EMapMode } from './types';
 import { getUV } from './utils';
 
 
+interface ICellData {
+  moisture: number;
+  height: number;
+  temperature: number;
+}
+
 export interface IMapModeColorMap {
   colors: Record<string, any>;
-  color: (values: {
-    moisture: number,
-    height: number,
-    temperature: number
-  }, colors) => number[];
+  format: (value: any) => any;
+  key: keyof ICellData,
+  color: (value: any, colors) => number[];
 }
 
 export class MapMode {
@@ -40,10 +44,12 @@ export class MapMode {
     let values = { moisture: null, height: null, temperature: null };
     const { r_xyz, t_xyz } = globe;
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
+
       values.moisture = this.globe.r_moisture[r];
       values.height = this.globe.r_elevation[r];
       values.temperature = this.globe.r_temperature[r];
-      const color = mapModeColor.color(values, mapModeColor.colors);
+
+      const color = mapModeColor.color(values[mapModeColor.key], mapModeColor.colors);
       const sides = [];
       globe.mesh.r_circulate_s(sides, r);
       for (const s of sides) {
@@ -72,6 +78,8 @@ export class MapMode {
 
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   [EMapMode.ELEVATION, {
+    key: 'height',
+    format: (value) => value * 5000,
     colors: {
       earth: colormap({
         colormap: 'earth',
@@ -80,8 +88,8 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
         alpha: 1,
       })
     },
-    color: ({ height }, colors) => {
-      const heightFixed = (height + 1) / 2;
+    color: (value, colors) => {
+      const heightFixed = (value + 1) / 2;
       const index = clamp(Math.round(heightFixed * 100), 0, 99);
       if (colors.earth[index]) {
         return colors.earth[index];
@@ -90,6 +98,8 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.MOISTURE, {
+    key: 'moisture',
+    format: value => value * 4000,
     colors: {
       main: colormap({
         colormap: 'YiGnBu',
@@ -98,8 +108,8 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
         alpha: 1,
       }),
     },
-    color: ({ moisture }, colors) => {
-      const moistureFixed = (moisture + 1) / 2;
+    color: (value, colors) => {
+      const moistureFixed = (value + 1) / 2;
       const index = clamp(Math.round(moistureFixed * 100), 0, 99);
       if (colors.main[index]) {
         return colors.main[index];
@@ -108,6 +118,8 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.TEMPERATURE, {
+    key: 'temperature',
+    format: value => (value * 60) - 30,
     colors: {
       main: colormap({
         colormap: 'jet',
@@ -116,8 +128,8 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
         alpha: 1,
       }),
     },
-    color: ({ temperature }, colors) => {
-      const index = clamp(Math.round(temperature * 100), 0, 99);
+    color: (value, colors) => {
+      const index = clamp(Math.round(value * 100), 0, 99);
       if (colors.main[index]) {
         return colors.main[index];
       }

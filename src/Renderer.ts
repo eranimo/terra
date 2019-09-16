@@ -626,7 +626,7 @@ export default function Renderer(
     }
 
     renderLines({
-      scale: mat4.fromScaling(mat4.create(), [1.0001, 1.0001, 1.0001]),
+      scale: mat4.fromScaling(mat4.create(), [1.002, 1.002, 1.002]),
       u_multiply_rgba: [1, 1, 1, 0.5],
       u_add_rgba: [0, 0, 0, 0],
       a_xyz: data.points,

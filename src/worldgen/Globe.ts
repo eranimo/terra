@@ -55,8 +55,6 @@ export class Globe {
     this.order_t = new Int32Array(mesh.numTriangles);
     this.t_flow = new Float32Array(mesh.numTriangles);
     this.s_flow = new Float32Array(mesh.numSides);
-
-
     this.r_temperature = [];
 
     this.r_lat_long = [];
@@ -92,7 +90,13 @@ export class Globe {
       const x = this.r_xyz[3 * r];
       const y = this.r_xyz[3 * r + 1];
       const z = this.r_xyz[3 * r + 2];
-      this.r_moisture[r] = ((noise3D(x / 2, y / 2, z / 2) + 1 / 2) * 0.75) + (((this.r_elevation[r] / -1) + 1 / 2) * 0.25);
+      const [lat, long] = this.r_lat_long[r];
+      const latRatio = 1 - (Math.abs(lat) / 90);
+      this.r_moisture[r] = (
+        ((noise3D(x / 2, y / 2, z / 2) + 1 / 2) * 0.75) +
+        (latRatio * 0.25) +
+        (((this.r_elevation[r] / -1) + 1 / 2) * 0.25)
+      );
     }
 
     noise3D = generateNoize3D(makeRandFloat(this.options.seed * 2), 1 / 3, 5);
