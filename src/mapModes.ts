@@ -6,6 +6,7 @@ import { getUV } from './utils';
 
 
 interface ICellData {
+  roughness: number;
   moisture: number;
   height: number;
   temperature: number;
@@ -13,9 +14,11 @@ interface ICellData {
 
 export interface IMapModeColorMap {
   colors: Record<string, any>;
-  format: (value: any) => any;
   key: keyof ICellData,
-  color: (value: any, colors) => number[];
+  color: (
+    value: number,
+    colors: Record<string, { [index: number]: number[] }>,
+  ) => number[];
 }
 
 export class MapMode {
@@ -41,13 +44,14 @@ export class MapMode {
       xy: [],
       rgba: [],
     };
-    let values = { moisture: null, height: null, temperature: null };
+    let values = { roughness: null, moisture: null, height: null, temperature: null };
     const { r_xyz, t_xyz } = globe;
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
 
       values.moisture = this.globe.r_moisture[r];
       values.height = this.globe.r_elevation[r];
       values.temperature = this.globe.r_temperature[r];
+      values.roughness = this.globe.r_roughness[r] / this.globe.max_roughness;
 
       const color = mapModeColor.color(values[mapModeColor.key], mapModeColor.colors);
       const sides = [];
@@ -79,7 +83,6 @@ export class MapMode {
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   [EMapMode.ELEVATION, {
     key: 'height',
-    format: (value) => value * 5000,
     colors: {
       earth: colormap({
         colormap: 'earth',
@@ -99,7 +102,6 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.MOISTURE, {
     key: 'moisture',
-    format: value => value * 4000,
     colors: {
       main: colormap({
         colormap: 'YiGnBu',
@@ -119,10 +121,27 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.TEMPERATURE, {
     key: 'temperature',
-    format: value => (value * 60) - 30,
     colors: {
       main: colormap({
         colormap: 'jet',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+    },
+    color: (value, colors) => {
+      const index = clamp(Math.round(value * 100), 0, 99);
+      if (colors.main[index]) {
+        return colors.main[index];
+      }
+      return [0, 0, 0, 1];
+    },
+  }],
+  [EMapMode.ROUGHNESS, {
+    key: 'roughness',
+    colors: {
+      main: colormap({
+        colormap: 'bluered',
         nshades: 100,
         format: 'float',
         alpha: 1,

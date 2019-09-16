@@ -29,6 +29,8 @@ export class Globe {
   order_t: Int32Array;
   t_flow: Float32Array;
   s_flow: Float32Array;
+  r_roughness: Float32Array;
+  max_roughness: number;
 
   r_moisture_zone: number[];
   r_temperature_zone: number[];
@@ -56,6 +58,8 @@ export class Globe {
     this.t_elevation = new Float32Array(mesh.numTriangles);
     this.r_biome = new Float32Array(mesh.numRegions);
     this.r_moisture = new Float32Array(mesh.numRegions);
+    this.r_roughness = new Float32Array(mesh.numRegions);
+    this.max_roughness = 0;
     this.t_moisture = new Float32Array(mesh.numTriangles);
     this.t_downflow_s = new Int32Array(mesh.numTriangles);
     this.order_t = new Int32Array(mesh.numTriangles);
@@ -136,6 +140,20 @@ export class Globe {
 
     this.quadGeometry.setMap(this.mesh, this, protrudeHeight);
     console.log('map', this);
+
+    // terrain roughness
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      const height = this.r_elevation[r];
+      const triangles = this.mesh.r_circulate_t([], r);
+      let roughness = 0;
+      for (const t of triangles) {
+        roughness += Math.abs(height - this.t_elevation[t]);
+      }
+      this.r_roughness[r] = roughness;
+      if (this.max_roughness < roughness) {
+        this.max_roughness = roughness;
+      }
+    }
 
     // biomes
     this.r_moisture_zone = [];
