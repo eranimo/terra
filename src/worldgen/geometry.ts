@@ -139,19 +139,6 @@ export class QuadGeometry {
     const { numSides, numRegions, numTriangles } = mesh;
     const { xyz, tm, I } = this;
 
-    for (let t = 0; t < numTriangles; t++) {
-      const e = Math.max(0, t_elevation[t]) * protrudeHeight * 0.2;
-      t_xyz[3 * t] = t_xyz[3 * t] + (t_xyz[3 * t] * e);
-      t_xyz[3 * t + 1] = t_xyz[3 * t + 1] + (t_xyz[3 * t + 1] * e);
-      t_xyz[3 * t + 2] = t_xyz[3 * t + 2] + (t_xyz[3 * t + 2] * e);
-    }
-    for (let r = 0; r < numRegions; r++) {
-      const e = Math.max(0, r_elevation[r]) * protrudeHeight * 0.2;
-      r_xyz[3 * r] = r_xyz[3 * r] + (r_xyz[3 * r] * e);
-      r_xyz[3 * r + 1] = r_xyz[3 * r + 1] + (r_xyz[3 * r + 1] * e);
-      r_xyz[3 * r + 2] = r_xyz[3 * r + 2] + (r_xyz[3 * r + 2] * e);
-    }
-
     xyz.set(r_xyz);
     xyz.set(t_xyz, r_xyz.length);
 

@@ -9,6 +9,7 @@
 import FlatQueue from 'flatqueue';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { IGlobeOptions } from '../types';
+import { clamp } from 'lodash';
 
 
 export function assignTriangleValues(mesh: TriangleMesh, { r_elevation, r_moisture, /* out */ t_elevation, t_moisture }) {
@@ -72,6 +73,7 @@ export function assignFlow(
 ) {
   let { numTriangles, _halfedges } = mesh;
   s_flow.fill(0);
+
   for (let t = 0; t < numTriangles; t++) {
     if (t_elevation[t] >= 0.0) {
       t_flow[t] = options.flowModifier * t_moisture[t] * t_moisture[t];
@@ -79,6 +81,7 @@ export function assignFlow(
       t_flow[t] = 0;
     }
   }
+
   for (let i = order_t.length - 1; i >= 0; i--) {
     let tributary_t = order_t[i];
     let flow_s = t_downflow_s[tributary_t];

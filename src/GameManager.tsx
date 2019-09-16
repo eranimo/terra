@@ -17,7 +17,7 @@ const initialOptions: IGlobeOptions = {
   jitter: 0.6,
   numberPlates: 12,
   flowModifier: 0.2,
-  oceanPlatePercent: 0.7,
+  oceanPlatePercent: 1,
   protrudeHeight: 0.25,
   terrainRoughness: 0.1,
   heightModifier: 0,
