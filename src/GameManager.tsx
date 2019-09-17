@@ -4,7 +4,7 @@ import createLine from 'regl-line';
 import { Globe } from './worldgen/Globe';
 import { MapMode, mapModeDefs } from './mapModes';
 import Renderer from './Renderer';
-import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions } from './types';
+import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, biomeTitles } from './types';
 import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { CellGroup } from "./CellGroup";
@@ -15,12 +15,14 @@ const initialOptions: IGlobeOptions = {
   seed: 123,
   numberCells: 35_000,
   jitter: 0.6,
-  numberPlates: 12,
+  numberPlates: 25,
   flowModifier: 0.2,
   oceanPlatePercent: 1,
   protrudeHeight: 0.25,
-  terrainRoughness: 0.1,
-  heightModifier: 0,
+  terrainRoughness: 0.5,
+  heightModifier: -0.25,
+  temperatureModifier: 0,
+  moistureModifier: 0,
 };
 
 const initialDrawOptions: IDrawOptions = {
@@ -31,8 +33,8 @@ const initialDrawOptions: IDrawOptions = {
   rivers: true,
   cellCenters: false,
   surface: true,
-  regions: true,
-  mapMode: EMapMode.NONE,
+  regions: false,
+  mapMode: EMapMode.BIOME,
 };
 
 
@@ -133,8 +135,7 @@ export class GameManager {
       this.hoveredCell = null;
     });
     canvas.addEventListener('mousemove', (event) => {
-      if (event.shiftKey || isPanning)
-        return;
+      if (event.shiftKey || isPanning) return;
       const { left, top } = canvas.getBoundingClientRect();
       const { clientX, clientY } = event;
       const mouseX = clientX - left;
@@ -173,6 +174,14 @@ export class GameManager {
             break;
           }
         }
+      }
+
+      if (this.hoveredCell) {
+        console.log(
+          biomeTitles[this.globe.r_biome[this.hoveredCell]],
+          this.globe.r_temperature[this.hoveredCell],
+          this.globe.r_moisture[this.hoveredCell],
+        );
       }
       this.renderer.camera.setDirty();
     });

@@ -163,6 +163,20 @@ const GLOBE_OPTIONS: ControlDef[] = [
     type: 'slider',
     options: { min: -1, max: 1, step: 0.05 },
   },
+  {
+    key: 'temperatureModifier',
+    title: 'Temperature Modifier',
+    desc: 'Multiplier for cell temperature value',
+    type: 'slider',
+    options: { min: -1, max: 1, step: 0.05 },
+  },
+  {
+    key: 'moistureModifier',
+    title: 'Moisture Modifier',
+    desc: 'Multiplier for cell moisture value',
+    type: 'slider',
+    options: { min: -1, max: 1, step: 0.05 },
+  },
 ];
 
 const DRAW_OPTIONS: ControlDef[] = [

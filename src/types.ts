@@ -14,6 +14,8 @@ export interface IGlobeOptions {
   protrudeHeight: number,
   terrainRoughness: number,
   heightModifier: number,
+  temperatureModifier: number;
+  moistureModifier: number;
 }
 
 export interface IDrawOptions {
@@ -101,8 +103,8 @@ export const moistureZoneRanges = {
 }
 
 export const temperatureZoneRanges = {
-  [ETemperatureZone.ARCTIC]: { start: 0, end: 0.15 },
-  [ETemperatureZone.SUBARCTIC]: { start: 0.15, end: 0.3 },
+  [ETemperatureZone.ARCTIC]: { start: 0, end: 0.2 },
+  [ETemperatureZone.SUBARCTIC]: { start: 0.2, end: 0.3 },
   [ETemperatureZone.TEMPERATE]: { start: 0.3, end: 0.6 },
   [ETemperatureZone.SUBTROPICAL]: { start: 0.6, end: 0.85 },
   [ETemperatureZone.TROPICAL]: { start: 0.85, end: 1 },

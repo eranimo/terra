@@ -7,6 +7,7 @@ import { coordinateForSide, generateMinimapGeometry, generateNoize3D, generateTr
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
 import { clamp } from 'lodash';
+import SimplexNoise from 'simplex-noise';
 
 
 export class Globe {
@@ -95,7 +96,7 @@ export class Globe {
     }
     assignRegionElevation(this.mesh, this.options, this);
 
-    let noise3D = generateNoize3D(makeRandFloat(this.options.seed), 1 / 3, 5);
+    let randomNoise = new SimplexNoise(makeRandFloat(this.options.seed));
 
     // moisture
     for (let r = 0; r < this.mesh.numRegions; r++) {
@@ -104,30 +105,41 @@ export class Globe {
       const z = this.r_xyz[3 * r + 2];
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
+      const random1 = (randomNoise.noise3D(x / 2, y / 2, z / 2) + 1) / 2;
+      const random2 = (randomNoise.noise3D(x * 3, y * 3, z * 3) + 1) / 2;
+      const altitude = ((this.r_elevation[r] / -1) + 1) / 2;
       this.r_moisture[r] = (
-        ((noise3D(x / 2, y / 2, z / 2) + 1 / 2) * 0.50) +
-        (latRatio * 0.25) +
-        (((this.r_elevation[r] / -1) + 1 / 2) * 0.25)
+        (random1 * (1 - altitude) * 2) * (this.options.moistureModifier + 1 / 2)
       );
     }
+    console.log('min moisture', Math.min(...this.r_moisture));
+    console.log('max moisture', Math.max(...this.r_moisture));
 
-    noise3D = generateNoize3D(makeRandFloat(this.options.seed * 2), 1 / 3, 5);
+    randomNoise = new SimplexNoise(makeRandFloat(this.options.seed * 2));
 
     // temperature
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
       const y = this.r_xyz[3 * r + 1];
       const z = this.r_xyz[3 * r + 2];
-      const altitude = 1 - Math.max(0, this.r_elevation[r]) / 1;
+      const altitude = Math.max(0, this.r_elevation[r]) / 1;
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
-      const random = (noise3D(x, y, z) + 1) / 2;
-      this.r_temperature[r] = (
-        (0.25 * random) +
-        (0.50 * latRatio) + 
-        (0.25 * altitude)
-      );
+      const random = (randomNoise.noise3D(x, y, z) + 1) / 2;
+      const radiation = latRatio;
+      if (this.r_elevation[r] < 0) { // ocean
+        // shallow seas are warmer than deep oceans
+        const elevationBelowSealevel = Math.min(0.5, Math.abs(this.r_elevation[r]));
+        this.r_temperature[r] = (this.options.temperatureModifier + 1 / 2) * (2 * (0.75 * radiation) + (0.10 * random) + (0.25 * (1 - elevationBelowSealevel)));
+      } else { // land
+        // higher is colder
+        // lower is warmer
+        this.r_temperature[r] = (this.options.temperatureModifier + 1 / 2) * (2 * (0.75 * radiation) + (0.25 * (1 - altitude)));
+      }
     }
+
+    console.log('min temperature', Math.min(...this.r_temperature));
+    console.log('max temperature', Math.max(...this.r_temperature));
 
     // rivers
     console.time('rivers');
@@ -161,6 +173,11 @@ export class Globe {
     this.r_temperature_zone = [];
     
     for (let r = 0; r < this.mesh.numRegions; r++) {
+      if (this.r_elevation[r] < 0 && this.r_temperature[r] < 0.15) {
+        this.r_biome[r] = EBiome.GLACIAL;
+        continue;
+      }
+
       if (this.r_elevation[r] < -0.1) {
         this.r_biome[r] = EBiome.OCEAN;
       } else if (this.r_elevation[r] < 0) {
