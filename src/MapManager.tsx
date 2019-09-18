@@ -2,7 +2,7 @@ import { mat4, vec3 } from 'gl-matrix';
 import { times } from 'lodash';
 import createLine from 'regl-line';
 import { Globe } from './worldgen/Globe';
-import { MapMode, mapModeDefs } from './mapModes';
+import { buildMapModeMeshes } from './mapModes';
 import Renderer from './Renderer';
 import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, biomeTitles } from './types';
 import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
@@ -42,7 +42,7 @@ const initialDrawOptions: IDrawOptions = {
  * Renders a Globe instance
  * Contains CellGroups
  */
-export class GameManager {
+export class MapManager {
   globeOptions$: BehaviorSubject<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
   renderer: ReturnType<typeof Renderer>;
@@ -56,7 +56,7 @@ export class GameManager {
   cell_group_rgba: number[];
   cell_group_lines: any[];
   cell_cell_group: Record<number, CellGroup>;
-  mapModes: Record<string, MapMode>;
+  mapModes: any;
 
   constructor(protected screenCanvas: HTMLCanvasElement, protected minimapCanvas: HTMLCanvasElement, protected images: ImageRef[]) {
     this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(initialOptions);
@@ -111,11 +111,9 @@ export class GameManager {
     });
   }
 
+  @logGroupTime('init map modes')
   initMapModes() {
-    this.mapModes = {};
-    for (const [mapMode, def] of mapModeDefs) {
-      this.mapModes[mapMode] = new MapMode(this.globe, mapMode as any, def as any);
-    }
+    this.mapModes = buildMapModeMeshes(this.globe);
   }
 
   onLoad = (canvas) => () => {
@@ -160,9 +158,9 @@ export class GameManager {
         const inner_t = mesh.s_inner_t(s);
         const outer_t = mesh.s_outer_t(s);
         const begin_r = mesh.s_begin_r(s);
-        const x = vec3.fromValues(t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]);
-        const y = vec3.fromValues(t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]);
-        const z = vec3.fromValues(r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]);
+        const x = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
+        const y = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
+        const z = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
         const tri = [x, y, z];
         let out = [];
         const t = intersectTriangle(out, rayPoint, rayDir, tri);
@@ -195,6 +193,7 @@ export class GameManager {
     this.destroy();
   }
 
+  @logGroupTime('calculate cell groups')
   calculateCellGroups() {
     this.cell_group_xyz = [];
     this.cell_group_rgba = [];
@@ -240,6 +239,7 @@ export class GameManager {
     delete this.globe;
     (window as any).globe = this.globe;
     this.globe = globe;
+
     this.initMapModes();
     this.calculateCellGroups();
     this.renderer.camera.setDirty();
@@ -315,6 +315,7 @@ export class GameManager {
     this.renderer.renderStarbox();
   }
 
+  @logGroupTime('draw minimap')
   drawMinimap() {
     const { minimapGeometry } = this.globe;
     // draw minimap

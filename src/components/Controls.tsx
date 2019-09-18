@@ -1,6 +1,6 @@
 import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse, Slider, SliderTrack, SliderFilledTrack, SliderThumb } from '@chakra-ui/core';
 import React, { useState } from 'react';
-import { GameManager } from "../GameManager";
+import { MapManager } from "../MapManager";
 import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
@@ -238,7 +238,7 @@ const DRAW_OPTIONS: ControlDef[] = [
   },
 ]
 
-const GlobeOptionsTab = ({ manager }: { manager: GameManager }) => {
+const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
   const globeOptions = useObservable(manager.globeOptions$, manager.globeOptions$.value);
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
@@ -274,7 +274,7 @@ const GlobeOptionsTab = ({ manager }: { manager: GameManager }) => {
   )
 }
 
-const DrawOptionsTab = ({ manager }: { manager: GameManager }) => {
+const DrawOptionsTab = ({ manager }: { manager: MapManager }) => {
   const drawOptions = useObservableDict(manager.drawOptions$);
   return (
     <Box pt={5}>
@@ -295,7 +295,7 @@ const DrawOptionsTab = ({ manager }: { manager: GameManager }) => {
   );
 }
 
-export function Controls({ manager }: { manager: GameManager }) {
+export function Controls({ manager }: { manager: MapManager }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <Box

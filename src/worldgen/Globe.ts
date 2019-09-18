@@ -2,7 +2,7 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import { makeSphere } from "../SphereMesh";
 import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome } from '../types';
-import { getLatLng } from '../utils';
+import { getLatLng, logGroupTime } from '../utils'
 import { coordinateForSide, generateMinimapGeometry, generateNoize3D, generateTriangleCenters, generateVoronoiGeometry, QuadGeometry } from './geometry';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
@@ -45,15 +45,23 @@ export class Globe {
 
   constructor(public options: IGlobeOptions) {
     console.log('options', options)
+    console.time('make sphere');
     const { mesh, r_xyz, latlong } = makeSphere(options.numberCells, options.jitter, makeRandFloat(options.seed));
+    console.timeEnd('make sphere');
     this.mesh = mesh;
     console.log('mesh', mesh)
+
     this.r_xyz = r_xyz;
     this.latlong = latlong;
+
+    console.time('make quad geometry');
     this.quadGeometry = new QuadGeometry();
     this.quadGeometry.setMesh(mesh);
+    console.timeEnd('make quad geometry');
 
+    console.time('make triangles');
     this.t_xyz = generateTriangleCenters(mesh, this);
+    console.timeEnd('make triangles');
     this.minimap_t_xyz = null;
     this.r_elevation = new Float32Array(mesh.numRegions);
     this.t_elevation = new Float32Array(mesh.numTriangles);
@@ -80,6 +88,7 @@ export class Globe {
     this.setupGeometry();
   }
 
+  @logGroupTime('map generation')
   generateMap(oceanPlatePercent: number, protrudeHeight: number) {
     let result = generatePlates(this.mesh, this.options, this.r_xyz);
     this.plate_r = result.plate_r;
@@ -96,8 +105,17 @@ export class Globe {
     }
     assignRegionElevation(this.mesh, this.options, this);
 
-    let randomNoise = new SimplexNoise(makeRandFloat(this.options.seed));
+    
+    this.generateMoisture();
+    this.generateTemperature();
+    this.generateRivers();
+    this.generateBiomes();
+    this.protrudeHeight();
+  }
 
+  @logGroupTime('moisture', true)
+  private generateMoisture() {
+    let randomNoise = new SimplexNoise(makeRandFloat(this.options.seed));
     // moisture
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
@@ -116,7 +134,11 @@ export class Globe {
     console.log('max moisture', Math.max(...this.r_moisture));
 
     randomNoise = new SimplexNoise(makeRandFloat(this.options.seed * 2));
+  }
 
+  @logGroupTime('temperature', true)
+  private generateTemperature() {
+    let randomNoise = new SimplexNoise(makeRandFloat(this.options.seed));
     // temperature
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
@@ -140,18 +162,19 @@ export class Globe {
 
     console.log('min temperature', Math.min(...this.r_temperature));
     console.log('max temperature', Math.max(...this.r_temperature));
+  }
 
+  @logGroupTime('rivers', true)
+  private generateRivers() {
     // rivers
-    console.time('rivers');
     assignTriangleValues(this.mesh, this);
     assignDownflow(this.mesh, this);
     assignFlow(this.mesh, this.options, this);
-    console.timeEnd('rivers');
 
     this.minimap_t_xyz = Array.from(this.t_xyz);
     this.minimap_r_xyz = Array.from(this.r_xyz);
 
-    this.quadGeometry.setMap(this.mesh, this, protrudeHeight);
+    this.quadGeometry.setMap(this.mesh, this, this.options.protrudeHeight);
     console.log('map', this);
 
     // terrain roughness
@@ -167,7 +190,10 @@ export class Globe {
         this.max_roughness = roughness;
       }
     }
+  }
 
+  @logGroupTime('biomes', true)
+  private generateBiomes() {
     // biomes
     this.r_moisture_zone = [];
     this.r_temperature_zone = [];
@@ -208,18 +234,21 @@ export class Globe {
         this.r_biome[r] = biomeRanges[moistureZone][temperatureZone];
       }
     }
+  }
 
+  @logGroupTime('protrude height', true)
+  private protrudeHeight() {
     // protrude
     const { numTriangles, numRegions } = this.mesh;
     const { t_xyz, r_xyz, t_elevation, r_elevation } = this;
     for (let t = 0; t < numTriangles; t++) {
-      const e = Math.max(0, t_elevation[t]) * protrudeHeight * 0.2;
+      const e = Math.max(0, t_elevation[t]) * this.options.protrudeHeight * 0.2;
       t_xyz[3 * t] = t_xyz[3 * t] + (t_xyz[3 * t] * e);
       t_xyz[3 * t + 1] = t_xyz[3 * t + 1] + (t_xyz[3 * t + 1] * e);
       t_xyz[3 * t + 2] = t_xyz[3 * t + 2] + (t_xyz[3 * t + 2] * e);
     }
     for (let r = 0; r < numRegions; r++) {
-      const e = Math.max(0, r_elevation[r]) * protrudeHeight * 0.2;
+      const e = Math.max(0, r_elevation[r]) * this.options.protrudeHeight * 0.2;
       r_xyz[3 * r] = r_xyz[3 * r] + (r_xyz[3 * r] * e);
       r_xyz[3 * r + 1] = r_xyz[3 * r + 1] + (r_xyz[3 * r + 1] * e);
       r_xyz[3 * r + 2] = r_xyz[3 * r + 2] + (r_xyz[3 * r + 2] * e);
@@ -236,6 +265,7 @@ export class Globe {
     return xyz;
   }
 
+  @logGroupTime('setup geometry')
   setupGeometry() {
     const r_color_fn = (r: number) => {
       let m = this.r_moisture[r];

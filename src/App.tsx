@@ -3,7 +3,7 @@ import { useWindowSize } from 'react-use';
 import { Controls } from './components/Controls';
 import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions } from './types';
 import { loadImages } from './utils';
-import { GameManager } from './GameManager';
+import { MapManager } from './MapManager';
 import { CircularProgress, Flex, Spinner, Box } from '@chakra-ui/core';
 
 
@@ -26,7 +26,7 @@ const IMAGES = {
   stars: require('./images/stars2.png')
 };
 
-let manager: GameManager;
+let manager: MapManager;
 
 export function App() {
   const screenRef = useRef();
@@ -35,7 +35,7 @@ export function App() {
 
   useEffect(() => {
     loadImages(IMAGES).then(images => {
-      manager = new GameManager(
+      manager = new MapManager(
         screenRef.current,
         minimapRef.current,
         images,

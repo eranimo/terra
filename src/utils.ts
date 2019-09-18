@@ -38,11 +38,15 @@ export function getGeoPointsSpiral(
   return geoPoints
 }
 
-export function logGroupTime(label: string) {
+export function logGroupTime(label: string, closed: boolean = false) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     descriptor.value = function (...args: any[]) {
-      console.group(label);
+      if (closed) {
+        console.groupCollapsed(label);
+      } else {
+        console.group(label);
+      }
       console.time(label);
       const result = originalMethod.apply(this, args);
       console.timeEnd(label);
@@ -143,7 +147,7 @@ export async function loadImages(
   return result;
 }
 
-export function getUV([x, y, z]) {
+export function getUV([x, y, z]): [number, number] {
   return [
     0.5 + (Math.atan2(z, x) / (Math.PI * 2)),
     0.5 - (Math.asin(y) / Math.PI),

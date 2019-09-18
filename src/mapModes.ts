@@ -22,82 +22,110 @@ export interface IMapModeColorMap {
   ) => number[];
 }
 
-export class MapMode {
+interface IMapModeMesh {
   surface: {
     xyz: number[];
     rgba: number[];
-  }
+  };
   minimap: {
     xy: number[];
     rgba: number[][];
+  };
+}
+
+// TODO: improve performance by not copying xyz for each map mode
+export const buildMapModeMeshes = (
+  globe: Globe
+): Record<EMapMode, IMapModeMesh> => {
+  const mapModes = {};
+  for (const [mapMode, def] of mapModeDefs) {
+    mapModes[mapMode] = {
+      surface: {
+        xyz: [],
+        rgba: [],
+      },
+      minimap: {
+        xy: [],
+        rgba: [],
+      }
+    };
   }
-  
-  constructor(
-    public globe: Globe,
-    public mapMode: EMapMode,
-    mapModeColor: IMapModeColorMap
-  ) {
-    this.surface = {
-      xyz: [],
-      rgba: [],
-    };
-    this.minimap = {
-      xy: [],
-      rgba: [],
-    };
-    let values = { biome: null, roughness: null, moisture: null, height: null, temperature: null };
-    const { r_xyz, t_xyz } = globe;
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
+  let values = { biome: null, roughness: null, moisture: null, height: null, temperature: null };
+  const { minimap_r_xyz, minimap_t_xyz } = globe;
 
-      values.biome = this.globe.r_biome[r];
-      values.moisture = this.globe.r_moisture[r];
-      values.height = this.globe.r_elevation[r];
-      values.temperature = this.globe.r_temperature[r];
-      values.roughness = this.globe.r_roughness[r] / this.globe.max_roughness;
+  for (let r = 0; r < globe.mesh.numRegions; r++) {
+    values.biome = globe.r_biome[r];
+    values.moisture = globe.r_moisture[r];
+    values.height = globe.r_elevation[r];
+    values.temperature = globe.r_temperature[r];
+    values.roughness = globe.r_roughness[r] / globe.max_roughness;
 
-      const color = mapModeColor.color(values[mapModeColor.key], mapModeColor.colors);
-      const sides = [];
-      globe.mesh.r_circulate_s(sides, r);
-      for (const s of sides) {
-        const inner_t = globe.mesh.s_inner_t(s);
-        const outer_t = globe.mesh.s_outer_t(s);
-        const begin_r = globe.mesh.s_begin_r(s);
-        const p1 = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
-        const p2 = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
-        const p3 = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
+    const sides = [];
+    globe.mesh.r_circulate_s(sides, r);
+    let numSides = 0;
+    const xyz = [];
+    const xy = [];
 
-        const p1_uv = getUV(p1 as any);
-        const p2_uv = getUV(p2 as any);
-        const p3_uv = getUV(p3 as any);
-        this.surface.xyz.push(...p1, ...p2, ...p3);
-        this.surface.rgba.push(
-          ...color,
-          ...color,
-          ...color,
-        );
-        this.minimap.xy.push(...p1_uv, ...p2_uv, ...p3_uv);
-        this.minimap.rgba.push(color, color, color);
+    for (const s of sides) {
+      const inner_t = globe.mesh.s_inner_t(s);
+      const outer_t = globe.mesh.s_outer_t(s);
+      const begin_r = globe.mesh.s_begin_r(s);
+      const p1 = [minimap_t_xyz[3 * inner_t], minimap_t_xyz[3 * inner_t + 1], minimap_t_xyz[3 * inner_t + 2]];
+      const p2 = [minimap_t_xyz[3 * outer_t], minimap_t_xyz[3 * outer_t + 1], minimap_t_xyz[3 * outer_t + 2]];
+      const p3 = [minimap_r_xyz[3 * begin_r], minimap_r_xyz[3 * begin_r + 1], minimap_r_xyz[3 * begin_r + 2]];
+
+      const p1_uv = getUV(p1 as any);
+      const p2_uv = getUV(p2 as any);
+      const p3_uv = getUV(p3 as any);
+      xyz.push(...p1, ...p2, ...p3);
+      xy.push(...p1_uv, ...p2_uv, ...p3_uv);
+      numSides++;
+    }
+
+    for (const [mapMode, def] of mapModeDefs) {
+      const color = def.color(values[def.key], def.colors);
+      mapModes[mapMode].minimap.xy.push(...xy);
+      mapModes[mapMode].surface.xyz.push(...xyz);
+      for (let s = 0; s < numSides; s++) {
+        mapModes[mapMode].surface.rgba.push(...color, ...color, ...color);
+      }
+      for (let s = 0; s < numSides; s++) {
+        mapModes[mapMode].minimap.rgba.push(color, color, color);
       }
     }
   }
+  return mapModes as Record<EMapMode, IMapModeMesh>;
 }
 
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   [EMapMode.ELEVATION, {
     key: 'height',
     colors: {
-      earth: colormap({
-        colormap: 'earth',
+      water: colormap({
+        colormap: 'bathymetry',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+      land: colormap({
+        colormap: 'chlorophyll',
         nshades: 100,
         format: 'float',
         alpha: 1,
       })
     },
     color: (value, colors) => {
-      const heightFixed = (value + 1) / 2;
-      const index = clamp(Math.round(heightFixed * 100), 0, 99);
-      if (colors.earth[index]) {
-        return colors.earth[index];
+      if (value < 0) {
+        const heightFixed = 1 - Math.abs(value);
+        const index = clamp(Math.round(heightFixed * 100), 0, 99);
+        if (colors.water[index]) {
+          return colors.water[index];
+        }
+      } else {
+        const index = clamp(Math.round(value * 100), 0, 99);
+        if (colors.land[index]) {
+          return colors.land[index];
+        }
       }
       return [0, 0, 0, 1];
     },
@@ -106,7 +134,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     key: 'moisture',
     colors: {
       main: colormap({
-        colormap: 'bluered',
+        colormap: 'cool',
         nshades: 100,
         format: 'float',
         alpha: 1,
