@@ -34,7 +34,7 @@ const initialDrawOptions: IDrawOptions = {
   cellCenters: false,
   surface: true,
   regions: false,
-  mapMode: EMapMode.BIOME,
+  mapMode: EMapMode.ELEVATION,
 };
 
 

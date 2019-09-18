@@ -101,14 +101,16 @@ function assignDistanceField(mesh: TriangleMesh, options: IGlobeOptions, seeds_r
 * the current plate vector. */
 const COLLISION_THRESHOLD = 0.75;
 function findCollisions(mesh: TriangleMesh, r_xyz: number[], plate_is_ocean, r_plate, plate_vec) {
-  let epsilon = 1e-2;
   let { numRegions } = mesh;
-  let mountain_r = new Set(),
-    coastline_r = new Set(),
-    ocean_r = new Set();
+  let epsilon = 1e-2;
+  let mountain_r = new Set();
+  let coastline_r = new Set();
+  let ocean_r = new Set();
   let r_out = [];
+
   for (let current_r = 0; current_r < numRegions; current_r++) {
-    let bestCollision = Infinity, best_r = -1;
+    let bestCollision = Infinity;
+    let best_r = -1;
     mesh.r_circulate_r(r_out, current_r);
     for (let neighbor_r of r_out) {
       if (r_plate[current_r] !== r_plate[neighbor_r]) {
