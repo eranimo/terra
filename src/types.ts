@@ -13,6 +13,7 @@ export interface IGlobeOptions {
   oceanPlatePercent: number,
   protrudeHeight: number,
   terrainRoughness: number,
+  plateCollisionThreshold: number,
   heightModifier: number,
   temperatureModifier: number;
   moistureModifier: number;

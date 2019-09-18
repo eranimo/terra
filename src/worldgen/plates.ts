@@ -99,8 +99,7 @@ function assignDistanceField(mesh: TriangleMesh, options: IGlobeOptions, seeds_r
 /* Calculate the collision measure, which is the amount
 * that any neighbor's plate vector is pushing against 
 * the current plate vector. */
-const COLLISION_THRESHOLD = 0.75;
-function findCollisions(mesh: TriangleMesh, r_xyz: number[], plate_is_ocean, r_plate, plate_vec) {
+function findCollisions(mesh: TriangleMesh, options: IGlobeOptions, r_xyz: number[], plate_is_ocean, r_plate, plate_vec) {
   let { numRegions } = mesh;
   let epsilon = 1e-2;
   let mountain_r = new Set();
@@ -129,12 +128,15 @@ function findCollisions(mesh: TriangleMesh, r_xyz: number[], plate_is_ocean, r_p
       }
     }
     if (best_r !== -1) {
-      let collided = bestCollision > COLLISION_THRESHOLD * epsilon;
+      let collided = bestCollision > options.plateCollisionThreshold * epsilon;
       if (plate_is_ocean.has(current_r) && plate_is_ocean.has(best_r)) {
+        // ocean <--> ocean
         (collided ? coastline_r : ocean_r).add(current_r);
       } else if (!plate_is_ocean.has(current_r) && !plate_is_ocean.has(best_r)) {
+        // land <--> land
         if (collided) mountain_r.add(current_r);
       } else {
+        // land <--> ocean
         (collided ? mountain_r : coastline_r).add(current_r);
       }
     }
@@ -153,7 +155,7 @@ export function assignRegionElevation(
   let { numRegions } = mesh;
 
   let { mountain_r, coastline_r, ocean_r } = findCollisions(
-    mesh, r_xyz, plate_is_ocean, r_plate, plate_vec
+    mesh, options, r_xyz, plate_is_ocean, r_plate, plate_vec
   );
 
   for (let r = 0; r < numRegions; r++) {

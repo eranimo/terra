@@ -21,6 +21,7 @@ const initialOptions: IGlobeOptions = {
   protrudeHeight: 0.25,
   terrainRoughness: 0.5,
   heightModifier: -0.25,
+  plateCollisionThreshold: 0.75,
   temperatureModifier: 0,
   moistureModifier: 0,
 };

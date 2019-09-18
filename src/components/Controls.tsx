@@ -129,16 +129,23 @@ const GLOBE_OPTIONS: ControlDef[] = [
     options: { min: 0 },
   },
   {
-    key: 'flowModifier',
-    title: 'Flow modifier',
-    desc: 'What percentage of flow to take from each cell edge',
+    key: 'oceanPlatePercent',
+    title: 'Ocean Plate Percent',
+    desc: 'Percentage of each plate that is ocean',
     type: 'slider',
     options: { min: 0, max: 1, step: 0.1 },
   },
   {
-    key: 'oceanPlatePercent',
-    title: 'Ocean Plate Percent',
-    desc: 'Percentage of each plate that is ocean',
+    key: 'plateCollisionThreshold',
+    title: 'Plate Collision Threshold',
+    desc: 'Threshold that plate collisions must reach to have an impact on height. Lower value creates more land at plate boundaries, higher creates less.',
+    type: 'slider',
+    options: { min: 0, max: 1, step: 0.1 },
+  },
+  {
+    key: 'flowModifier',
+    title: 'Flow modifier',
+    desc: 'What percentage of flow to take from each cell edge',
     type: 'slider',
     options: { min: 0, max: 1, step: 0.1 },
   },
@@ -303,7 +310,7 @@ export function Controls({ manager }: { manager: MapManager }) {
       position="fixed"
       left="0"
       top="0"
-      width="350px"
+      width="380px"
       bg="rgba(23, 25, 35, 0.95)"
       borderWidth="1px"
       borderColor="gray.600"
