@@ -46,7 +46,7 @@ export class Globe {
   constructor(public options: IGlobeOptions) {
     console.log('options', options)
     console.time('make sphere');
-    const { mesh, r_xyz, latlong } = makeSphere(options.numberCells, options.jitter, makeRandFloat(options.seed));
+    const { mesh, r_xyz, latlong } = makeSphere(options.sphere.numberCells, options.sphere.jitter, makeRandFloat(options.core.seed));
     console.timeEnd('make sphere');
     this.mesh = mesh;
     console.log('mesh', mesh)
@@ -84,7 +84,7 @@ export class Globe {
       this.r_lat_long[r] = getLatLng([x, y, z]);
     }
 
-    this.generateMap(options.oceanPlatePercent, options.protrudeHeight);
+    this.generateMap(options.geology.oceanPlatePercent, options.sphere.protrudeHeight);
     this.setupGeometry();
   }
 
@@ -115,7 +115,7 @@ export class Globe {
 
   @logGroupTime('moisture', true)
   private generateMoisture() {
-    let randomNoise = new SimplexNoise(makeRandFloat(this.options.seed));
+    let randomNoise = new SimplexNoise(makeRandFloat(this.options.core.seed));
     // moisture
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
@@ -127,18 +127,18 @@ export class Globe {
       const random2 = (randomNoise.noise3D(x * 3, y * 3, z * 3) + 1) / 2;
       const altitude = ((this.r_elevation[r] / -1) + 1) / 2;
       this.r_moisture[r] = (
-        (random1 * (1 - altitude) * 2) * (this.options.moistureModifier + 1 / 2)
+        (random1 * (1 - altitude) * 2) * (this.options.hydrology.moistureModifier + 1 / 2)
       );
     }
     console.log('min moisture', Math.min(...this.r_moisture));
     console.log('max moisture', Math.max(...this.r_moisture));
 
-    randomNoise = new SimplexNoise(makeRandFloat(this.options.seed * 2));
+    randomNoise = new SimplexNoise(makeRandFloat(this.options.core.seed * 2));
   }
 
   @logGroupTime('temperature', true)
   private generateTemperature() {
-    let randomNoise = new SimplexNoise(makeRandFloat(this.options.seed));
+    let randomNoise = new SimplexNoise(makeRandFloat(this.options.core.seed));
     // temperature
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
@@ -152,11 +152,17 @@ export class Globe {
       if (this.r_elevation[r] < 0) { // ocean
         // shallow seas are warmer than deep oceans
         const elevationBelowSealevel = Math.min(0.5, Math.abs(this.r_elevation[r]));
-        this.r_temperature[r] = (this.options.temperatureModifier + 1 / 2) * (2 * (0.75 * radiation) + (0.10 * random) + (0.25 * (1 - elevationBelowSealevel)));
+        this.r_temperature[r] = (
+          (this.options.climate.temperatureModifier + 1 / 2) *
+          (2 * (0.75 * radiation) + (0.10 * random) + (0.25 * (1 - elevationBelowSealevel)))
+        );
       } else { // land
         // higher is colder
         // lower is warmer
-        this.r_temperature[r] = (this.options.temperatureModifier + 1 / 2) * (2 * (0.75 * radiation) + (0.25 * (1 - altitude)));
+        this.r_temperature[r] = (
+          (this.options.climate.temperatureModifier + 1 / 2) *
+          (2 * (0.75 * radiation) + (0.25 * (1 - altitude)))
+        );
       }
     }
 
@@ -174,7 +180,7 @@ export class Globe {
     this.minimap_t_xyz = Array.from(this.t_xyz);
     this.minimap_r_xyz = Array.from(this.r_xyz);
 
-    this.quadGeometry.setMap(this.mesh, this, this.options.protrudeHeight);
+    this.quadGeometry.setMap(this.mesh, this, this.options.sphere.protrudeHeight);
     console.log('map', this);
 
     // terrain roughness
@@ -242,13 +248,13 @@ export class Globe {
     const { numTriangles, numRegions } = this.mesh;
     const { t_xyz, r_xyz, t_elevation, r_elevation } = this;
     for (let t = 0; t < numTriangles; t++) {
-      const e = Math.max(0, t_elevation[t]) * this.options.protrudeHeight * 0.2;
+      const e = Math.max(0, t_elevation[t]) * this.options.sphere.protrudeHeight * 0.2;
       t_xyz[3 * t] = t_xyz[3 * t] + (t_xyz[3 * t] * e);
       t_xyz[3 * t + 1] = t_xyz[3 * t + 1] + (t_xyz[3 * t + 1] * e);
       t_xyz[3 * t + 2] = t_xyz[3 * t + 2] + (t_xyz[3 * t + 2] * e);
     }
     for (let r = 0; r < numRegions; r++) {
-      const e = Math.max(0, r_elevation[r]) * this.options.protrudeHeight * 0.2;
+      const e = Math.max(0, r_elevation[r]) * this.options.sphere.protrudeHeight * 0.2;
       r_xyz[3 * r] = r_xyz[3 * r] + (r_xyz[3 * r] * e);
       r_xyz[3 * r + 1] = r_xyz[3 * r + 1] + (r_xyz[3 * r + 1] * e);
       r_xyz[3 * r + 2] = r_xyz[3 * r + 2] + (r_xyz[3 * r + 2] * e);

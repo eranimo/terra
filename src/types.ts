@@ -5,18 +5,36 @@ export type Size = {
 }
 
 export interface IGlobeOptions {
-  seed: number,
-  numberCells: number,
-  jitter: number,
-  numberPlates: number,
-  flowModifier: number,
-  oceanPlatePercent: number,
-  protrudeHeight: number,
-  terrainRoughness: number,
-  plateCollisionThreshold: number,
-  heightModifier: number,
-  temperatureModifier: number;
-  moistureModifier: number;
+  core: {
+    seed: number,
+  },
+  sphere: {
+    numberCells: number,
+    jitter: number,
+    protrudeHeight: number,
+  },
+  hydrology: {
+    flowModifier: number,
+    moistureModifier: number,
+  },
+  climate: {
+    temperatureModifier: number,
+  },
+  geology: {
+    numberPlates: number,
+    oceanPlatePercent: number,
+    terrainRoughness: number,
+    plateCollisionThreshold: number,
+    heightModifier: number,
+  },
+}
+
+export const categoryTitles = {
+  core: 'Core',
+  sphere: 'Sphere',
+  hydrology: 'Hydrology',
+  climate: 'Climate',
+  geology: 'Geology',
 }
 
 export interface IDrawOptions {

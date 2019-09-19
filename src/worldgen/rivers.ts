@@ -76,7 +76,7 @@ export function assignFlow(
 
   for (let t = 0; t < numTriangles; t++) {
     if (t_elevation[t] >= 0.0) {
-      t_flow[t] = options.flowModifier * t_moisture[t] * t_moisture[t];
+      t_flow[t] = options.hydrology.flowModifier * t_moisture[t] * t_moisture[t];
     } else {
       t_flow[t] = 0;
     }

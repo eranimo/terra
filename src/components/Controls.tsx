@@ -1,9 +1,10 @@
-import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse, Slider, SliderTrack, SliderFilledTrack, SliderThumb } from '@chakra-ui/core';
+import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Accordion, AccordionItem, AccordionHeader, AccordionPanel } from '@chakra-ui/core';
 import React, { useState } from 'react';
 import { MapManager } from "../MapManager";
-import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles } from '../types';
+import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles, categoryTitles } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
+import { set, get, groupBy } from 'lodash';
 
 
 interface IControlOptions {
@@ -102,85 +103,93 @@ type ControlDef = {
 
 const GLOBE_OPTIONS: ControlDef[] = [
   {
-    key: 'seed',
+    key: 'core.seed',
     title: 'Seed',
     type: 'integer',
     desc: 'Seed for the random number generator',
   },
+
+  // sphere
   {
-    key: 'numberCells',
+    key: 'sphere.numberCells',
     title: 'Number of cells',
     type: 'integer',
     desc: 'Number of cells in the world',
     options: { min: 0, max: 100_000 },
   },
   {
-    key: 'jitter',
+    key: 'sphere.jitter',
     title: 'Cell Jitter',
     desc: 'Maximum random jitter for cell vertices, in spherical space',
     type: 'slider',
     options: { min: 0, max: 1, step: 0.05 },
   },
   {
-    key: 'numberPlates',
-    title: 'Number of Plates',
-    desc: 'Number of plates to generate',
-    type: 'integer',
-    options: { min: 0 },
-  },
-  {
-    key: 'oceanPlatePercent',
-    title: 'Ocean Plate Percent',
-    desc: 'Percentage of each plate that is ocean',
+    key: 'sphere.protrudeHeight',
+    title: 'Protrude Height',
+    desc: 'Amount of height (in 3D coordinate space) to protrude from the sphere to represent altitude',
     type: 'slider',
-    options: { min: 0, max: 1, step: 0.1 },
+    options: { min: 0, max: 1, step: 0.05 },
   },
+
+  // hydrology
   {
-    key: 'plateCollisionThreshold',
-    title: 'Plate Collision Threshold',
-    desc: 'Threshold that plate collisions must reach to have an impact on height. Lower value creates more land at plate boundaries, higher creates less.',
-    type: 'slider',
-    options: { min: 0, max: 1, step: 0.1 },
-  },
-  {
-    key: 'flowModifier',
+    key: 'hydrology.flowModifier',
     title: 'Flow modifier',
     desc: 'What percentage of flow to take from each cell edge',
     type: 'slider',
     options: { min: 0, max: 1, step: 0.1 },
   },
   {
-    key: 'protrudeHeight',
-    title: 'Protrude Height',
-    desc: 'Amount of height (in 3D coordinate space) to protrude from the sphere to represent altitude',
+    key: 'hydrology.moistureModifier',
+    title: 'Moisture Modifier',
+    desc: 'Multiplier for cell moisture value',
     type: 'slider',
-    options: { min: 0, max: 1, step: 0.05 },
+    options: { min: -1, max: 1, step: 0.05 },
+  },
+
+  // geology
+  {
+    key: 'geology.numberPlates',
+    title: 'Number of Plates',
+    desc: 'Number of plates to generate',
+    type: 'integer',
+    options: { min: 0 },
   },
   {
-    key: 'terrainRoughness',
+    key: 'geology.oceanPlatePercent',
+    title: 'Ocean Plate Percent',
+    desc: 'Percentage of each plate that is ocean',
+    type: 'slider',
+    options: { min: 0, max: 1, step: 0.1 },
+  },
+  {
+    key: 'geology.plateCollisionThreshold',
+    title: 'Plate Collision Threshold',
+    desc: 'Threshold that plate collisions must reach to have an impact on height. Lower value creates more land at plate boundaries, higher creates less.',
+    type: 'slider',
+    options: { min: 0, max: 1, step: 0.1 },
+  },
+  {
+    key: 'geology.terrainRoughness',
     title: 'Terrain Roughness',
     desc: 'Roughness value of the terrain generator',
     type: 'slider',
     options: { min: 0, max: 1, step: 0.05 },
   },
   {
-    key: 'heightModifier',
+    key: 'geology.heightModifier',
     title: 'Height Modifier',
     desc: 'Amount to add to the height at each cell',
     type: 'slider',
     options: { min: -1, max: 1, step: 0.05 },
   },
+
+  // climate
   {
-    key: 'temperatureModifier',
+    key: 'climate.temperatureModifier',
     title: 'Temperature Modifier',
     desc: 'Multiplier for cell temperature value',
-    type: 'slider',
-    options: { min: -1, max: 1, step: 0.05 },
-  },
-  {
-    key: 'moistureModifier',
-    title: 'Moisture Modifier',
-    desc: 'Multiplier for cell moisture value',
     type: 'slider',
     options: { min: -1, max: 1, step: 0.05 },
   },
@@ -249,6 +258,11 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
   const globeOptions = useObservable(manager.globeOptions$, manager.globeOptions$.value);
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
+  const groups = Object.entries(groupBy(GLOBE_OPTIONS, i => i.key.split('.')[0]));
+  console.log(groups);
+
+  const AccordionHeader$ = AccordionHeader as any;
+
   return (
     <form
       onSubmit={event => {
@@ -256,27 +270,34 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
         event.preventDefault();
       }}
     >
-      <Box pt={5}>
-        {GLOBE_OPTIONS.map(({ title, desc, type, key, options }) => {
-          const Renderer = controlTypes[type];
-          return (
-            <Field key={key} title={title} desc={desc}>
-              <Renderer
-                key={key}
-                onChange={value => setGlobeOptionsForm({
-                  ...globeOptionsForm,
-                  [key as keyof IGlobeOptions]: value
-                })}
-                value={globeOptionsForm[key]}
-                options={options  || {}}
-              />
-            </Field>
-          );
-        })}
-        <Button type="submit" size="lg">
-          Generate
-        </Button>
-      </Box>
+      <Accordion pt={5} pb={5}>
+        {groups.map(([group, items]) => (
+          <AccordionItem>
+            <AccordionHeader$ type="button">{categoryTitles[group]}</AccordionHeader$>
+            <AccordionPanel>
+              {items.map(({ title, desc, type, key, options }) => {
+                const Renderer = controlTypes[type];
+                return (
+                  <Field key={key} title={title} desc={desc}>
+                    <Renderer
+                      key={key}
+                      onChange={value => {
+                        setGlobeOptionsForm(set(Object.assign({}, globeOptionsForm),key, value));
+                      }}
+                      value={get(globeOptionsForm, key)}
+                      options={options  || {}}
+                    />
+                  </Field>
+                );
+              })}
+            </AccordionPanel>
+          </AccordionItem>
+        ))}
+      </Accordion>
+
+      <Button type="submit" size="lg" width="100%" variantColor="blue">
+        Generate
+      </Button>
     </form>
   )
 }

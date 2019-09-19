@@ -30,12 +30,12 @@ function pickRandomRegions(
 export function generatePlates(mesh: TriangleMesh, options: IGlobeOptions, r_xyz: number[]) {
   let r_plate = new Int32Array(mesh.numRegions);
   r_plate.fill(-1);
-  let plate_r = pickRandomRegions(mesh, Math.min(options.numberPlates, options.numberCells), makeRandInt(options.seed));
+  let plate_r = pickRandomRegions(mesh, Math.min(options.geology.numberPlates, options.sphere.numberCells), makeRandInt(options.core.seed));
   let queue = Array.from(plate_r);
   for (let r of queue) { r_plate[r] = r; }
   let out_r = [];
 
-  const randInt = makeRandInt(options.seed);
+  const randInt = makeRandInt(options.core.seed);
   for (let queue_out = 0; queue_out < mesh.numRegions; queue_out++) {
     let pos = queue_out + randInt(queue.length - queue_out);
     let current_r = queue[pos];
@@ -65,7 +65,7 @@ export function generatePlates(mesh: TriangleMesh, options: IGlobeOptions, r_xyz
 /* Distance from any point in seeds_r to all other points, but 
 * don't go past any point in stop_r */
 function assignDistanceField(mesh: TriangleMesh, options: IGlobeOptions, seeds_r, stop_r) {
-  const randInt = makeRandInt(options.seed);
+  const randInt = makeRandInt(options.core.seed);
   let { numRegions } = mesh;
   let r_distance = new Float32Array(numRegions);
   r_distance.fill(Infinity);
@@ -128,7 +128,7 @@ function findCollisions(mesh: TriangleMesh, options: IGlobeOptions, r_xyz: numbe
       }
     }
     if (best_r !== -1) {
-      let collided = bestCollision > options.plateCollisionThreshold * epsilon;
+      let collided = bestCollision > options.geology.plateCollisionThreshold * epsilon;
       if (plate_is_ocean.has(current_r) && plate_is_ocean.has(best_r)) {
         // ocean <--> ocean
         (collided ? coastline_r : ocean_r).add(current_r);
@@ -151,7 +151,7 @@ export function assignRegionElevation(
   { r_xyz, plate_is_ocean, r_plate, plate_vec, /* out */ r_elevation }
 ) {
   const epsilon = 1e-3;
-  const fbm_noise = generateNoize3D(options.seed);
+  const fbm_noise = generateNoize3D(options.core.seed);
   let { numRegions } = mesh;
 
   let { mountain_r, coastline_r, ocean_r } = findCollisions(
@@ -169,7 +169,7 @@ export function assignRegionElevation(
   for (let r of coastline_r) { stop_r.add(r); }
   for (let r of ocean_r) { stop_r.add(r); }
 
-  console.log('seeds mountain/coastline/ocean:', mountain_r.size, coastline_r.size, ocean_r.size, 'plate_is_ocean', plate_is_ocean.size, '/', options.numberPlates);
+  console.log('seeds mountain/coastline/ocean:', mountain_r.size, coastline_r.size, ocean_r.size, 'plate_is_ocean', plate_is_ocean.size, '/', options.geology.numberPlates);
   let r_distance_a = assignDistanceField(mesh, options, mountain_r, ocean_r);
   let r_distance_b = assignDistanceField(mesh, options, ocean_r, coastline_r);
   let r_distance_c = assignDistanceField(mesh, options, coastline_r, stop_r);
@@ -183,10 +183,10 @@ export function assignRegionElevation(
     } else {
       r_elevation[r] = (1 / a - 1 / b) / (1 / a + 1 / b + 1 / c);
     }
-    r_elevation[r] += options.terrainRoughness * fbm_noise(r_xyz[3 * r], r_xyz[3 * r + 1], r_xyz[3 * r + 2]);
+    r_elevation[r] += options.geology.terrainRoughness * fbm_noise(r_xyz[3 * r], r_xyz[3 * r + 1], r_xyz[3 * r + 2]);
   }
 
   for (let r = 0; r < numRegions; r++) {
-    r_elevation[r] = clamp(r_elevation[r] + options.heightModifier, -1, 1);
+    r_elevation[r] = clamp(r_elevation[r] + options.geology.heightModifier, -1, 1);
   }
 }

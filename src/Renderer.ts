@@ -540,7 +540,7 @@ export default function Renderer(
       line_rgba.push([1, 1, 1, 1]);
       line_xyz.push(
         vec3.add([] as any, r_xyz.slice(3 * r, 3 * r + 3),
-        vec3.scale([] as any, plate_vec[r_plate[r]], 2 / Math.sqrt(options.numberCells)))
+        vec3.scale([] as any, plate_vec[r_plate[r]], 2 / Math.sqrt(options.sphere.numberCells)))
       );
       line_rgba.push([1, 0, 0, 0]);
     }

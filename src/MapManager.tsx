@@ -12,18 +12,28 @@ import { BehaviorSubject } from 'rxjs';
 
 
 const initialOptions: IGlobeOptions = {
-  seed: 123,
-  numberCells: 35_000,
-  jitter: 0.6,
-  numberPlates: 25,
-  flowModifier: 0.2,
-  oceanPlatePercent: 1,
-  protrudeHeight: 0.25,
-  terrainRoughness: 0.5,
-  heightModifier: -0.25,
-  plateCollisionThreshold: 0.75,
-  temperatureModifier: 0,
-  moistureModifier: 0,
+  core: {
+    seed: 123,
+  },
+  sphere: {
+    numberCells: 35_000,
+    jitter: 0.6,
+    protrudeHeight: 0.25,
+  },
+  hydrology: {
+    flowModifier: 0.2,
+    moistureModifier: 0,
+  },
+  climate: {
+    temperatureModifier: 0,
+  },
+  geology: {
+    numberPlates: 25,
+    oceanPlatePercent: 1,
+    terrainRoughness: 0.5,
+    heightModifier: -0.25,
+    plateCollisionThreshold: 0.75,
+  },
 };
 
 const initialDrawOptions: IDrawOptions = {

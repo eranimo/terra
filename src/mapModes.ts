@@ -82,7 +82,6 @@ export const buildMapModeMeshes = (
       const p2_uv = getUV(p2m as any);
       const p3_uv = getUV(p3m as any);
 
-
       xyz.push(...p1, ...p2, ...p3);
       xy.push(...p1_uv, ...p2_uv, ...p3_uv);
       numSides++;
