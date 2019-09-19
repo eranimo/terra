@@ -259,9 +259,8 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
   const groups = Object.entries(groupBy(GLOBE_OPTIONS, i => i.key.split('.')[0]));
-  console.log(groups);
 
-  const AccordionHeader$ = AccordionHeader as any;
+  const AccordionHeader$ = AccordionHeader as any; // this should have the type prop
 
   return (
     <form
@@ -331,7 +330,7 @@ export function Controls({ manager }: { manager: MapManager }) {
       position="fixed"
       left="0"
       top="0"
-      width="380px"
+      width="400px"
       bg="rgba(23, 25, 35, 0.95)"
       borderWidth="1px"
       borderColor="gray.600"
