@@ -306,7 +306,7 @@ export class MapManager {
       if (mapMode) {
         const { xyz, rgba } = mapMode.surface;
         this.renderer.renderCellColor({
-          scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+          scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
           a_xyz: xyz,
           a_rgba: rgba,
           count: xyz.length / 3,

@@ -51,7 +51,7 @@ export const buildMapModeMeshes = (
     };
   }
   let values = { biome: null, roughness: null, moisture: null, height: null, temperature: null };
-  const { minimap_r_xyz, minimap_t_xyz } = globe;
+  const { minimap_r_xyz, minimap_t_xyz, r_xyz, t_xyz } = globe;
 
   for (let r = 0; r < globe.mesh.numRegions; r++) {
     values.biome = globe.r_biome[r];
@@ -70,13 +70,19 @@ export const buildMapModeMeshes = (
       const inner_t = globe.mesh.s_inner_t(s);
       const outer_t = globe.mesh.s_outer_t(s);
       const begin_r = globe.mesh.s_begin_r(s);
-      const p1 = [minimap_t_xyz[3 * inner_t], minimap_t_xyz[3 * inner_t + 1], minimap_t_xyz[3 * inner_t + 2]];
-      const p2 = [minimap_t_xyz[3 * outer_t], minimap_t_xyz[3 * outer_t + 1], minimap_t_xyz[3 * outer_t + 2]];
-      const p3 = [minimap_r_xyz[3 * begin_r], minimap_r_xyz[3 * begin_r + 1], minimap_r_xyz[3 * begin_r + 2]];
+      const p1 = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
+      const p2 = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
+      const p3 = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
 
-      const p1_uv = getUV(p1 as any);
-      const p2_uv = getUV(p2 as any);
-      const p3_uv = getUV(p3 as any);
+      const p1m = [minimap_t_xyz[3 * inner_t], minimap_t_xyz[3 * inner_t + 1], minimap_t_xyz[3 * inner_t + 2]];
+      const p2m = [minimap_t_xyz[3 * outer_t], minimap_t_xyz[3 * outer_t + 1], minimap_t_xyz[3 * outer_t + 2]];
+      const p3m = [minimap_r_xyz[3 * begin_r], minimap_r_xyz[3 * begin_r + 1], minimap_r_xyz[3 * begin_r + 2]];
+
+      const p1_uv = getUV(p1m as any);
+      const p2_uv = getUV(p2m as any);
+      const p3_uv = getUV(p3m as any);
+
+
       xyz.push(...p1, ...p2, ...p3);
       xy.push(...p1_uv, ...p2_uv, ...p3_uv);
       numSides++;
