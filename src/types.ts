@@ -85,8 +85,10 @@ export enum EBiome {
   
   GLACIAL,
   TUNDRA,
+  ALPINE_TUNDRA,
   BOREAL_FOREST,
   SHRUBLAND,
+  MONTANE_FOREST,
   WOODLAND,
   GRASSLAND,
   SAVANNA,
@@ -99,6 +101,7 @@ export enum EBiome {
 
 export enum EMoistureZone {
   BARREN,
+  SUPERARID,
   ARID,
   SEMIARID,
   SEMIWET,
@@ -114,34 +117,42 @@ export enum ETemperatureZone {
 }
 
 export const moistureZoneRanges = {
-  [EMoistureZone.BARREN]: { start: 0/300, end: 25/300 },
-  [EMoistureZone.ARID]: { start: 25/300, end: 50/300 },
-  [EMoistureZone.SEMIARID]: { start: 50/300, end: 100/300 },
-  [EMoistureZone.SEMIWET]: { start: 100/300, end: 200/300 },
-  [EMoistureZone.WET]: { start: 200/300, end: 300/300 },
+  [EMoistureZone.BARREN]:    { start: 0.00, end: 0.08 },
+  [EMoistureZone.SUPERARID]: { start: 0.08, end: 0.15 },
+  [EMoistureZone.ARID]:      { start: 0.15, end: 0.30 },
+  [EMoistureZone.SEMIARID]:  { start: 0.30, end: 0.50 },
+  [EMoistureZone.SEMIWET]:   { start: 0.50, end: 0.75 },
+  [EMoistureZone.WET]:       { start: 0.75, end: 1 },
 }
 
 export const temperatureZoneRanges = {
   [ETemperatureZone.ARCTIC]: { start: 0, end: 0.2 },
-  [ETemperatureZone.SUBARCTIC]: { start: 0.2, end: 0.3 },
-  [ETemperatureZone.TEMPERATE]: { start: 0.3, end: 0.6 },
-  [ETemperatureZone.SUBTROPICAL]: { start: 0.6, end: 0.85 },
-  [ETemperatureZone.TROPICAL]: { start: 0.85, end: 1 },
+  [ETemperatureZone.SUBARCTIC]: { start: 0.2, end: 0.4 },
+  [ETemperatureZone.TEMPERATE]: { start: 0.4, end: 0.6 },
+  [ETemperatureZone.SUBTROPICAL]: { start: 0.6, end: 0.8 },
+  [ETemperatureZone.TROPICAL]: { start: 0.8, end: 1 },
 }
 
 // mapping between moisture zones and temperatures which returns biome
 export const biomeRanges = {
   [EMoistureZone.BARREN]: {
     [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
-    [ETemperatureZone.SUBARCTIC]: EBiome.TUNDRA,
-    [ETemperatureZone.TEMPERATE]: EBiome.GRASSLAND,
+    [ETemperatureZone.SUBARCTIC]: [EBiome.TUNDRA, EBiome.TUNDRA, EBiome.ALPINE_TUNDRA],
+    [ETemperatureZone.TEMPERATE]: EBiome.SHRUBLAND,
+    [ETemperatureZone.SUBTROPICAL]: EBiome.DESERT,
+    [ETemperatureZone.TROPICAL]: EBiome.DESERT,
+  },
+  [EMoistureZone.SUPERARID]: {
+    [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
+    [ETemperatureZone.SUBARCTIC]: [EBiome.TUNDRA, EBiome.TUNDRA, EBiome.ALPINE_TUNDRA],
+    [ETemperatureZone.TEMPERATE]: [EBiome.SHRUBLAND, EBiome.SHRUBLAND, EBiome.MONTANE_FOREST],
     [ETemperatureZone.SUBTROPICAL]: EBiome.GRASSLAND,
     [ETemperatureZone.TROPICAL]: EBiome.DESERT,
   },
   [EMoistureZone.ARID]: {
     [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
-    [ETemperatureZone.SUBARCTIC]: EBiome.TUNDRA,
-    [ETemperatureZone.TEMPERATE]: EBiome.SHRUBLAND,
+    [ETemperatureZone.SUBARCTIC]: [EBiome.TUNDRA, EBiome.TUNDRA, EBiome.ALPINE_TUNDRA],
+    [ETemperatureZone.TEMPERATE]: EBiome.GRASSLAND,
     [ETemperatureZone.SUBTROPICAL]: EBiome.SAVANNA,
     [ETemperatureZone.TROPICAL]: EBiome.DESERT,
   },
@@ -172,8 +183,10 @@ export const biomeTitles = {
   [EBiome.NONE]: 'None',
   [EBiome.GLACIAL]: 'Glacial',
   [EBiome.TUNDRA]: 'Tundra',
+  [EBiome.ALPINE_TUNDRA]: 'Alpine Tundra',
   [EBiome.BOREAL_FOREST]: 'Boreal Forest',
   [EBiome.SHRUBLAND]: 'Scrubland',
+  [EBiome.MONTANE_FOREST]: 'Montane Forest',
   [EBiome.WOODLAND]: 'Woodland',
   [EBiome.GRASSLAND]: 'Grassland',
   [EBiome.SAVANNA]: 'Savanna',
@@ -198,6 +211,7 @@ export const biomeLabelColors = {
   [EBiome.TUNDRA]: '#96D1C3',
   [EBiome.BOREAL_FOREST]: '#006259',
   [EBiome.SHRUBLAND]: '#B26A47',
+  [EBiome.MONTANE_FOREST]: '#A1B377',
   [EBiome.WOODLAND]: '#B26A47',
   [EBiome.GRASSLAND]: '#F6EB64',
   [EBiome.SAVANNA]: '#C7C349',
@@ -214,8 +228,10 @@ export const biomeColors = {
   [EBiome.COAST]: [ (58 + 10) / 255, (90 + 10) / 255, (150 + 10) / 255, 1],
   [EBiome.GLACIAL]: hexToRgb('#FFFFFF'),
   [EBiome.TUNDRA]: hexToRgb('#6e7c59'),
+  [EBiome.ALPINE_TUNDRA]: hexToRgb('#9ba38f'),
   [EBiome.BOREAL_FOREST]: hexToRgb('#42562F'),
   [EBiome.SHRUBLAND]: hexToRgb('#D7CC9E'),
+  [EBiome.MONTANE_FOREST]: hexToRgb('#A1B377'),
   [EBiome.WOODLAND]: hexToRgb('#9fb277'),
   [EBiome.GRASSLAND]: hexToRgb('#9fb981'),
   [EBiome.SAVANNA]: hexToRgb('#C9CD7C'),

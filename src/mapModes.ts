@@ -139,7 +139,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     key: 'moisture',
     colors: {
       main: colormap({
-        colormap: 'cool',
+        colormap: 'winter',
         nshades: 100,
         format: 'float',
         alpha: 1,

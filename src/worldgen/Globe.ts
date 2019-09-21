@@ -6,8 +6,9 @@ import { getLatLng, logGroupTime } from '../utils'
 import { coordinateForSide, generateMinimapGeometry, generateNoize3D, generateTriangleCenters, generateVoronoiGeometry, QuadGeometry } from './geometry';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
-import { clamp } from 'lodash';
+import { clamp, isArray } from 'lodash';
 import SimplexNoise from 'simplex-noise';
+import FlatQueue from 'flatqueue';
 
 
 export class Globe {
@@ -42,6 +43,10 @@ export class Globe {
   plate_is_ocean: Set<unknown>;
   r_lat_long: number[][];
   r_temperature: number[];
+
+  r_distance_to_ocean: number[];
+  r_coast: number[];
+  max_distance_to_ocean: number;
 
   constructor(public options: IGlobeOptions) {
     console.log('options', options)
@@ -106,16 +111,85 @@ export class Globe {
     assignRegionElevation(this.mesh, this.options, this);
 
     
-    this.generateMoisture();
+    this.generateCoastline();
     this.generateTemperature();
+    this.generateMoisture();
     this.generateRivers();
     this.generateBiomes();
     this.protrudeHeight();
   }
 
+  private generateCoastline() {
+    let r_distance_to_ocean = [];
+    let r_coast = [];
+    const queue = new FlatQueue();
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      if (this.r_elevation[r] >= 0) {
+        let numOceanNeighbors = 0;
+        const neighbors = this.mesh.r_circulate_r([], r);
+        for (const nr of neighbors) {
+          if (this.r_elevation[nr] < 0) {
+            numOceanNeighbors++;
+          }
+        }
+
+        r_coast[r] = numOceanNeighbors > 0;
+        if (r_coast[r]) {
+          r_distance_to_ocean[r] = 1;
+        }
+      }
+    }
+    // initialize the queue with the next-most land cells next to coast cells
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      if (r_coast[r]) {
+        const neighbors = this.mesh.r_circulate_r([], r);
+        for (const nr of neighbors) {
+          // if land and not coastline
+          if (r_coast[nr] === false && this.r_elevation[nr] >= 0) {
+            r_distance_to_ocean[nr] = 2;
+            queue.push(nr, 2);
+          }
+        }
+      }
+    }
+
+    console.log('items in queue', queue.length);
+
+    // loop through land cells, calculating distance to ocean
+    while (queue.length) {
+      const r = queue.pop();
+      const myDistance = r_distance_to_ocean[r];
+
+      const neighbors = this.mesh.r_circulate_r([], r);
+      for (const nr of neighbors) {
+        // if land and not visited yet
+        if (r_distance_to_ocean[nr] === undefined && this.r_elevation[nr] >= 0) {
+          r_distance_to_ocean[nr] = myDistance + 1;
+          queue.push(nr, r_distance_to_ocean[nr]);
+        }
+      }
+    }
+
+    const maxDistanceToOcean = Math.max(...Object.values(r_distance_to_ocean));
+    console.log(`Max distance to ocean: ${maxDistanceToOcean}`);
+
+    this.r_distance_to_ocean = r_distance_to_ocean;
+    this.r_coast = r_coast;
+    this.max_distance_to_ocean = maxDistanceToOcean;
+  }
+
   @logGroupTime('moisture', true)
   private generateMoisture() {
+    /**
+     * Higher altitude = lower moisture
+     * Closer to ocean = higher moisture
+     * Lower latitudes = higher moisture
+     */
+
     let randomNoise = new SimplexNoise(makeRandFloat(this.options.core.seed));
+    const MODIFIER = this.options.hydrology.moistureModifier;
+    const VARIANCE = 0.15;
+
     // moisture
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
@@ -123,15 +197,30 @@ export class Globe {
       const z = this.r_xyz[3 * r + 2];
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
-      const random1 = (randomNoise.noise3D(x / 2, y / 2, z / 2) + 1) / 2;
-      const random2 = (randomNoise.noise3D(x * 3, y * 3, z * 3) + 1) / 2;
-      const altitude = ((this.r_elevation[r] / -1) + 1) / 2;
-      this.r_moisture[r] = (
-        (random1 * (1 - altitude) * 2) * (this.options.hydrology.moistureModifier + 1 / 2)
-      );
+      const random1 = randomNoise.noise2D(lat / (1000 * VARIANCE), long / (1000 * VARIANCE))
+      const altitude = 1 - Math.max(0, this.r_elevation[r]);
+      if (this.r_elevation[r] >= 0) {
+        const inlandRatio = 1 - (this.r_distance_to_ocean[r] / this.max_distance_to_ocean);
+        this.r_moisture[r] = clamp(
+          (((latRatio + inlandRatio) / 3) +
+          (random1 / 1.5)) * altitude
+        , 0, 1);
+      }
     }
-    console.log('min moisture', Math.min(...this.r_moisture));
-    console.log('max moisture', Math.max(...this.r_moisture));
+
+
+    const moisture_min = Math.min(...this.r_moisture.filter(i => i));
+    const moisture_max = Math.max(...this.r_moisture.filter(i => i));
+    console.log('min moisture', moisture_min);
+    console.log('max moisture', moisture_max);
+    // normalize moisture
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      if (this.r_elevation[r] >= 0) {
+        this.r_moisture[r] = (this.r_moisture[r] - moisture_min) / (moisture_max - moisture_min);
+        this.r_moisture[r] += this.r_moisture[r] * MODIFIER;
+        this.r_moisture[r] = clamp(this.r_moisture[r], 0, 1);
+      }
+    }
 
     randomNoise = new SimplexNoise(makeRandFloat(this.options.core.seed * 2));
   }
@@ -144,26 +233,30 @@ export class Globe {
       const x = this.r_xyz[3 * r];
       const y = this.r_xyz[3 * r + 1];
       const z = this.r_xyz[3 * r + 2];
-      const altitude = Math.max(0, this.r_elevation[r]) / 1;
+      const altitude = 1 - Math.max(0, this.r_elevation[r]);
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
       const random = (randomNoise.noise3D(x, y, z) + 1) / 2;
-      const radiation = latRatio;
       if (this.r_elevation[r] < 0) { // ocean
+        const altitude = 1 + this.r_elevation[r];
         // shallow seas are warmer than deep oceans
-        const elevationBelowSealevel = Math.min(0.5, Math.abs(this.r_elevation[r]));
         this.r_temperature[r] = (
-          (this.options.climate.temperatureModifier + 1 / 2) *
-          (2 * (0.75 * radiation) + (0.10 * random) + (0.25 * (1 - elevationBelowSealevel)))
+          (0.10 * random) +
+          (0.20 * altitude) +
+          (0.70 * latRatio)
         );
       } else { // land
+        const altitude = 1 - Math.max(0, this.r_elevation[r]);
         // higher is colder
         // lower is warmer
         this.r_temperature[r] = (
-          (this.options.climate.temperatureModifier + 1 / 2) *
-          (2 * (0.75 * radiation) + (0.25 * (1 - altitude)))
+          (0.10 * random) +
+          (0.20 * altitude) +
+          (0.70 * latRatio)
         );
       }
+
+      this.r_temperature[r] += this.r_temperature[r] * this.options.climate.temperatureModifier;
     }
 
     console.log('min temperature', Math.min(...this.r_temperature));
@@ -175,7 +268,7 @@ export class Globe {
     // rivers
     assignTriangleValues(this.mesh, this);
     assignDownflow(this.mesh, this);
-    assignFlow(this.mesh, this.options, this);
+    for(let i = 0; i < 2; i++) assignFlow(this.mesh, this.options, this);
 
     this.minimap_t_xyz = Array.from(this.t_xyz);
     this.minimap_r_xyz = Array.from(this.r_xyz);
@@ -237,7 +330,18 @@ export class Globe {
         if (temperatureZone === null) {
           throw new Error(`Failed to find biome for temperature: ${temperature}`);
         }
-        this.r_biome[r] = biomeRanges[moistureZone][temperatureZone];
+        const biomeTempMoisture = biomeRanges[moistureZone][temperatureZone];
+        if (isArray(biomeTempMoisture)) {
+          let landType = 0;
+          if (this.r_elevation[r] < 0.6) {
+            landType = 1;
+          } else if (this.r_elevation[r] < 0.9) {
+            landType = 2;
+          }
+          this.r_biome[r] = biomeTempMoisture[landType];
+        } else {
+          this.r_biome[r] = biomeTempMoisture;
+        }
       }
     }
   }

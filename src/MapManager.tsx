@@ -45,7 +45,7 @@ const initialDrawOptions: IDrawOptions = {
   cellCenters: false,
   surface: true,
   regions: false,
-  mapMode: EMapMode.BIOME,
+  mapMode: EMapMode.TEMPERATURE,
 };
 
 
@@ -188,6 +188,7 @@ export class MapManager {
       if (this.hoveredCell) {
         console.log(
           biomeTitles[this.globe.r_biome[this.hoveredCell]],
+          this.globe.r_elevation[this.hoveredCell],
           this.globe.r_temperature[this.hoveredCell],
           this.globe.r_moisture[this.hoveredCell],
         );

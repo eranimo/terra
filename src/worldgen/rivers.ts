@@ -33,6 +33,7 @@ export function assignDownflow(mesh: TriangleMesh, { t_elevation, /* out */ t_do
   let { numTriangles } = mesh;
   let queue_in = 0;
   t_downflow_s.fill(-999);
+
   /* Part 1: ocean triangles get downslope assigned to the lowest neighbor */
   for (let t = 0; t < numTriangles; t++) {
     if (t_elevation[t] < 0) {
@@ -50,6 +51,7 @@ export function assignDownflow(mesh: TriangleMesh, { t_elevation, /* out */ t_do
       _queue.push(t, t_elevation[t]);
     }
   }
+
   /* Part 2: land triangles get visited in elevation priority */
   for (let queue_out = 0; queue_out < numTriangles; queue_out++) {
     let current_t = _queue.pop();
@@ -98,6 +100,7 @@ export function assignFlow(
     }
   }
 
+  // remove flow from ocean
   for (let s = 0; s <= mesh.numSides; s++) {
     if (s_flow[s] > 1) {
       const inner = mesh.s_inner_t(s);
