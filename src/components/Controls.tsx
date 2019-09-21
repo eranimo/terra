@@ -1,10 +1,10 @@
 import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Accordion, AccordionItem, AccordionHeader, AccordionPanel } from '@chakra-ui/core';
 import React, { useState } from 'react';
-import { MapManager } from "../MapManager";
+import { MapManager, initialOptions } from '../MapManager';
 import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles, categoryTitles } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
-import { set, get, groupBy } from 'lodash';
+import { set, get, groupBy, random, round } from 'lodash';
 
 
 interface IControlOptions {
@@ -107,6 +107,7 @@ const GLOBE_OPTIONS: ControlDef[] = [
     title: 'Seed',
     type: 'integer',
     desc: 'Seed for the random number generator',
+    options: { min: 0, max: 1e10 }
   },
 
   // sphere
@@ -154,7 +155,7 @@ const GLOBE_OPTIONS: ControlDef[] = [
     title: 'Number of Plates',
     desc: 'Number of plates to generate',
     type: 'integer',
-    options: { min: 0 },
+    options: { min: 0, max: 100 },
   },
   {
     key: 'geology.oceanPlatePercent',
@@ -271,7 +272,7 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
     >
       <Accordion pt={5} pb={5}>
         {groups.map(([group, items]) => (
-          <AccordionItem>
+          <AccordionItem key={group}>
             <AccordionHeader$ type="button">{categoryTitles[group]}</AccordionHeader$>
             <AccordionPanel>
               {items.map(({ title, desc, type, key, options }) => {
@@ -281,7 +282,7 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
                     <Renderer
                       key={key}
                       onChange={value => {
-                        setGlobeOptionsForm(set(Object.assign({}, globeOptionsForm),key, value));
+                        setGlobeOptionsForm(set(Object.assign({}, globeOptionsForm), key, value));
                       }}
                       value={get(globeOptionsForm, key)}
                       options={options  || {}}
@@ -297,6 +298,19 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
       <Button type="submit" size="lg" width="100%" variantColor="blue">
         Generate
       </Button>
+      <Stack isInline mt={5}>
+        <Button
+          type="button"
+          width="100%"
+          size="sm"
+          onClick={() => {
+            setGlobeOptionsForm(set(Object.assign({}, globeOptionsForm), 'core.seed', random(1000)));
+            manager.globeOptions$.next(globeOptionsForm);
+          }}
+        >
+          Randomize Seed
+        </Button>
+      </Stack>
     </form>
   )
 }

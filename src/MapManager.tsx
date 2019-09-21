@@ -11,7 +11,7 @@ import { CellGroup } from "./CellGroup";
 import { BehaviorSubject } from 'rxjs';
 
 
-const initialOptions: IGlobeOptions = {
+export const initialOptions: IGlobeOptions = {
   core: {
     seed: 123,
   },
@@ -35,6 +35,7 @@ const initialOptions: IGlobeOptions = {
     plateCollisionThreshold: 0.75,
   },
 };
+Object.freeze(initialOptions);
 
 const initialDrawOptions: IDrawOptions = {
   drawMode: EDrawMode.CENTROID,
@@ -70,7 +71,7 @@ export class MapManager {
   mapModes: any;
 
   constructor(protected screenCanvas: HTMLCanvasElement, protected minimapCanvas: HTMLCanvasElement, protected images: ImageRef[]) {
-    this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(initialOptions);
+    this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
 
     this.hoveredCell = new BehaviorSubject(null);
