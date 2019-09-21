@@ -45,7 +45,7 @@ const initialDrawOptions: IDrawOptions = {
   cellCenters: false,
   surface: true,
   regions: false,
-  mapMode: EMapMode.TEMPERATURE,
+  mapMode: EMapMode.BIOME,
 };
 
 
@@ -60,7 +60,7 @@ export class MapManager {
   camera: any;
   globe: Globe;
   removeDrawLoop: any;
-  hoveredCell: any;
+  hoveredCell: BehaviorSubject<number>;
   minimapContext: CanvasRenderingContext2D;
   cellGroups: Set<CellGroup>;
   cell_group_xyz: number[];
@@ -73,7 +73,7 @@ export class MapManager {
     this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(initialOptions);
     this.drawOptions$ = new ObservableDict(initialDrawOptions);
 
-    this.hoveredCell = null;
+    this.hoveredCell = new BehaviorSubject(null);
     this.cellGroups = new Set();
     this.cell_cell_group = {};
     this.cell_group_lines = [];
@@ -131,9 +131,9 @@ export class MapManager {
     let isPanning = false;
     canvas.addEventListener('mouseup', () => isPanning = false);
     canvas.addEventListener('mousedown', (event) => {
-      if (this.hoveredCell && event.shiftKey) {
+      if (this.hoveredCell.value && event.shiftKey) {
         const { r_xyz } = this.globe;
-        const h_xyz = [r_xyz[3 * this.hoveredCell], r_xyz[3 * this.hoveredCell + 1], r_xyz[3 * this.hoveredCell + 2]];
+        const h_xyz = [r_xyz[3 * this.hoveredCell.value], r_xyz[3 * this.hoveredCell.value + 1], r_xyz[3 * this.hoveredCell.value + 2]];
         const [long, lat] = getLatLng(h_xyz);
         this.renderer.camera.centerLatLong(lat, long);
       }
@@ -141,7 +141,7 @@ export class MapManager {
         // console.log(this.hoveredCell);
       }
       isPanning = true;
-      this.hoveredCell = null;
+      this.hoveredCell.next(null);
     });
     canvas.addEventListener('mousemove', (event) => {
       if (event.shiftKey || isPanning) return;
@@ -164,7 +164,7 @@ export class MapManager {
       const { mesh, t_xyz, r_xyz } = this.globe;
       let sides = [];
       let maxT = -1e10;
-      this.hoveredCell = null;
+      this.hoveredCell.next(null);
       for (let s = 0; s < mesh.numSides; s++) {
         const inner_t = mesh.s_inner_t(s);
         const outer_t = mesh.s_outer_t(s);
@@ -179,19 +179,10 @@ export class MapManager {
           // console.log(s, t, out);
           if (t > maxT) {
             maxT = t;
-            this.hoveredCell = mesh.s_begin_r(s);
+            this.hoveredCell.next(mesh.s_begin_r(s));
             break;
           }
         }
-      }
-
-      if (this.hoveredCell) {
-        console.log(
-          biomeTitles[this.globe.r_biome[this.hoveredCell]],
-          this.globe.r_elevation[this.hoveredCell],
-          this.globe.r_temperature[this.hoveredCell],
-          this.globe.r_moisture[this.hoveredCell],
-        );
       }
       this.renderer.camera.setDirty();
     });
@@ -296,8 +287,8 @@ export class MapManager {
         count: mesh.numRegions,
       });
     }
-    if (this.hoveredCell) {
-      this.renderer.drawCellBorder(mesh, this.globe, this.hoveredCell);
+    if (this.hoveredCell.value) {
+      this.renderer.drawCellBorder(mesh, this.globe, this.hoveredCell.value);
     }
     if (this.drawOptions$.get('regions')) {
       this.renderer.renderCellColor({

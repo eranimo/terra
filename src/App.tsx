@@ -5,6 +5,7 @@ import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions } from './types';
 import { loadImages } from './utils';
 import { MapManager } from './MapManager';
 import { CircularProgress, Flex, Spinner, Box } from '@chakra-ui/core';
+import { CellInfo } from './components/CellInfo';
 
 
 const LoadingOverlay = () => (
@@ -79,6 +80,7 @@ export function App() {
         />
       </Box>
       {!isLoading && <Controls manager={manager} />}
+      {!isLoading && <CellInfo manager={manager} />}
     </div>
   );
 }
