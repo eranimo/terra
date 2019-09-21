@@ -260,8 +260,14 @@ export class Globe {
       this.r_temperature[r] = clamp(this.r_temperature[r], 0, 1);
     }
 
-    console.log('min temperature', Math.min(...this.r_temperature));
-    console.log('max temperature', Math.max(...this.r_temperature));
+    const temperature_min = Math.min(...this.r_temperature.filter(i => i));
+    const temperature_max = Math.max(...this.r_temperature.filter(i => i));
+    console.log('min temperature', temperature_min);
+    console.log('max temperature', temperature_max);
+
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      this.r_temperature[r] = (this.r_temperature[r] - temperature_min) / (temperature_max - temperature_min);
+    }
   }
 
   @logGroupTime('rivers', true)
