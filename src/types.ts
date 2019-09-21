@@ -138,7 +138,7 @@ export const biomeRanges = {
   [EMoistureZone.BARREN]: {
     [ETemperatureZone.ARCTIC]: EBiome.GLACIAL,
     [ETemperatureZone.SUBARCTIC]: [EBiome.TUNDRA, EBiome.TUNDRA, EBiome.ALPINE_TUNDRA],
-    [ETemperatureZone.TEMPERATE]: EBiome.SHRUBLAND,
+    [ETemperatureZone.TEMPERATE]: EBiome.DESERT,
     [ETemperatureZone.SUBTROPICAL]: EBiome.DESERT,
     [ETemperatureZone.TROPICAL]: EBiome.DESERT,
   },

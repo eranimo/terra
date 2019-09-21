@@ -203,7 +203,7 @@ export class Globe {
         const inlandRatio = 1 - (this.r_distance_to_ocean[r] / this.max_distance_to_ocean);
         this.r_moisture[r] = clamp(
           (((latRatio + inlandRatio) / 3) +
-          (random1 / 1.5)) * altitude
+          (random1 / 2)) * altitude
         , 0, 1);
       }
     }
@@ -236,12 +236,12 @@ export class Globe {
       const altitude = 1 - Math.max(0, this.r_elevation[r]);
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
-      const random = (randomNoise.noise3D(x, y, z) + 1) / 2;
+      const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
       if (this.r_elevation[r] < 0) { // ocean
         const altitude = 1 + this.r_elevation[r];
         // shallow seas are warmer than deep oceans
         this.r_temperature[r] = (
-          (0.10 * random) +
+          (0.10 * random1) +
           (0.20 * altitude) +
           (0.70 * latRatio)
         );
@@ -250,13 +250,14 @@ export class Globe {
         // higher is colder
         // lower is warmer
         this.r_temperature[r] = (
-          (0.10 * random) +
+          (0.10 * random1) +
           (0.20 * altitude) +
           (0.70 * latRatio)
         );
       }
 
       this.r_temperature[r] += this.r_temperature[r] * this.options.climate.temperatureModifier;
+      this.r_temperature[r] = clamp(this.r_temperature[r], 0, 1);
     }
 
     console.log('min temperature', Math.min(...this.r_temperature));
