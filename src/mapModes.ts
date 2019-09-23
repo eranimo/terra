@@ -15,96 +15,41 @@ interface ICellData {
 
 export interface IMapModeColorMap {
   colors?: Record<string, any>;
-  key: keyof ICellData,
+  getter: (globe: Globe, r: number) => number,
   color: (
     value: number,
     colors: Record<string, { [index: number]: number[] }>,
   ) => number[];
 }
 
-interface IMapModeMesh {
-  surface: {
-    xyz: number[];
-    rgba: number[];
-  };
-  minimap: {
-    xy: number[];
-    rgba: number[][];
-  };
-}
+export class MapMode {
+  globe: Globe;
+  rgba: number[];
+  minimap_rgba: number[][];
+  definition: IMapModeColorMap;
 
-// TODO: improve performance by not copying xyz for each map mode
-export const buildMapModeMeshes = (
-  globe: Globe
-): Record<EMapMode, IMapModeMesh> => {
-  const mapModes = {};
-  for (const [mapMode, def] of mapModeDefs) {
-    mapModes[mapMode] = {
-      surface: {
-        xyz: [],
-        rgba: [],
-      },
-      minimap: {
-        xy: [],
-        rgba: [],
-      }
-    };
+  constructor(globe: Globe, definition: IMapModeColorMap) {
+    this.globe = globe;
+    this.definition = definition;
+    this.generate();
   }
-  let values = { biome: null, roughness: null, moisture: null, height: null, temperature: null };
-  const { minimap_r_xyz, minimap_t_xyz, r_xyz, t_xyz } = globe;
 
-  for (let r = 0; r < globe.mesh.numRegions; r++) {
-    values.biome = globe.r_biome[r];
-    values.moisture = globe.r_moisture[r];
-    values.height = globe.r_elevation[r];
-    values.temperature = globe.r_temperature[r];
-    values.roughness = globe.r_roughness[r] / globe.max_roughness;
-
-    const sides = [];
-    globe.mesh.r_circulate_s(sides, r);
-    let numSides = 0;
-    const xyz = [];
-    const xy = [];
-
-    for (const s of sides) {
-      const inner_t = globe.mesh.s_inner_t(s);
-      const outer_t = globe.mesh.s_outer_t(s);
-      const begin_r = globe.mesh.s_begin_r(s);
-      const p1 = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
-      const p2 = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
-      const p3 = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
-
-      const p1m = [minimap_t_xyz[3 * inner_t], minimap_t_xyz[3 * inner_t + 1], minimap_t_xyz[3 * inner_t + 2]];
-      const p2m = [minimap_t_xyz[3 * outer_t], minimap_t_xyz[3 * outer_t + 1], minimap_t_xyz[3 * outer_t + 2]];
-      const p3m = [minimap_r_xyz[3 * begin_r], minimap_r_xyz[3 * begin_r + 1], minimap_r_xyz[3 * begin_r + 2]];
-
-      const p1_uv = getUV(p1m as any);
-      const p2_uv = getUV(p2m as any);
-      const p3_uv = getUV(p3m as any);
-
-      xyz.push(...p1, ...p2, ...p3);
-      xy.push(...p1_uv, ...p2_uv, ...p3_uv);
-      numSides++;
-    }
-
-    for (const [mapMode, def] of mapModeDefs) {
-      const color = def.color(values[def.key], def.colors);
-      mapModes[mapMode].minimap.xy.push(...xy);
-      mapModes[mapMode].surface.xyz.push(...xyz);
-      for (let s = 0; s < numSides; s++) {
-        mapModes[mapMode].surface.rgba.push(...color, ...color, ...color);
-      }
-      for (let s = 0; s < numSides; s++) {
-        mapModes[mapMode].minimap.rgba.push(color, color, color);
-      }
+  generate() {
+    this.rgba = [];
+    this.minimap_rgba = [];
+    for (let s = 0; s < this.globe.mesh.numSides; s++) {
+      const r = this.globe.mesh.s_begin_r(s);
+      const value = this.definition.getter(this.globe, r);
+      const color = this.definition.color(value, this.definition.colors);
+      this.rgba.push(...color, ...color, ...color);
+      this.minimap_rgba.push(color, color, color);
     }
   }
-  return mapModes as Record<EMapMode, IMapModeMesh>;
 }
 
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   [EMapMode.ELEVATION, {
-    key: 'height',
+    getter: (globe, r) => globe.r_elevation[r],
     colors: {
       water: colormap({
         colormap: 'bathymetry',
@@ -136,7 +81,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.MOISTURE, {
-    key: 'moisture',
+    getter: (globe, r) => globe.r_moisture[r],
     colors: {
       main: colormap({
         colormap: 'winter',
@@ -155,7 +100,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.TEMPERATURE, {
-    key: 'temperature',
+    getter: (globe, r) => globe.r_temperature[r],
     colors: {
       main: colormap({
         colormap: 'jet',
@@ -173,7 +118,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.ROUGHNESS, {
-    key: 'roughness',
+    getter: (globe, r) => globe.r_roughness[r],
     colors: {
       main: colormap({
         colormap: 'bluered',
@@ -191,7 +136,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.BIOME, {
-    key: 'biome',
+    getter: (globe, r) => globe.r_biome[r],
     color: (value) => {
       return biomeColors[value] || [0, 0, 0, 1];
     },

@@ -192,9 +192,9 @@ export class Globe {
 
     // moisture
     for (let r = 0; r < this.mesh.numRegions; r++) {
-      const x = this.r_xyz[3 * r];
-      const y = this.r_xyz[3 * r + 1];
-      const z = this.r_xyz[3 * r + 2];
+      // const x = this.r_xyz[3 * r];
+      // const y = this.r_xyz[3 * r + 1];
+      // const z = this.r_xyz[3 * r + 2];
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
       const random1 = randomNoise.noise2D(lat / (1000 * VARIANCE), long / (1000 * VARIANCE))
@@ -260,6 +260,8 @@ export class Globe {
       this.r_temperature[r] = clamp(this.r_temperature[r], 0, 1);
     }
 
+
+
     const temperature_min = Math.min(...this.r_temperature.filter(i => i));
     const temperature_max = Math.max(...this.r_temperature.filter(i => i));
     console.log('min temperature', temperature_min);
@@ -267,6 +269,23 @@ export class Globe {
 
     for (let r = 0; r < this.mesh.numRegions; r++) {
       this.r_temperature[r] = (this.r_temperature[r] - temperature_min) / (temperature_max - temperature_min);
+    }
+  }
+
+  temperatureTick() {
+    // let neighbors = [];
+    let neighbors;
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      const r_temp = this.r_temperature[r];
+      neighbors = this.mesh.r_circulate_r([], r);
+
+      for (const nr of neighbors) {
+        const nr_temp = this.r_temperature[nr];
+        if (nr_temp < r_temp) {
+          const part = (r_temp - nr_temp) / neighbors.length;
+          this.r_temperature[r] += part;
+        }
+      }
     }
   }
 

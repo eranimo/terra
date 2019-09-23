@@ -2,7 +2,7 @@ import { mat4, vec3 } from 'gl-matrix';
 import { times } from 'lodash';
 import createLine from 'regl-line';
 import { Globe } from './worldgen/Globe';
-import { buildMapModeMeshes } from './mapModes';
+import { MapMode, mapModeDefs } from './mapModes';
 import Renderer from './Renderer';
 import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, biomeTitles } from './types';
 import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
@@ -103,7 +103,7 @@ export class MapManager {
   cell_group_rgba: number[];
   cell_group_lines: any[];
   cell_cell_group: Record<number, CellGroup>;
-  mapModes: any;
+  mapModes: Record<string, MapMode>;
 
   constructor(protected screenCanvas: HTMLCanvasElement, protected minimapCanvas: HTMLCanvasElement, protected images: ImageRef[]) {
     this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
@@ -112,6 +112,7 @@ export class MapManager {
     this.hoveredCell = new BehaviorSubject(null);
     this.cellGroups = new Set();
     this.cell_cell_group = {};
+    this.mapModes = {};
     this.cell_group_lines = [];
     this.cellGroups.add(new CellGroup('foo', [0.5, 0.5, 0.5, 1], [15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]));
     const renderer = Renderer(screenCanvas, minimapCanvas, this.onLoad(screenCanvas), images);
@@ -160,7 +161,10 @@ export class MapManager {
 
   @logGroupTime('init map modes')
   initMapModes() {
-    this.mapModes = buildMapModeMeshes(this.globe);
+    for (const [mapMode, def] of mapModeDefs) {
+      this.mapModes[mapMode] = new MapMode(this.globe, def);
+      console.log(mapMode, this.mapModes[mapMode]);
+    }
   }
 
   onLoad = (canvas) => () => {
@@ -278,6 +282,7 @@ export class MapManager {
     delete this.globe;
     (window as any).globe = this.globe;
     this.globe = globe;
+    console.log('globe', globe);
 
     this.initMapModes();
     this.calculateCellGroups();
@@ -342,12 +347,11 @@ export class MapManager {
     if (this.drawOptions$.get('surface') && this.drawOptions$.get('mapMode')) {
       const mapMode = this.mapModes[this.drawOptions$.get('mapMode')];
       if (mapMode) {
-        const { xyz, rgba } = mapMode.surface;
         this.renderer.renderCellColor({
           scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
-          a_xyz: xyz,
-          a_rgba: rgba,
-          count: xyz.length / 3,
+          a_xyz: triangleGeometry.xyz,
+          a_rgba: mapMode.rgba,
+          count: triangleGeometry.xyz.length / 3,
         } as any);
       }
     }
@@ -364,12 +368,11 @@ export class MapManager {
     if (this.drawOptions$.get('mapMode') !== EMapMode.NONE) {
       const mapMode = this.mapModes[this.drawOptions$.get('mapMode')];
       if (mapMode) {
-        const { xy, rgba } = mapMode.minimap;
         this.renderer.renderMinimapCellColor({
           scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-          a_xy: xy,
-          a_rgba: rgba,
-          count: xy.length / 2,
+          a_xy: minimapGeometry.xy,
+          a_rgba: mapMode.minimap_rgba,
+          count: minimapGeometry.xy.length / 2,
         });
       }
     } else {
