@@ -253,6 +253,12 @@ const DRAW_OPTIONS: ControlDef[] = [
     type: 'boolean',
     desc: 'Draws cell groups',
   },
+  {
+    key: 'coastline',
+    title: 'Draw coastline',
+    type: 'boolean',
+    desc: 'Draws border on coastline',
+  }
 ]
 
 const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {

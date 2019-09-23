@@ -6,6 +6,7 @@ import createLine from 'regl-line';
 import { IGlobeOptions } from './types';
 import setupCamera from './camera';
 import { ImageRef } from './utils';
+import { Globe } from './worldgen/Globe';
 
 
 type PointsUniforms = {
@@ -95,6 +96,33 @@ type IndexedTrianglesProps = {
   a_tm: number[],
 }
 
+const cubePosition = [
+  [-10.0, +10.0, +10.0], [+10.0, +10.0, +10.0], [+10.0, -10.0, +10.0], [-10.0, -10.0, +10.0], // positive z face.
+  [+10.0, +10.0, +10.0], [+10.0, +10.0, -10.0], [+10.0, -10.0, -10.0], [+10.0, -10.0, +10.0], // positive x face
+  [+10.0, +10.0, -10.0], [-10.0, +10.0, -10.0], [-10.0, -10.0, -10.0], [+10.0, -10.0, -10.0], // negative z face
+  [-10.0, +10.0, -10.0], [-10.0, +10.0, +10.0], [-10.0, -10.0, +10.0], [-10.0, -10.0, -10.0], // negative x face.
+  [-10.0, +10.0, -10.0], [+10.0, +10.0, -10.0], [+10.0, +10.0, +10.0], [-10.0, +10.0, +10.0], // top face
+  [-10.0, -10.0, -10.0], [+10.0, -10.0, -10.0], [+10.0, -10.0, +10.0], [-10.0, -10.0, +10.0]  // bottom face
+]
+
+const cubeUv = [
+  [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // positive z face.
+  [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // positive x face.
+  [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // negative z face.
+  [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // negative x face.
+  [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // top face
+  [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]  // bottom face
+]
+
+const cubeElements = [
+  [2, 1, 0], [2, 0, 3],       // positive z face.
+  [6, 5, 4], [6, 4, 7],       // positive x face.
+  [10, 9, 8], [10, 8, 11],    // negative z face.
+  [14, 13, 12], [14, 12, 15], // negative x face.
+  [18, 17, 16], [18, 16, 19], // top face.
+  [20, 21, 22], [23, 20, 22]  // bottom face
+]
+
 export default function Renderer(
   screenCanvas: HTMLCanvasElement,
   minimapCanvas: HTMLCanvasElement,
@@ -131,33 +159,6 @@ export default function Renderer(
   const starbox = regl.texture(
     textures.stars,
   );
-
-  var cubePosition = [
-    [-10.0, +10.0, +10.0], [+10.0, +10.0, +10.0], [+10.0, -10.0, +10.0], [-10.0, -10.0, +10.0], // positive z face.
-    [+10.0, +10.0, +10.0], [+10.0, +10.0, -10.0], [+10.0, -10.0, -10.0], [+10.0, -10.0, +10.0], // positive x face
-    [+10.0, +10.0, -10.0], [-10.0, +10.0, -10.0], [-10.0, -10.0, -10.0], [+10.0, -10.0, -10.0], // negative z face
-    [-10.0, +10.0, -10.0], [-10.0, +10.0, +10.0], [-10.0, -10.0, +10.0], [-10.0, -10.0, -10.0], // negative x face.
-    [-10.0, +10.0, -10.0], [+10.0, +10.0, -10.0], [+10.0, +10.0, +10.0], [-10.0, +10.0, +10.0], // top face
-    [-10.0, -10.0, -10.0], [+10.0, -10.0, -10.0], [+10.0, -10.0, +10.0], [-10.0, -10.0, +10.0]  // bottom face
-  ]
-  
-  var cubeUv = [
-    [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // positive z face.
-    [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // positive x face.
-    [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // negative z face.
-    [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // negative x face.
-    [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], // top face
-    [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]  // bottom face
-  ]
-  
-  const cubeElements = [
-    [2, 1, 0], [2, 0, 3],       // positive z face.
-    [6, 5, 4], [6, 4, 7],       // positive x face.
-    [10, 9, 8], [10, 8, 11],    // negative z face.
-    [14, 13, 12], [14, 12, 15], // negative x face.
-    [18, 17, 16], [18, 16, 19], // top face.
-    [20, 21, 22], [23, 20, 22]  // bottom face
-  ]
 
   const u_colormap = regl.texture({
     width: colormap.width,
@@ -638,7 +639,7 @@ export default function Renderer(
   const riversCache = new Map();
 
   const MIN_RIVER_WIDTH = 1;
-  const MAX_RIVER_WIDTH = 5;
+  const MAX_RIVER_WIDTH = 10;
   function createRivers(mesh: TriangleMesh, t_xyz, s_flow, zoomLevel: number) {
     let points = [];
     let widths = [];
@@ -651,7 +652,7 @@ export default function Renderer(
         const p1 = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
         const p2 = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
         points.push(...p1, ...p1, ...p2, ...p2);
-        const width = Math.max(MIN_RIVER_WIDTH, flow * MAX_RIVER_WIDTH) * zoomLevel;
+        const width = Math.max(MIN_RIVER_WIDTH, flow * MAX_RIVER_WIDTH);
         widths.push(0, width, width, 0);
       }
     }
@@ -707,6 +708,44 @@ export default function Renderer(
     } as any);
   }
 
+  function createCoastline(mesh: TriangleMesh, { t_xyz, r_elevation }) {
+    let points = [];
+    let widths = [];
+
+    for (let s = 0; s < mesh.numSides; s++) {
+      const begin_r = mesh.s_begin_r(s);
+      const end_r = mesh.s_end_r(s);
+
+      if (r_elevation[begin_r] < 0 && r_elevation[end_r] >= 0) {
+        const inner_t = mesh.s_inner_t(s);
+        const outer_t = mesh.s_outer_t(s);
+        const p1 = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+        const p2 = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+
+        points.push(...p1, ...p1, ...p2, ...p2);
+        widths.push(0, 2, 2, 0);
+      }
+    }
+
+    return createLine(regl, {
+      color: [0.0, 0.0, 0.0, 1.0],
+      widths,
+      points,
+      miter: 1
+    });
+  }
+
+  let coastline;
+  function drawCoastline(mesh: TriangleMesh, globe: Globe) {
+    if (!coastline) {
+      coastline = createCoastline(mesh, globe)
+    }
+
+    coastline.draw({
+      model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
+    });
+  }
+
   return {
     regl,
     camera,
@@ -726,6 +765,7 @@ export default function Renderer(
     drawPlateBoundaries,
     drawCellBorders,
     drawRivers,
+    drawCoastline,
   };
 }
 

@@ -47,6 +47,7 @@ export interface IDrawOptions {
   surface: boolean,
   regions: boolean,
   mapMode: EMapMode,
+  coastline: boolean,
 }
 
 export enum EDrawMode {

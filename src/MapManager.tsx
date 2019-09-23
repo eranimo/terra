@@ -37,6 +37,40 @@ export const initialOptions: IGlobeOptions = {
 };
 Object.freeze(initialOptions);
 
+interface IPreset {
+  name: string;
+  desc: string;
+  options: IGlobeOptions;
+}
+
+export const presets: IPreset[] = [
+  {
+    name: 'Temperate',
+    desc: 'A planet with temperate climate',
+    options: initialOptions,
+  },
+  {
+    name: 'Cold',
+    desc: 'A planet with a cold climate',
+    options: {
+      ...initialOptions,
+      climate: {
+        temperatureModifier: -0.5,
+      }
+    }
+  },
+  {
+    name: 'Hot',
+    desc: 'A planet with a hot climate',
+    options: {
+      ...initialOptions,
+      climate: {
+        temperatureModifier: 0.5,
+      }
+    }
+  }
+]
+
 const initialDrawOptions: IDrawOptions = {
   drawMode: EDrawMode.CENTROID,
   grid: false,
@@ -46,6 +80,7 @@ const initialDrawOptions: IDrawOptions = {
   cellCenters: false,
   surface: true,
   regions: false,
+  coastline: false,
   mapMode: EMapMode.BIOME,
 };
 
@@ -315,6 +350,9 @@ export class MapManager {
           count: xyz.length / 3,
         } as any);
       }
+    }
+    if (this.drawOptions$.get('coastline')) {
+      this.renderer.drawCoastline(mesh, this.globe);
     }
     this.renderer.renderStarbox();
   }
