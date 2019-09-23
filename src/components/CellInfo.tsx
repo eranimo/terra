@@ -22,10 +22,10 @@ export function CellInfo({ manager }: { manager: MapManager }) {
   return (
     <Box
       p={5}
-      width={400}
+      width={360}
       position="fixed"
-      left="0"
-      bottom="0"
+      right="0"
+      bottom="180px"
       bg="rgba(23, 25, 35, 0.95)"
       borderWidth="1px"
       borderColor="gray.600"
