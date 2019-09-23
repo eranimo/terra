@@ -62,6 +62,7 @@ export enum EMapMode {
   TEMPERATURE = 'TEMPERATURE',
   ROUGHNESS = 'ROUGHNESS',
   BIOME = 'BIOME',
+  FLOW = 'FLOW',
 }
 
 export const mapModeTitles = {
@@ -71,6 +72,7 @@ export const mapModeTitles = {
   [EMapMode.TEMPERATURE]: 'Temperature',
   [EMapMode.ROUGHNESS]: 'Terrain Roughness',
   [EMapMode.BIOME]: 'Biomes',
+  [EMapMode.FLOW]: 'Flow',
 }
 
 export const drawModeTitles = {

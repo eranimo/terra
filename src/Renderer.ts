@@ -639,7 +639,7 @@ export default function Renderer(
   const riversCache = new Map();
 
   const MIN_RIVER_WIDTH = 1;
-  const MAX_RIVER_WIDTH = 10;
+  const MAX_RIVER_WIDTH = 5;
   function createRivers(mesh: TriangleMesh, t_xyz, s_flow, zoomLevel: number) {
     let points = [];
     let widths = [];

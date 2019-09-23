@@ -141,4 +141,30 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
       return biomeColors[value] || [0, 0, 0, 1];
     },
   }],
+  [EMapMode.FLOW, {
+    colors: {
+      main: colormap({
+        colormap: 'density',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+    },
+    getter: (globe, r) => {
+      const triangles = globe.mesh.r_circulate_t([], r);
+      let r_flow = 0;
+      for (const t of triangles) {
+        r_flow += globe.t_flow[t];
+      }
+      r_flow /= triangles.length;
+      return r_flow;
+    },
+    color: (value, colors) => {
+      const index = clamp(Math.round(value * 100), 0, 99);
+      if (colors.main[index]) {
+        return colors.main[index];
+      }
+      return [0, 0, 0, 1];
+    },
+  }],
 ]);

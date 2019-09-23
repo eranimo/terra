@@ -71,7 +71,7 @@ export function assignDownflow(mesh: TriangleMesh, { t_elevation, /* out */ t_do
 export function assignFlow(
   mesh: TriangleMesh,
   options: IGlobeOptions,
-  { order_t, t_elevation, t_moisture, t_downflow_s, /* out */ t_flow, /* out */ s_flow }
+  { order_t, t_elevation, r_elevation, t_moisture, t_downflow_s, /* out */ t_flow, /* out */ s_flow }
 ) {
   let { numTriangles, _halfedges } = mesh;
   s_flow.fill(0);
@@ -103,9 +103,9 @@ export function assignFlow(
   // remove flow from ocean
   for (let s = 0; s <= mesh.numSides; s++) {
     if (s_flow[s] > 1) {
-      const inner = mesh.s_inner_t(s);
-      const outer = mesh.s_outer_t(s);
-      if (t_elevation[inner] < 0 || t_elevation[outer] < 0) {
+      const begin_r = mesh.s_begin_r(s);
+      const end_r = mesh.s_end_r(s);
+      if (r_elevation[begin_r] < 0 || r_elevation[end_r] < 0) {
         s_flow[s] = 0;
       }
     }
