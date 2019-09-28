@@ -142,17 +142,29 @@ export class Globe {
           SOLAR_CONSTANT *
           (1 + (0.034 * Math.cos(2 * Math.PI * (n / DAYS_PER_YEAR))))
         );
+        const [lat, long] = this.r_lat_long[r];
+
+        // δ
         const declination = 23.45 * (Math.PI / 180) * Math.sin(Math.PI * 2 * ((284 + n) / 365.25));
         const declination_deg = declination * (180 / Math.PI);
-        insolation[r] = declination_deg;
+
+        const lat_radians = lat * (Math.PI / 180);
+
+        insolation[r] = I_0 * (
+          Math.cos(lat_radians) *
+          Math.cos(declination) *
+          (-Math.tan(lat_radians) * Math.tan(declination)) *
+          Math.sin(lat_radians) *
+          Math.sin(declination)
+        );
       }
 
       // normalize to 0 to 1
       const { min, max, avg } = arrayStats(insolation);
       console.log(min, max, avg);
-      // for (let i = 0; i < insolation.length; i++) {
-      //   insolation[i] = (insolation[i] - min) / (max - min);
-      // }
+      for (let i = 0; i < insolation.length; i++) {
+        insolation[i] = (insolation[i] - min) / (max - min);
+      }
 
       this.insolation[month] = insolation;
     }
