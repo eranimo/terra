@@ -116,7 +116,7 @@ const GLOBE_OPTIONS: ControlDef[] = [
     title: 'Number of cells',
     type: 'integer',
     desc: 'Number of cells in the world',
-    options: { min: 0, max: 100_000 },
+    options: { min: 0, max: 500_000 },
   },
   {
     key: 'sphere.jitter',
