@@ -2,13 +2,14 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import { makeSphere } from "../SphereMesh";
 import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome } from '../types';
-import { getLatLng, logGroupTime } from '../utils'
+import { getLatLng, logGroupTime, arrayStats } from '../utils';
 import { coordinateForSide, generateMinimapGeometry, generateNoize3D, generateTriangleCenters, generateVoronoiGeometry, QuadGeometry } from './geometry';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
 import { clamp, isArray } from 'lodash';
 import SimplexNoise from 'simplex-noise';
 import FlatQueue from 'flatqueue';
+import { number } from 'prop-types';
 
 
 export class Globe {
@@ -47,6 +48,7 @@ export class Globe {
   r_distance_to_ocean: number[];
   r_coast: number[];
   max_distance_to_ocean: number;
+  insolation: Record<number, number[]>;
 
   constructor(public options: IGlobeOptions) {
     console.log('options', options)
@@ -113,10 +115,49 @@ export class Globe {
     
     this.generateCoastline();
     this.generateTemperature();
+    this.generateInsolation();
     this.generateMoisture();
     this.generateRivers();
     this.generateBiomes();
     this.protrudeHeight();
+  }
+
+  /**
+   * https://www.itacanet.org/the-sun-as-a-source-of-energy/part-2-solar-energy-reaching-the-earths-surface/
+   */
+  private generateInsolation() {
+    this.insolation = {};
+
+    const SOLAR_CONSTANT = 1367; // W/m^2
+    const DAYS_PER_MONTH = 30;
+    const MONTH_COUNT = 12;
+    const DAYS_PER_YEAR = DAYS_PER_MONTH * MONTH_COUNT;
+
+    for (let month = 0; month < MONTH_COUNT; month++) {
+      const insolation: number[] = [];
+      const n = (month * DAYS_PER_MONTH) + 15;
+      
+      for (let r = 0; r < this.mesh.numRegions; r++) {
+        const I_0 = (
+          SOLAR_CONSTANT *
+          (1 + (0.034 * Math.cos(2 * Math.PI * (n / DAYS_PER_YEAR))))
+        );
+        const declination = 23.45 * (Math.PI / 180) * Math.sin(Math.PI * 2 * ((284 + n) / 365.25));
+        const declination_deg = declination * (180 / Math.PI);
+        insolation[r] = declination_deg;
+      }
+
+      // normalize to 0 to 1
+      const { min, max, avg } = arrayStats(insolation);
+      console.log(min, max, avg);
+      // for (let i = 0; i < insolation.length; i++) {
+      //   insolation[i] = (insolation[i] - min) / (max - min);
+      // }
+
+      this.insolation[month] = insolation;
+    }
+
+    console.log('insolation', this.insolation);
   }
 
   private generateCoastline() {
@@ -259,8 +300,6 @@ export class Globe {
       this.r_temperature[r] += this.r_temperature[r] * this.options.climate.temperatureModifier;
       this.r_temperature[r] = clamp(this.r_temperature[r], 0, 1);
     }
-
-
 
     const temperature_min = Math.min(...this.r_temperature.filter(i => i));
     const temperature_max = Math.max(...this.r_temperature.filter(i => i));

@@ -153,3 +153,26 @@ export function getUV([x, y, z]): [number, number] {
     0.5 - (Math.asin(y) / Math.PI),
   ];
 }
+
+export function arrayStats(array: Iterable<number>) {
+  let min = Infinity;
+  let max = -Infinity;
+  let sum = 0;
+  let count = 0;
+  for (const item of array) {
+    if (item < min) {
+      min = item;
+    }
+    if (item > max) {
+      max = item;
+    }
+    count++;
+    sum += item;
+  }
+
+  return {
+    avg: sum / count,
+    min,
+    max,
+  };
+}
