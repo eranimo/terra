@@ -23,7 +23,7 @@
     "worker-loader": "^2.0.0"
   },
   "dependencies": {
-    "@chakra-ui/core": "^0.2.8",
+    "@chakra-ui/core": "^0.3.2",
     "@emotion/core": "^10.0.17",
     "@emotion/styled": "^10.0.17",
     "@redblobgames/dual-mesh": "https://github.com/redblobgames/dual-mesh",
@@ -35,6 +35,7 @@
     "@types/node": "^12.6.9",
     "@types/react": "^16.8.24",
     "@types/react-dom": "^16.8.5",
+    "@types/react-router-dom": "^5.1.0",
     "@types/seedrandom": "^2.4.28",
     "classnames": "^2.2.6",
     "colormap": "^2.3.1",
@@ -49,6 +50,7 @@
     "mouse-wheel": "^1.2.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
+    "react-router-dom": "^5.1.1",
     "react-use": "^10.5.0",
     "regl": "*",
     "regl-line": "^0.1.4",

@@ -1,11 +1,9 @@
+import { ColorModeProvider, CSSReset, ThemeProvider } from "@chakra-ui/core";
 import React from 'react';
 import { render } from 'react-dom';
-import { App } from './App';
-import { ThemeProvider, ColorModeProvider, CSSReset } from "@chakra-ui/core";
+import { App } from './components/App';
 import './style.css';
 import customTheme from "./theme";
-import emotionReset from 'emotion-reset';
-import {Global, css} from '@emotion/core';
 
 render((
   <ThemeProvider theme={customTheme}>

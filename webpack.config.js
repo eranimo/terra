@@ -44,6 +44,7 @@ module.exports = {
     })
   ],
   devServer: {
-    compress: true
+    compress: true,
+    historyApiFallback: true,
   }
 };

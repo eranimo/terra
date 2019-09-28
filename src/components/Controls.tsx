@@ -1,10 +1,10 @@
-import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Accordion, AccordionItem, AccordionHeader, AccordionPanel } from '@chakra-ui/core';
+import { Accordion, AccordionHeader, AccordionItem, AccordionPanel, Box, Button, Checkbox, Collapse, Heading, Input, Select, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Stack, Text } from '@chakra-ui/core';
+import { get, groupBy, random, set } from 'lodash';
 import React, { useState } from 'react';
-import { MapManager, initialOptions } from '../MapManager';
-import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles, categoryTitles } from '../types';
+import { MapManager } from '../MapManager';
+import { categoryTitles, drawModeTitles, IDrawOptions } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
-import { set, get, groupBy, random, round } from 'lodash';
 
 
 interface IControlOptions {
@@ -205,13 +205,6 @@ const DRAW_OPTIONS: ControlDef[] = [
     options: { options: drawModeTitles, }
   },
   {
-    key: 'mapMode',
-    title: 'Map mode',
-    type: 'select',
-    desc: 'Changes the current mode view, which show important statistics',
-    options: { options: mapModeTitles, }
-  },
-  {
     key: 'grid',
     title: 'Draw grid',
     type: 'boolean',
@@ -321,7 +314,7 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
   )
 }
 
-const DrawOptionsTab = ({ manager }: { manager: MapManager }) => {
+export const DrawOptionsTab = ({ manager }: { manager: MapManager }) => {
   const drawOptions = useObservableDict(manager.drawOptions$);
   return (
     <Box pt={5}>
@@ -371,16 +364,7 @@ export function Controls({ manager }: { manager: MapManager }) {
       </Stack>
 
       <Collapse isOpen={isOpen}>
-        <Tabs size="sm" mt={5}>
-          <TabList>
-            <Tab>Map options</Tab>
-            <Tab>Draw options</Tab>
-          </TabList>
-          <TabPanels>
-            <TabPanel><GlobeOptionsTab manager={manager} /></TabPanel>
-            <TabPanel><DrawOptionsTab manager={manager} /></TabPanel>
-          </TabPanels>
-        </Tabs>
+        <GlobeOptionsTab manager={manager} />
       </Collapse>
     </Box>
   );
