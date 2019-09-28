@@ -32,7 +32,7 @@ export const ViewControl = ({ manager }: { manager: MapManager }) => {
   return (
     <Box
       p="5"
-      bg="black"
+      bg="rgba(23, 25, 35, 0.95)"
       borderWidth="1px"
       borderColor="gray.600"
       position="fixed"
@@ -62,7 +62,7 @@ export const ViewControl = ({ manager }: { manager: MapManager }) => {
           <Button rightIcon="chevron-down" onClick={() => setModalOpen(true)}>Draw Options</Button>
           <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)}>
             <ModalOverlay />
-            <ModalContent>
+            <ModalContent bg="rgba(23, 25, 35, 0.95)">
               <ModalHeader>Draw Options</ModalHeader>
               <ModalCloseButton />
               <ModalBody>

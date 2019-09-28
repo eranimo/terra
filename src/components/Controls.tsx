@@ -1,10 +1,10 @@
-import { Box, Button, Checkbox, Input, Select, Tab, TabList, TabPanel, TabPanels, Tabs, Text, Heading, Stack, Collapse, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Accordion, AccordionItem, AccordionHeader, AccordionPanel } from '@chakra-ui/core';
+import { Accordion, AccordionHeader, AccordionItem, AccordionPanel, Box, Button, Checkbox, Collapse, Heading, Input, Select, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Stack, Text } from '@chakra-ui/core';
+import { get, groupBy, random, set } from 'lodash';
 import React, { useState } from 'react';
-import { MapManager, initialOptions } from '../MapManager';
-import { drawModeTitles, IDrawOptions, IGlobeOptions, mapModeTitles, categoryTitles } from '../types';
+import { MapManager } from '../MapManager';
+import { categoryTitles, drawModeTitles, IDrawOptions } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
-import { set, get, groupBy, random, round } from 'lodash';
 
 
 interface IControlOptions {
