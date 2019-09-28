@@ -4,7 +4,7 @@ import createLine from 'regl-line';
 import { Globe } from './worldgen/Globe';
 import { MapMode, mapModeDefs } from './mapModes';
 import Renderer from './Renderer';
-import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, biomeTitles } from './types';
+import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions } from './types';
 import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { CellGroup } from "./CellGroup";
@@ -37,53 +37,8 @@ export const initialOptions: IGlobeOptions = {
 };
 Object.freeze(initialOptions);
 
-interface IPreset {
-  name: string;
-  desc: string;
-  options: IGlobeOptions;
-}
 
-export const presets: IPreset[] = [
-  {
-    name: 'Temperate',
-    desc: 'A planet with temperate climate',
-    options: initialOptions,
-  },
-  {
-    name: 'Cold',
-    desc: 'A planet with a cold climate',
-    options: {
-      ...initialOptions,
-      climate: {
-        temperatureModifier: -0.5,
-      }
-    }
-  },
-  {
-    name: 'Hot',
-    desc: 'A planet with a hot climate',
-    options: {
-      ...initialOptions,
-      climate: {
-        temperatureModifier: 0.5,
-      }
-    }
-  }
-]
-
-const initialDrawOptions: IDrawOptions = {
-  drawMode: EDrawMode.CENTROID,
-  grid: false,
-  plateBorders: false,
-  plateVectors: false,
-  rivers: true,
-  cellCenters: false,
-  surface: true,
-  regions: false,
-  coastline: false,
-  mapMode: EMapMode.BIOME,
-};
-
+const DEFAULT_MAP_MODE = EMapMode.BIOME;
 
 /**
  * Renders a Globe instance
@@ -104,10 +59,15 @@ export class MapManager {
   cell_group_lines: any[];
   cell_cell_group: Record<number, CellGroup>;
   mapModes: Record<string, MapMode>;
+  mapMode$: BehaviorSubject<EMapMode>;
 
   constructor(protected screenCanvas: HTMLCanvasElement, protected minimapCanvas: HTMLCanvasElement, protected images: ImageRef[]) {
     this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
-    this.drawOptions$ = new ObservableDict(initialDrawOptions);
+    this.mapMode$ = new BehaviorSubject<EMapMode>(DEFAULT_MAP_MODE);
+    this.drawOptions$ = new ObservableDict({
+      ...defaultDrawOptions,
+      ...mapModeDrawOptions[DEFAULT_MAP_MODE],
+    });
 
     this.hoveredCell = new BehaviorSubject(null);
     this.cellGroups = new Set();
@@ -133,7 +93,13 @@ export class MapManager {
     });
 
     // redraw minimap when draw option changes
-    this.drawOptions$.ofKey('mapMode').subscribe(() => this.drawMinimap());
+    this.mapMode$.subscribe(mapMode => {
+      this.drawOptions$.replace({
+        ...defaultDrawOptions,
+        ...mapModeDrawOptions[mapMode],
+      })
+      this.drawMinimap();
+    });
 
     // minimap events
     const jumpToPosition = (x: number, y: number) => {
@@ -292,7 +258,7 @@ export class MapManager {
 
   draw() {
     const { mesh, triangleGeometry, minimapGeometry, quadGeometry, r_xyz } = this.globe;
-    if (this.drawOptions$.get('mapMode') === EMapMode.NONE) {
+    if (this.mapMode$.value === EMapMode.NONE) {
       if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.CENTROID]) {
         this.renderer.renderTriangles({
           a_xyz: triangleGeometry.xyz,
@@ -344,8 +310,8 @@ export class MapManager {
         });
       }
     }
-    if (this.drawOptions$.get('surface') && this.drawOptions$.get('mapMode')) {
-      const mapMode = this.mapModes[this.drawOptions$.get('mapMode')];
+    if (this.drawOptions$.get('surface') && this.mapMode$.value) {
+      const mapMode = this.mapModes[this.mapMode$.value];
       if (mapMode) {
         this.renderer.renderCellColor({
           scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
@@ -365,8 +331,8 @@ export class MapManager {
   drawMinimap() {
     const { minimapGeometry } = this.globe;
     // draw minimap
-    if (this.drawOptions$.get('mapMode') !== EMapMode.NONE) {
-      const mapMode = this.mapModes[this.drawOptions$.get('mapMode')];
+    if (this.mapMode$.value !== EMapMode.NONE) {
+      const mapMode = this.mapModes[this.mapMode$.value];
       if (mapMode) {
         this.renderer.renderMinimapCellColor({
           scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),

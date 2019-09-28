@@ -205,13 +205,6 @@ const DRAW_OPTIONS: ControlDef[] = [
     options: { options: drawModeTitles, }
   },
   {
-    key: 'mapMode',
-    title: 'Map mode',
-    type: 'select',
-    desc: 'Changes the current mode view, which show important statistics',
-    options: { options: mapModeTitles, }
-  },
-  {
     key: 'grid',
     title: 'Draw grid',
     type: 'boolean',

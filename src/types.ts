@@ -46,7 +46,6 @@ export interface IDrawOptions {
   drawMode: EDrawMode,
   surface: boolean,
   regions: boolean,
-  mapMode: EMapMode,
   coastline: boolean,
 }
 
@@ -63,6 +62,41 @@ export enum EMapMode {
   ROUGHNESS = 'ROUGHNESS',
   BIOME = 'BIOME',
   FLOW = 'FLOW',
+}
+
+export const defaultDrawOptions: IDrawOptions = {
+  drawMode: EDrawMode.CENTROID,
+  grid: false,
+  plateBorders: false,
+  plateVectors: false,
+  rivers: true,
+  cellCenters: false,
+  surface: true,
+  regions: false,
+  coastline: false,
+};
+
+export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
+  [EMapMode.NONE]: {},
+  [EMapMode.ELEVATION]: {
+    coastline: true,
+    rivers: false,
+  },
+  [EMapMode.MOISTURE]: {
+    coastline: true,
+  },
+  [EMapMode.TEMPERATURE]: {
+    coastline: true,
+    rivers: false,
+  },
+  [EMapMode.ROUGHNESS]: {
+    coastline: true,
+    rivers: false,
+  },
+  [EMapMode.BIOME]: {},
+  [EMapMode.FLOW]: {
+    coastline: true,
+  }
 }
 
 export const mapModeTitles = {

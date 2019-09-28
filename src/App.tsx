@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useWindowSize } from 'react-use';
 import { Controls } from './components/Controls';
-import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions } from './types';
+import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, mapModeTitles } from './types';
 import { loadImages } from './utils';
 import { MapManager } from './MapManager';
-import { CircularProgress, Flex, Spinner, Box } from '@chakra-ui/core';
+import { CircularProgress, Flex, Spinner, Box, Menu, MenuButton } from '@chakra-ui/core';
 import { CellInfo } from './components/CellInfo';
+import { ViewControl } from './components/ViewControl';
 
 
 const LoadingOverlay = () => (
@@ -55,6 +56,7 @@ export function App() {
         width={width}
         height={height}
       />
+      {!isLoading && <ViewControl manager={manager} />}
       <Box
         bg="black"
         borderWidth="1px"
