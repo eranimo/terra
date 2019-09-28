@@ -1,12 +1,11 @@
+import { Box, Flex, Spinner } from '@chakra-ui/core';
 import React, { useEffect, useRef, useState } from 'react';
 import { useWindowSize } from 'react-use';
-import { Controls } from './components/Controls';
-import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, mapModeTitles } from './types';
-import { loadImages } from './utils';
-import { MapManager } from './MapManager';
-import { CircularProgress, Flex, Spinner, Box, Menu, MenuButton } from '@chakra-ui/core';
-import { CellInfo } from './components/CellInfo';
-import { ViewControl } from './components/ViewControl';
+import { MapManager } from '../MapManager';
+import { loadImages } from '../utils';
+import { CellInfo } from './CellInfo';
+import { Controls } from './Controls';
+import { ViewControl } from './ViewControl';
 
 
 const LoadingOverlay = () => (
@@ -25,12 +24,12 @@ const LoadingOverlay = () => (
 (window as any)._ = require('lodash');
 
 const IMAGES = {
-  stars: require('./images/stars2.png')
+  stars: require('../images/stars2.png')
 };
 
 let manager: MapManager;
 
-export function App() {
+export function MapViewer() {
   const screenRef = useRef();
   const minimapRef = useRef();
   const [isLoading, setLoading] = useState(true);

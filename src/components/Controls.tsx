@@ -314,7 +314,7 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
   )
 }
 
-const DrawOptionsTab = ({ manager }: { manager: MapManager }) => {
+export const DrawOptionsTab = ({ manager }: { manager: MapManager }) => {
   const drawOptions = useObservableDict(manager.drawOptions$);
   return (
     <Box pt={5}>
@@ -364,16 +364,7 @@ export function Controls({ manager }: { manager: MapManager }) {
       </Stack>
 
       <Collapse isOpen={isOpen}>
-        <Tabs size="sm" mt={5}>
-          <TabList>
-            <Tab>Map options</Tab>
-            <Tab>Draw options</Tab>
-          </TabList>
-          <TabPanels>
-            <TabPanel><GlobeOptionsTab manager={manager} /></TabPanel>
-            <TabPanel><DrawOptionsTab manager={manager} /></TabPanel>
-          </TabPanels>
-        </Tabs>
+        <GlobeOptionsTab manager={manager} />
       </Collapse>
     </Box>
   );
