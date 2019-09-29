@@ -1,7 +1,7 @@
 import { ReactiveWorkerClient } from '../utils/workers';
 import WorldgenWorker from 'worker-loader!./Worldgen.worker';
 import { IGlobeOptions } from 'src/types';
-import { GlobeData, CellPoints } from '../types';
+import { GlobeData, CellPoints, CellData } from '../types';
 
 
 export class WorldgenClient {
@@ -31,5 +31,13 @@ export class WorldgenClient {
         .observe({ point, dir })
         .subscribe(result => resolve(result as CellPoints));
     });
+  }
+
+  async getCellData(r: number) {
+    return new Promise((resolve) => {
+      this.worker$.action('getCellData')
+        .observe(r)
+        .subscribe(result => resolve(result as CellData));
+    })
   }
 }

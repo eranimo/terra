@@ -20,3 +20,7 @@ worker.on('init', (options) => {
 worker.on('getIntersectedCell', async ({ point, dir }) => {
   return globe.getIntersectedCell(point, dir);
 }, true);
+
+worker.on('getCellData', async (r) => {
+  return globe.getCellData(r);
+}, true);

@@ -175,9 +175,13 @@ export class MapManager {
       this.client.getIntersectedCell(
         [rayPoint[0], rayPoint[1], rayPoint[2]],
         [rayDir[0], rayDir[1], rayDir[2]],
-      ).then(cellData => {
-        console.log(cellData)
-        this.selectedCell.next(cellData);
+      ).then(cellPoints => {
+        console.log(this.selectedCell.value, cellPoints.cell);
+        if (this.selectedCell.value && cellPoints.cell === this.selectedCell.value.cell) {
+          this.selectedCell.next(null);
+        } else {
+          this.selectedCell.next(cellPoints);
+        }
         this.renderer.camera.setDirty();
       });
     });

@@ -339,3 +339,12 @@ export type CellPoints = {
   cell: number; // r value
   points: number[]
 };
+
+export type CellData = {
+  lat_long: [number, number],
+  temperature: number,
+  moisture: number,
+  elevation: number,
+  distance_to_ocean: number,
+  biome: number,
+}

@@ -265,6 +265,17 @@ export class Globe {
     return points;
   }
 
+  getCellData(r: number) {
+    return {
+      lat_long: this.r_lat_long[r],
+      temperature: this.r_temperature[r],
+      moisture: this.r_moisture[r],
+      elevation: this.r_elevation[r],
+      distance_to_ocean: this.r_distance_to_ocean[r],
+      biome: this.r_biome[r],
+    };
+  }
+
   getIntersectedCell(rayPoint, rayDir): CellPoints | null {
     const { mesh, t_xyz, r_xyz } = this;
     let maxT = -1e10;
