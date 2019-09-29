@@ -62,6 +62,7 @@ export class MapManager {
   mapMode$: BehaviorSubject<EMapMode>;
 
   renderState: {
+    rivers: any,
     coastline: any,
   };
 
@@ -280,6 +281,12 @@ export class MapManager {
 
   setupRendering() {
     this.renderState = {
+      rivers: createLine(this.renderer.regl, {
+        color: [0.0, 0.0, 1.0, 1.0],
+        widths: this.globe.rivers.widths,
+        points: this.globe.rivers.points,
+        miter: 1
+      }),
       coastline: createLine(this.renderer.regl, {
         color: [0.0, 0.0, 0.0, 1.0],
         widths: this.globe.coastline.widths,
@@ -307,9 +314,11 @@ export class MapManager {
     //     } as any);
     //   }
     // }
-    // if (this.drawOptions$.get('rivers')) {
-    //   this.renderer.drawRivers(mesh, this.globe, 0.5);
-    // }
+    if (this.drawOptions$.get('rivers')) {
+      this.renderState.rivers.draw({
+        model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
+      });
+    }
     // if (this.drawOptions$.get('plateVectors')) {
     //   this.renderer.drawPlateVectors(mesh, this.globe, this.globeOptions$.value);
     // }

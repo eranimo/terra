@@ -37,6 +37,32 @@ function createCoastline(mesh: TriangleMesh, globe: Globe) {
   }
 }
 
+const MIN_RIVER_WIDTH = 1;
+const MAX_RIVER_WIDTH = 5;
+function createRivers(mesh: TriangleMesh, globe: Globe) {
+  let points = [];
+  let widths = [];
+  for (let s = 0; s < mesh.numSides; s++) {
+    if (globe.s_flow[s] > 1) {
+      let flow = 0.1 * Math.sqrt(globe.s_flow[s]);
+      const inner_t = mesh.s_inner_t(s);
+      const outer_t = mesh.s_outer_t(s);
+      if (flow > 1) flow = 1;
+      const p1 = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+      const p2 = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+      points.push(...p1, ...p1, ...p2, ...p2);
+      const width = Math.max(MIN_RIVER_WIDTH, flow * MAX_RIVER_WIDTH);
+      widths.push(0, width, width, 0);
+    }
+  }
+
+  return {
+    widths,
+    points,
+  };
+}
+
+
 export class Globe {
   mesh: TriangleMesh;
   r_xyz: number[];
@@ -164,6 +190,7 @@ export class Globe {
       t_xyz: this.t_xyz,
       triangleGeometry: this.triangleGeometry,
       coastline: createCoastline(this.mesh, this),
+      rivers: createRivers(this.mesh, this),
     };
   }
 

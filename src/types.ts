@@ -326,4 +326,8 @@ export type GlobeData = {
     points: number[],
     widths: number[],
   };
+  rivers: {
+    points: number[],
+    widths: number[],
+  };
 }
