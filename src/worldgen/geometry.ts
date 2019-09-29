@@ -52,16 +52,20 @@ function pushCentroidOfTriangle(out, ax, ay, az, bx, by, bz, cx, cy, cz) {
 
 export function generateTriangleCenters(mesh: TriangleMesh, { r_xyz }: Globe) {
   let { numTriangles } = mesh;
-  let t_xyz = [];
+  let array = [];
   for (let t = 0; t < numTriangles; t++) {
-    let a = mesh.s_begin_r(3 * t),
-      b = mesh.s_begin_r(3 * t + 1),
-      c = mesh.s_begin_r(3 * t + 2);
-    pushCentroidOfTriangle(t_xyz,
+    const a = mesh.s_begin_r(3 * t);
+    const b = mesh.s_begin_r(3 * t + 1);
+    const c = mesh.s_begin_r(3 * t + 2);
+    pushCentroidOfTriangle(
+      array,
       r_xyz[3 * a], r_xyz[3 * a + 1], r_xyz[3 * a + 2],
       r_xyz[3 * b], r_xyz[3 * b + 1], r_xyz[3 * b + 2],
-      r_xyz[3 * c], r_xyz[3 * c + 1], r_xyz[3 * c + 2]);
+      r_xyz[3 * c], r_xyz[3 * c + 1], r_xyz[3 * c + 2]
+    );
   }
+  const t_xyz = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * array.length))
+  t_xyz.set(array);
   return t_xyz;
 }
 
@@ -79,8 +83,8 @@ export function coordinateForSide(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, s
 
 export function generateVoronoiGeometry(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, r_color_fn) {
   const { numSides } = mesh;
-  const xyz = [];
-  const tm = [];
+  const xyz_array = [];
+  const tm_array = [];
 
   for (let s = 0; s < numSides; s++) {
     const inner_t = mesh.s_inner_t(s);
@@ -89,13 +93,19 @@ export function generateVoronoiGeometry(mesh: TriangleMesh, { r_xyz, t_xyz }: Gl
 
     const rgb = r_color_fn(begin_r);
 
-    xyz.push(
+    xyz_array.push(
       t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2],
       t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2],
       r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2],
     );
-    tm.push(rgb, rgb, rgb);
+    tm_array.push(rgb, rgb, rgb);
   }
+  const xyz = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * xyz_array.length));
+  xyz.set(xyz_array);
+
+  const tm = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * tm_array.length));
+  tm.set(tm_array);
+
   return { xyz, tm };
 }
 

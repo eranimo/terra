@@ -176,3 +176,10 @@ export function arrayStats(array: Iterable<number>) {
     max,
   };
 }
+
+export function toFloat32SAB(array: number[]) {
+  const buffer = new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * array.length);
+  const float_array = new Float32Array(buffer);
+  float_array.set(array);
+  return float_array;
+}

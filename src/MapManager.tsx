@@ -2,9 +2,9 @@ import { mat4, vec3 } from 'gl-matrix';
 import { times } from 'lodash';
 import createLine from 'regl-line';
 import { Globe } from './worldgen/Globe';
-import { MapMode, mapModeDefs } from './mapModes';
+import { mapModeDefs } from './mapModes';
 import Renderer from './Renderer';
-import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions, monthTitles } from './types';
+import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions, monthTitles, GlobeData } from './types';
 import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { CellGroup } from "./CellGroup";
@@ -50,7 +50,7 @@ export class MapManager {
   drawOptions$: ObservableDict<IDrawOptions>;
   renderer: ReturnType<typeof Renderer>;
   camera: any;
-  globe: Globe;
+  globe: GlobeData;
   removeDrawLoop: any;
   hoveredCell: BehaviorSubject<number>;
   minimapContext: CanvasRenderingContext2D;
@@ -59,8 +59,11 @@ export class MapManager {
   cell_group_rgba: number[];
   cell_group_lines: any[];
   cell_cell_group: Record<number, CellGroup>;
-  mapModes: Record<string, MapMode>;
   mapMode$: BehaviorSubject<EMapMode>;
+
+  renderState: {
+    coastline: any,
+  };
 
   constructor(protected screenCanvas: HTMLCanvasElement, protected minimapCanvas: HTMLCanvasElement, protected images: ImageRef[]) {
     this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
@@ -73,20 +76,11 @@ export class MapManager {
     this.hoveredCell = new BehaviorSubject(null);
     this.cellGroups = new Set();
     this.cell_cell_group = {};
-    this.mapModes = {};
     this.cell_group_lines = [];
     this.cellGroups.add(new CellGroup('foo', [0.5, 0.5, 0.5, 1], [15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]));
     const renderer = Renderer(screenCanvas, minimapCanvas, this.onLoad(screenCanvas), images);
     this.renderer = renderer;
     this.drawOptions$.subscribe(() => renderer.camera.setDirty());
-
-    this.removeDrawLoop = renderer.regl.frame(() => {
-      renderer.camera.run((state) => {
-        if (!state.dirty) return;
-        renderer.regl.clear({ color: [0, 0, 0, 1], depth: 1 });
-        // this.draw();
-      });
-    });
 
     (window as any).manager = this;
     (window as any).renderer = renderer;
@@ -128,12 +122,22 @@ export class MapManager {
     });
   }
 
+  startRenderLoop() {
+    this.removeDrawLoop = this.renderer.regl.frame(() => {
+      this.renderer.camera.run((state) => {
+        if (!state.dirty) return;
+        this.renderer.regl.clear({ color: [0, 0, 0, 1], depth: 1 });
+        this.draw();
+      });
+    });
+  }
+
   @logGroupTime('init map modes')
   initMapModes() {
-    for (const [mapMode, def] of mapModeDefs) {
-      this.mapModes[mapMode] = new MapMode(this.globe, def);
-      console.log(mapMode, this.mapModes[mapMode]);
-    }
+    // for (const [mapMode, def] of mapModeDefs) {
+    //   this.mapModes[mapMode] = new MapMode(this.globe, def);
+    //   console.log(mapMode, this.mapModes[mapMode]);
+    // }
   }
 
   onLoad = (canvas) => () => {
@@ -245,10 +249,13 @@ export class MapManager {
   }
 
   @logGroupTime('generate')
-  generate() {
+  async generate() {
     const worldgen = new WorldgenClient();
-    worldgen.newWorld(this.globeOptions$.value);
+    const result = await worldgen.newWorld(this.globeOptions$.value);
+    this.globe = result;
     console.log('worldgen', worldgen);
+    this.setupRendering();
+    this.startRenderLoop();
     
     // const globe = new Globe(this.globeOptions$.value as IGlobeOptions);
     // delete (window as any).globe;
@@ -257,7 +264,6 @@ export class MapManager {
     // this.globe = globe;
     // console.log('globe', globe);
 
-    // this.initMapModes();
     // this.calculateCellGroups();
     // this.renderer.camera.setDirty();
     // this.drawMinimap();
@@ -272,97 +278,112 @@ export class MapManager {
     // }, 1000);
   }
 
-  // draw() {
-  //   const { mesh, triangleGeometry, minimapGeometry, quadGeometry, r_xyz } = this.globe;
-  //   if (this.mapMode$.value === EMapMode.NONE) {
-  //     if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.CENTROID]) {
-  //       this.renderer.renderTriangles({
-  //         a_xyz: triangleGeometry.xyz,
-  //         a_tm: triangleGeometry.tm,
-  //         count: triangleGeometry.xyz.length / 3,
-  //       });
-  //     }
-  //     else if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.QUADS]) {
-  //       this.renderer.renderIndexedTriangles({
-  //         a_xyz: quadGeometry.xyz,
-  //         a_tm: quadGeometry.tm,
-  //         elements: quadGeometry.I,
-  //       } as any);
-  //     }
-  //   }
-  //   if (this.drawOptions$.get('rivers')) {
-  //     this.renderer.drawRivers(mesh, this.globe, 0.5);
-  //   }
-  //   if (this.drawOptions$.get('plateVectors')) {
-  //     this.renderer.drawPlateVectors(mesh, this.globe, this.globeOptions$.value);
-  //   }
-  //   if (this.drawOptions$.get('plateBorders')) {
-  //     this.renderer.drawPlateBoundaries(mesh, this.globe);
-  //   }
-  //   if (this.drawOptions$.get('grid')) {
-  //     this.renderer.drawCellBorders(mesh, this.globe);
-  //   }
-  //   if (this.drawOptions$.get('cellCenters')) {
-  //     let u_pointsize = 10.0 + (100 / Math.sqrt(this.globeOptions$.value['numberCells']));
-  //     this.renderer.renderPoints({
-  //       u_pointsize,
-  //       a_xyz: r_xyz,
-  //       count: mesh.numRegions,
-  //     });
-  //   }
-  //   if (this.hoveredCell.value) {
-  //     this.renderer.drawCellBorder(mesh, this.globe, this.hoveredCell.value);
-  //   }
-  //   if (this.drawOptions$.get('regions')) {
-  //     this.renderer.renderCellColor({
-  //       scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-  //       a_xyz: this.cell_group_xyz,
-  //       a_rgba: this.cell_group_rgba,
-  //       count: this.cell_group_xyz.length / 3,
-  //     } as any);
-  //     for (const line of this.cell_group_lines) {
-  //       line.draw({
-  //         model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
-  //       });
-  //     }
-  //   }
-  //   if (this.drawOptions$.get('surface') && this.mapMode$.value) {
-  //     const mapMode = this.mapModes[this.mapMode$.value];
-  //     if (mapMode) {
-  //       this.renderer.renderCellColor({
-  //         scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
-  //         a_xyz: triangleGeometry.xyz,
-  //         a_rgba: mapMode.rgba,
-  //         count: triangleGeometry.xyz.length / 3,
-  //       } as any);
-  //     }
-  //   }
-  //   if (this.drawOptions$.get('coastline')) {
-  //     this.renderer.drawCoastline(mesh, this.globe);
-  //   }
-  //   this.renderer.renderStarbox();
-  // }
+  setupRendering() {
+    this.renderState = {
+      coastline: createLine(this.renderer.regl, {
+        color: [0.0, 0.0, 0.0, 1.0],
+        widths: this.globe.coastline.widths,
+        points: this.globe.coastline.points,
+        miter: 1
+      })
+    }
+  }
+
+  draw() {
+    // const { mesh, triangleGeometry, minimapGeometry, quadGeometry, r_xyz } = this.globe;
+    // if (this.mapMode$.value === EMapMode.NONE) {
+    //   if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.CENTROID]) {
+    //     this.renderer.renderTriangles({
+    //       a_xyz: triangleGeometry.xyz,
+    //       a_tm: triangleGeometry.tm,
+    //       count: triangleGeometry.xyz.length / 3,
+    //     });
+    //   }
+    //   else if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.QUADS]) {
+    //     this.renderer.renderIndexedTriangles({
+    //       a_xyz: quadGeometry.xyz,
+    //       a_tm: quadGeometry.tm,
+    //       elements: quadGeometry.I,
+    //     } as any);
+    //   }
+    // }
+    // if (this.drawOptions$.get('rivers')) {
+    //   this.renderer.drawRivers(mesh, this.globe, 0.5);
+    // }
+    // if (this.drawOptions$.get('plateVectors')) {
+    //   this.renderer.drawPlateVectors(mesh, this.globe, this.globeOptions$.value);
+    // }
+    // if (this.drawOptions$.get('plateBorders')) {
+    //   this.renderer.drawPlateBoundaries(mesh, this.globe);
+    // }
+    // if (this.drawOptions$.get('grid')) {
+    //   this.renderer.drawCellBorders(mesh, this.globe);
+    // }
+    // if (this.drawOptions$.get('cellCenters')) {
+    //   let u_pointsize = 10.0 + (100 / Math.sqrt(this.globeOptions$.value['numberCells']));
+    //   this.renderer.renderPoints({
+    //     u_pointsize,
+    //     a_xyz: r_xyz,
+    //     count: mesh.numRegions,
+    //   });
+    // }
+    // if (this.hoveredCell.value) {
+    //   this.renderer.drawCellBorder(mesh, this.globe, this.hoveredCell.value);
+    // }
+    // if (this.drawOptions$.get('regions')) {
+    //   this.renderer.renderCellColor({
+    //     scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+    //     a_xyz: this.cell_group_xyz,
+    //     a_rgba: this.cell_group_rgba,
+    //     count: this.cell_group_xyz.length / 3,
+    //   } as any);
+    //   for (const line of this.cell_group_lines) {
+    //     line.draw({
+    //       model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
+    //     });
+    //   }
+    // }
+
+    const { mapModeColors, triangleGeometry } = this.globe;
+    if (this.drawOptions$.get('surface') && this.mapMode$.value) {
+      const rgba = mapModeColors[this.mapMode$.value];
+      if (rgba) {
+        this.renderer.renderCellColor({
+          scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
+          a_xyz: triangleGeometry.xyz,
+          a_rgba: rgba,
+          count: triangleGeometry.xyz.length / 3,
+        } as any);
+      }
+    }
+    if (this.drawOptions$.get('coastline')) {
+      this.renderState.coastline.draw({
+        model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
+      });
+    }
+    this.renderer.renderStarbox();
+  }
 
   @logGroupTime('draw minimap')
   drawMinimap() {
-    const { minimapGeometry } = this.globe;
-    // draw minimap
-    if (this.mapMode$.value !== EMapMode.NONE) {
-      const mapMode = this.mapModes[this.mapMode$.value];
-      if (mapMode) {
-        this.renderer.renderMinimapCellColor({
-          scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-          a_xy: minimapGeometry.xy,
-          a_rgba: mapMode.rgba,
-          count: minimapGeometry.xy.length / 2,
-        });
-      }
-    } else {
-      this.renderer.renderMinimap({
-        a_xy: minimapGeometry.xy,
-        a_tm: minimapGeometry.tm,
-        count: minimapGeometry.xy.length / 2,
-      });
-    }
+    // const { minimapGeometry } = this.globe;
+    // // draw minimap
+    // if (this.mapMode$.value !== EMapMode.NONE) {
+    //   const mapMode = this.mapModes[this.mapMode$.value];
+    //   if (mapMode) {
+    //     this.renderer.renderMinimapCellColor({
+    //       scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+    //       a_xy: minimapGeometry.xy,
+    //       a_rgba: mapMode.rgba,
+    //       count: minimapGeometry.xy.length / 2,
+    //     });
+    //   }
+    // } else {
+    //   this.renderer.renderMinimap({
+    //     a_xy: minimapGeometry.xy,
+    //     a_tm: minimapGeometry.tm,
+    //     count: minimapGeometry.xy.length / 2,
+    //   });
+    // }
   }
 }

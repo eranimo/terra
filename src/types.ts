@@ -314,3 +314,16 @@ export type SharedArray<T> = {
   array: T,
   buffer: SharedArrayBuffer,
 };
+
+export type GlobeData = {
+  t_xyz: Float32Array;
+  triangleGeometry: {
+    xyz: Float32Array,
+    tm: Float32Array,
+  };
+  mapModeColors: Record<EMapMode, Float32Array>;
+  coastline: {
+    points: number[],
+    widths: number[],
+  };
+}

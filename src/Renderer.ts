@@ -531,7 +531,7 @@ export default function Renderer(
 
   function drawPlateVectors(
     mesh: TriangleMesh,
-    { r_xyz, r_plate, plate_vec },
+    { r_xyz, r_plate, plate_vec }: Globe,
     options: IGlobeOptions,
   ) {
     let line_xyz = [], line_rgba = [];
@@ -583,7 +583,7 @@ export default function Renderer(
 
   function drawPlateBoundaries(
     mesh: TriangleMesh,
-    { t_xyz, r_plate },
+    { t_xyz, r_plate }: Globe,
   ) {
     let line = plateCache.get(mesh);
     if (!line) {
@@ -708,40 +708,8 @@ export default function Renderer(
     } as any);
   }
 
-  function createCoastline(mesh: TriangleMesh, { t_xyz, r_elevation }) {
-    let points = [];
-    let widths = [];
-
-    for (let s = 0; s < mesh.numSides; s++) {
-      const begin_r = mesh.s_begin_r(s);
-      const end_r = mesh.s_end_r(s);
-
-      if (r_elevation[begin_r] < 0 && r_elevation[end_r] >= 0) {
-        const inner_t = mesh.s_inner_t(s);
-        const outer_t = mesh.s_outer_t(s);
-        const p1 = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
-        const p2 = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-
-        points.push(...p1, ...p1, ...p2, ...p2);
-        widths.push(0, 2, 2, 0);
-      }
-    }
-
-    return createLine(regl, {
-      color: [0.0, 0.0, 0.0, 1.0],
-      widths,
-      points,
-      miter: 1
-    });
-  }
-
-  let coastline;
-  function drawCoastline(mesh: TriangleMesh, globe: Globe) {
-    if (!coastline) {
-      coastline = createCoastline(mesh, globe)
-    }
-
-    coastline.draw({
+  function drawCoastline(line) {
+    line.draw({
       model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
     });
   }

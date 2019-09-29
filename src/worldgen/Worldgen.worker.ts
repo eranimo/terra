@@ -1,5 +1,6 @@
 import { ReactiveWorker } from '../utils/workers';
 import { Globe } from './Globe';
+import { mapModeDefs } from '../mapModes';
 
 
 const ctx: Worker = self as any;

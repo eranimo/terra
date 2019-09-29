@@ -1,8 +1,8 @@
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import { makeSphere } from "../SphereMesh";
-import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome } from '../types';
-import { getLatLng, logGroupTime, arrayStats } from '../utils';
+import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome, GlobeData } from '../types';
+import { getLatLng, logGroupTime, arrayStats, toFloat32SAB } from '../utils';
 import { coordinateForSide, generateMinimapGeometry, generateNoize3D, generateTriangleCenters, generateVoronoiGeometry, QuadGeometry } from './geometry';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
@@ -10,17 +10,45 @@ import { clamp, isArray } from 'lodash';
 import SimplexNoise from 'simplex-noise';
 import FlatQueue from 'flatqueue';
 import { number } from 'prop-types';
+import { mapModeDefs, createMapModeColor } from '../mapModes';
 
+
+function createCoastline(mesh: TriangleMesh, globe: Globe) {
+  let points = [];
+  let widths = [];
+
+  for (let s = 0; s < mesh.numSides; s++) {
+    const begin_r = mesh.s_begin_r(s);
+    const end_r = mesh.s_end_r(s);
+
+    if (globe.r_elevation[begin_r] < 0 && globe.r_elevation[end_r] >= 0) {
+      const inner_t = mesh.s_inner_t(s);
+      const outer_t = mesh.s_outer_t(s);
+      const p1 = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+      const p2 = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+
+      points.push(...p1, ...p1, ...p2, ...p2);
+      widths.push(0, 2, 2, 0);
+    }
+  }
+  return {
+    points,
+    widths,
+  }
+}
 
 export class Globe {
   mesh: TriangleMesh;
   r_xyz: number[];
   latlong: number[];
-  triangleGeometry: any;
+  triangleGeometry: {
+    xyz: Float32Array,
+    tm: Float32Array,
+  };
   minimapGeometry: any;
   quadGeometry: QuadGeometry;
 
-  t_xyz: number[];
+  t_xyz: Float32Array;
   minimap_t_xyz: Float32Array; // without height added
   minimap_r_xyz: Float32Array; // without height added
   r_elevation: Float32Array;
@@ -124,13 +152,18 @@ export class Globe {
     this.protrudeHeight();
   }
 
-  export() {
-    const t_xyz_buffer = new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.t_xyz.length);
-    const t_xyz_array = new Float32Array(t_xyz_buffer);
-    t_xyz_array.set(this.t_xyz);
-
+  export(): GlobeData {
+    const mapModeColors: Record<string, Float32Array> = {};
+    for (const [mapMode, def] of mapModeDefs) {
+      mapModeColors[mapMode] = createMapModeColor(this, def);
+    }
+    
+    
     return {
-      t_xyz: t_xyz_array,
+      mapModeColors,
+      t_xyz: this.t_xyz,
+      triangleGeometry: this.triangleGeometry,
+      coastline: createCoastline(this.mesh, this),
     };
   }
 
