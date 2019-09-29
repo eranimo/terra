@@ -240,6 +240,7 @@ export class Globe {
     return {
       mapModeColors,
       t_xyz: this.t_xyz,
+      r_xyz: new Float32Array(this.r_xyz),
       triangleGeometry: this.triangleGeometry,
       minimapGeometry: this.minimapGeometry,
       coastline: createCoastline(this.mesh, this),

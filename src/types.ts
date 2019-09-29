@@ -309,6 +309,7 @@ export type SharedArray<T> = {
 
 export type GlobeData = {
   t_xyz: Float32Array;
+  r_xyz: Float32Array;
   triangleGeometry: Float32Array,
   minimapGeometry: Float32Array,
   mapModeColors: Record<EMapMode, Float32Array>;

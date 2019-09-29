@@ -16,7 +16,7 @@ type PointsUniforms = {
 type PointsProps = {
   u_pointsize: number,
   count: number,
-  a_xyz: number[],
+  a_xyz: Float32Array,
 }
 
 type LinesUniforms = {

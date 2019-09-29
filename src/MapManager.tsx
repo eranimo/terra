@@ -30,7 +30,7 @@ export const initialOptions: IGlobeOptions = {
   },
   geology: {
     numberPlates: 25,
-    oceanPlatePercent: 1,
+    oceanPlatePercent: 0.75,
     terrainRoughness: 0.5,
     heightModifier: -0.25,
     plateCollisionThreshold: 0.75,
@@ -329,14 +329,14 @@ export class MapManager {
         count: this.globe.cellBorders.points.length,
       });
     }
-    // if (this.drawOptions$.get('cellCenters')) {
-    //   let u_pointsize = 10.0 + (100 / Math.sqrt(this.globeOptions$.value['numberCells']));
-    //   this.renderer.renderPoints({
-    //     u_pointsize,
-    //     a_xyz: r_xyz,
-    //     count: mesh.numRegions,
-    //   });
-    // }
+    if (this.drawOptions$.get('cellCenters')) {
+      let u_pointsize = 10.0 + (100 / Math.sqrt(this.globeOptions$.value['numberCells']));
+      this.renderer.renderPoints({
+        u_pointsize,
+        a_xyz: this.globe.r_xyz,
+        count: this.globe.r_xyz.length / 3,
+      });
+    }
     // if (this.hoveredCell.value) {
     //   this.renderer.drawCellBorder(mesh, this.globe, this.hoveredCell.value);
     // }
