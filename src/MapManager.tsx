@@ -145,22 +145,20 @@ export class MapManager {
   }
 
   onLoad = (canvas) => () => {
-    let isPanning = false;
-    let isDown = false;
+    let downX = 0;
+    let downY = 0;
     canvas.addEventListener('mousedown', event => {
-      isDown = true;
-    });
-    canvas.addEventListener('mousemove', event => {
-      if (isDown) {
-        isPanning = true;
-      }
+      downX = event.clientX;
+      downY = event.clientY;
     });
     canvas.addEventListener('mouseup', event => {
-      isDown = false;
-      if (isPanning) {
-        isPanning = false;
-        return;
-      }
+      const distance = Math.sqrt(
+        Math.pow(downX - event.clientX, 2) +
+        Math.pow(downY - event.clientY, 2)
+      );
+
+      if (distance > 10) return;
+      
       const { left, top } = canvas.getBoundingClientRect();
       const { clientX, clientY } = event;
       const mouseX = clientX - left;
@@ -177,8 +175,6 @@ export class MapManager {
       // get the position of the camera.
       const rayOrigin = vec3.transformMat4([] as any, [0, 0, 0], mat4.invert([] as any, view));
       const rayDir = vec3.negate([] as any, vec3.normalize([] as any, vec3.subtract([] as any, rayPoint, rayOrigin)));
-      this.selectedCell.next(null);
-
       this.client.getIntersectedCell(
         [rayPoint[0], rayPoint[1], rayPoint[2]],
         [rayDir[0], rayDir[1], rayDir[2]],
