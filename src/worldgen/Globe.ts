@@ -1,7 +1,7 @@
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import { makeSphere } from "../SphereMesh";
-import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome, GlobeData, CellPoints } from '../types';
+import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome, GlobeData, CellPoints, EMapMode } from '../types';
 import { getLatLng, logGroupTime, arrayStats, intersectTriangle } from '../utils';
 import { coordinateForSide, generateMinimapGeometry, generateTriangleCenters, generateVoronoiGeometry } from './geometry';
 import { assignRegionElevation, generatePlates } from './plates';
@@ -156,8 +156,9 @@ export class Globe {
   max_distance_to_ocean: number;
   insolation: Record<number, number[]>;
   currentMonth: number;
+  mapModeColor: Float32Array;
 
-  constructor(public options: IGlobeOptions) {
+  constructor(public options: IGlobeOptions, public mapMode: EMapMode) {
     this.currentMonth = 0;
     console.log('options', options)
     console.time('make sphere');
@@ -165,7 +166,8 @@ export class Globe {
     console.timeEnd('make sphere');
     this.mesh = mesh;
     console.log('mesh', mesh)
-
+    
+    this.mapModeColor = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numSides * 4 * 3));
     this.r_xyz = r_xyz;
     this.latlong = latlong;
 
@@ -228,17 +230,24 @@ export class Globe {
     this.protrudeHeight();
   }
 
-  export(): GlobeData {
+  private setupMapMode() {
+    const def = mapModeDefs.get(this.mapMode);
+    const array = createMapModeColor(this, def);
+    this.mapModeColor.set(array);
+  }
+
+  public setMapMode(mapMode: EMapMode) {
+    this.mapMode = mapMode;
+    this.setupMapMode();
+  }
+
+  public export(): GlobeData {
     console.time('map mode colors');
-    const mapModeColors: Record<string, Float32Array> = {};
-    for (const [mapMode, def] of mapModeDefs) {
-      mapModeColors[mapMode] = createMapModeColor(this, def);
-    }
+    this.setupMapMode();
     console.timeEnd('map mode colors');
     
-    
     return {
-      mapModeColors,
+      mapModeColor: this.mapModeColor,
       t_xyz: this.t_xyz,
       r_xyz: new Float32Array(this.r_xyz),
       triangleGeometry: this.triangleGeometry,

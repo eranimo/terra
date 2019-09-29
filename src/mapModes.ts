@@ -23,10 +23,7 @@ export function createMapModeColor(globe: Globe, definition: IMapModeColorMap) {
     const color = definition.color(value, definition.colors, globe, r);
     rgba_array.push(...color, ...color, ...color);
   }
-
-  const rgba = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * rgba_array.length));
-  rgba.set(rgba_array);
-  return rgba;
+  return rgba_array;
 }
 
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([

@@ -105,9 +105,11 @@ export class MapManager {
         ...defaultDrawOptions,
         ...mapModeDrawOptions[mapMode],
       })
-      renderer.camera.setDirty();
       if (this.globe) {
-        this.drawMinimap();
+        this.client.setMapMode(mapMode).then(() => {
+        renderer.camera.setDirty();
+          this.drawMinimap();
+        });
       }
     });
 
@@ -241,7 +243,7 @@ export class MapManager {
   @logGroupTime('generate')
   async generate() {
     this.onBeforeGenerate();
-    const result = await this.client.newWorld(this.globeOptions$.value);
+    const result = await this.client.newWorld(this.globeOptions$.value, this.mapMode$.value);
     this.globe = result;
     console.log('worldgen', this.client);
     this.setupRendering();
@@ -284,7 +286,7 @@ export class MapManager {
   }
 
   draw() {
-    const { mapModeColors, triangleGeometry } = this.globe;
+    const { mapModeColor, triangleGeometry } = this.globe;
     if (this.drawOptions$.get('rivers')) {
       this.renderState.rivers.draw({
         model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
@@ -334,15 +336,12 @@ export class MapManager {
     // }
 
     if (this.drawOptions$.get('surface') && this.mapMode$.value) {
-      const rgba = mapModeColors[this.mapMode$.value];
-      if (rgba) {
-        this.renderer.renderCellColor({
-          scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
-          a_xyz: triangleGeometry,
-          a_rgba: rgba,
-          count: triangleGeometry.length / 3,
-        } as any);
-      }
+      this.renderer.renderCellColor({
+        scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
+        a_xyz: triangleGeometry,
+        a_rgba: mapModeColor,
+        count: triangleGeometry.length / 3,
+      } as any);
     }
     if (this.drawOptions$.get('coastline')) {
       this.renderState.coastline.draw({
@@ -354,16 +353,13 @@ export class MapManager {
 
   @logGroupTime('draw minimap')
   drawMinimap() {
-    const { minimapGeometry, mapModeColors } = this.globe;
+    const { minimapGeometry, mapModeColor } = this.globe;
     // draw minimap
-    const rgba = mapModeColors[this.mapMode$.value];
-    if (rgba) {
-      this.renderer.renderMinimapCellColor({
-        scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-        a_xy: minimapGeometry,
-        a_rgba: rgba,
-        count: minimapGeometry.length / 2,
-      });
-    }
+    this.renderer.renderMinimapCellColor({
+      scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+      a_xy: minimapGeometry,
+      a_rgba: mapModeColor,
+      count: minimapGeometry.length / 2,
+    });
   }
 }

@@ -7,10 +7,10 @@ const ctx: Worker = self as any;
 const worker = new ReactiveWorker(ctx, false);
 let globe: Globe;
 
-worker.on('init', (options) => {
+worker.on('init', ({ options, mapMode }) => {
   console.log('worldgen init', options);
 
-  globe = new Globe(options);
+  globe = new Globe(options, mapMode);
 
   console.log('!globe', globe)
 
@@ -23,4 +23,8 @@ worker.on('getIntersectedCell', async ({ point, dir }) => {
 
 worker.on('getCellData', async (r) => {
   return globe.getCellData(r);
+}, true);
+
+worker.on('setMapMode', async (mapMode) => {
+  globe.setMapMode(mapMode);
 }, true);
