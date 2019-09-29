@@ -63,8 +63,8 @@ type MinimapUniforms = {
 type MinimapProps = {
   u_colormap?: number[],
   count: number,
-  a_xy: number[],
-  a_tm: number[],
+  a_xy: Float32Array,
+  a_tm: Float32Array,
 }
 
 type MinimapCellColorUniforms = {
@@ -74,8 +74,8 @@ type MinimapCellColorUniforms = {
 type MinimapCellColorProps = {
   scale: mat4,
   count: number,
-  a_xy: number[],
-  a_rgba?: number[],
+  a_xy: Float32Array,
+  a_rgba?: Float32Array,
 }
 
 type IndexedTrianglesUniforms = {
@@ -663,27 +663,6 @@ export default function Renderer(
     });
   }
 
-  function drawRivers(
-    mesh: TriangleMesh,
-    { t_xyz, s_flow },
-    zoomLevel: number
-  ) {
-    let line = riversCache.get(mesh);
-    if (!line) {
-      line = createRivers(mesh, t_xyz, s_flow, zoomLevel);
-      riversCache.set(mesh, line);
-    }
-
-    line.setStyle({
-      miter: 1,
-      color: [0.0, 0.0, 1.0, 1.0],
-    });
-
-    line.draw({
-      model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
-    } as any);
-  }
-
   function drawCellBorder(mesh: TriangleMesh, { t_xyz }, region: number) {
     let points = [];
     let sides = [];
@@ -708,12 +687,6 @@ export default function Renderer(
     } as any);
   }
 
-  function drawCoastline(line) {
-    line.draw({
-      model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
-    });
-  }
-
   return {
     regl,
     camera,
@@ -731,9 +704,6 @@ export default function Renderer(
     drawCellBorder,
     drawPlateVectors,
     drawPlateBoundaries,
-    drawCellBorders,
-    drawRivers,
-    drawCoastline,
   };
 }
 

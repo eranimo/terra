@@ -321,6 +321,10 @@ export type GlobeData = {
     xyz: Float32Array,
     tm: Float32Array,
   };
+  minimapGeometry: {
+    xy: Float32Array,
+    tm: Float32Array,
+  };
   mapModeColors: Record<EMapMode, Float32Array>;
   coastline: {
     points: number[],

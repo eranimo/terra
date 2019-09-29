@@ -10,7 +10,7 @@ import { makeRandFloat } from '@redblobgames/prng';
 import SimplexNoise from 'simplex-noise';
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { Globe } from './Globe';
-import { getUV } from '../utils';
+import { getUV, toFloat32SAB } from '../utils';
 
 
 export function generateNoize3D(seed: number, persistence: number = 2 / 3, length: number = 5) {
@@ -100,13 +100,11 @@ export function generateVoronoiGeometry(mesh: TriangleMesh, { r_xyz, t_xyz }: Gl
     );
     tm_array.push(rgb, rgb, rgb);
   }
-  const xyz = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * xyz_array.length));
-  xyz.set(xyz_array);
 
-  const tm = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * tm_array.length));
-  tm.set(tm_array);
-
-  return { xyz, tm };
+  return {
+    xyz: toFloat32SAB(xyz_array),
+    tm: toFloat32SAB(tm_array),
+  };
 }
 
 export function generateMinimapGeometry(mesh: TriangleMesh, { minimap_r_xyz, minimap_t_xyz }: Globe, r_color_fn) {
@@ -126,7 +124,10 @@ export function generateMinimapGeometry(mesh: TriangleMesh, { minimap_r_xyz, min
       rgb, rgb, rgb
     );
   }
-  return { xy, tm };
+  return {
+    xy: toFloat32SAB(xy),
+    tm: toFloat32SAB(tm),
+  };
 }
 
 export class QuadGeometry {

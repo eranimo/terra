@@ -96,7 +96,7 @@ export class MapManager {
         ...defaultDrawOptions,
         ...mapModeDrawOptions[mapMode],
       })
-      // this.drawMinimap();
+      this.drawMinimap();
     });
 
     // minimap events
@@ -267,7 +267,7 @@ export class MapManager {
 
     // this.calculateCellGroups();
     // this.renderer.camera.setDirty();
-    // this.drawMinimap();
+    this.drawMinimap();
 
 
     // setInterval(() => {
@@ -375,24 +375,24 @@ export class MapManager {
 
   @logGroupTime('draw minimap')
   drawMinimap() {
-    // const { minimapGeometry } = this.globe;
-    // // draw minimap
-    // if (this.mapMode$.value !== EMapMode.NONE) {
-    //   const mapMode = this.mapModes[this.mapMode$.value];
-    //   if (mapMode) {
-    //     this.renderer.renderMinimapCellColor({
-    //       scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-    //       a_xy: minimapGeometry.xy,
-    //       a_rgba: mapMode.rgba,
-    //       count: minimapGeometry.xy.length / 2,
-    //     });
-    //   }
-    // } else {
-    //   this.renderer.renderMinimap({
-    //     a_xy: minimapGeometry.xy,
-    //     a_tm: minimapGeometry.tm,
-    //     count: minimapGeometry.xy.length / 2,
-    //   });
-    // }
+    const { minimapGeometry, mapModeColors } = this.globe;
+    // draw minimap
+    if (this.mapMode$.value !== EMapMode.NONE) {
+      const rgba = mapModeColors[this.mapMode$.value];
+      if (rgba) {
+        this.renderer.renderMinimapCellColor({
+          scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+          a_xy: minimapGeometry.xy,
+          a_rgba: rgba,
+          count: minimapGeometry.xy.length / 2,
+        });
+      }
+    } else {
+      this.renderer.renderMinimap({
+        a_xy: minimapGeometry.xy,
+        a_tm: minimapGeometry.tm,
+        count: minimapGeometry.xy.length / 2,
+      });
+    }
   }
 }

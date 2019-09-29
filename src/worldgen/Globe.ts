@@ -71,7 +71,10 @@ export class Globe {
     xyz: Float32Array,
     tm: Float32Array,
   };
-  minimapGeometry: any;
+  minimapGeometry: {
+    xy: Float32Array,
+    tm: Float32Array,
+  };
   quadGeometry: QuadGeometry;
 
   t_xyz: Float32Array;
@@ -189,6 +192,7 @@ export class Globe {
       mapModeColors,
       t_xyz: this.t_xyz,
       triangleGeometry: this.triangleGeometry,
+      minimapGeometry: this.minimapGeometry,
       coastline: createCoastline(this.mesh, this),
       rivers: createRivers(this.mesh, this),
     };
