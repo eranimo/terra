@@ -41,8 +41,8 @@ type TrianglesUniforms = {
 type TrianglesProps = {
   u_colormap?: number[],
   count: number,
-  a_xyz: number[],
-  a_tm: number[],
+  a_xyz: Float32Array,
+  a_tm: Float32Array,
 }
 
 type CellColorUniforms = {
@@ -530,22 +530,9 @@ export default function Renderer(
   });
 
   function drawPlateVectors(
-    mesh: TriangleMesh,
-    { r_xyz, r_plate, plate_vec }: Globe,
-    options: IGlobeOptions,
+    line_xyz: number[],
+    line_rgba: number[],
   ) {
-    let line_xyz = [], line_rgba = [];
-
-    for (let r = 0; r < mesh.numRegions; r++) {
-      line_xyz.push(r_xyz.slice(3 * r, 3 * r + 3));
-      line_rgba.push([1, 1, 1, 1]);
-      line_xyz.push(
-        vec3.add([] as any, r_xyz.slice(3 * r, 3 * r + 3),
-        vec3.scale([] as any, plate_vec[r_plate[r]], 2 / Math.sqrt(options.sphere.numberCells)))
-      );
-      line_rgba.push([1, 0, 0, 0]);
-    }
-
     renderLines({
       scale: mat4.fromScaling(mat4.create(), [1.005, 1.005, 1.005]),
       u_multiply_rgba: [1, 1, 1, 1],
@@ -554,46 +541,6 @@ export default function Renderer(
       a_rgba: line_rgba,
       count: line_xyz.length,
     });
-  }
-
-  const plateCache = new Map();
-
-  function createPlateBoundary(mesh: TriangleMesh, t_xyz, r_plate) {
-    const points = [];
-    const widths = [];
-    for (let s = 0; s < mesh.numSides; s++) {
-      let begin_r = mesh.s_begin_r(s),
-        end_r = mesh.s_end_r(s);
-      if (r_plate[begin_r] !== r_plate[end_r]) {
-        let inner_t = mesh.s_inner_t(s),
-          outer_t = mesh.s_outer_t(s);
-        const x = t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
-        const y = t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-        points.push(...x, ...x, ...y, ...y);
-        widths.push(0, 3, 3, 0);
-      }
-    }
-
-    return createLine(regl, {
-      color: [1.0, 0.0, 0.0, 1.0],
-      widths,
-      points,
-    });
-  }
-
-  function drawPlateBoundaries(
-    mesh: TriangleMesh,
-    { t_xyz, r_plate }: Globe,
-  ) {
-    let line = plateCache.get(mesh);
-    if (!line) {
-      line = createPlateBoundary(mesh, t_xyz, r_plate);
-      plateCache.set(mesh, line);
-    }
-
-    line.draw({
-      model: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001])
-    } as any);
   }
 
   let cellBorderCache = new Map();
@@ -703,7 +650,6 @@ export default function Renderer(
 
     drawCellBorder,
     drawPlateVectors,
-    drawPlateBoundaries,
   };
 }
 

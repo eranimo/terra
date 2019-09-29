@@ -4,7 +4,7 @@ import createLine from 'regl-line';
 import { Globe } from './worldgen/Globe';
 import { mapModeDefs } from './mapModes';
 import Renderer from './Renderer';
-import { EDrawMode, EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions, monthTitles, GlobeData } from './types';
+import { EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions, monthTitles, GlobeData } from './types';
 import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { CellGroup } from "./CellGroup";
@@ -64,6 +64,7 @@ export class MapManager {
   renderState: {
     rivers: any,
     coastline: any,
+    plateBorders: any,
   };
 
   constructor(protected screenCanvas: HTMLCanvasElement, protected minimapCanvas: HTMLCanvasElement, protected images: ImageRef[]) {
@@ -96,7 +97,9 @@ export class MapManager {
         ...defaultDrawOptions,
         ...mapModeDrawOptions[mapMode],
       })
-      this.drawMinimap();
+      if (this.globe) {
+        this.drawMinimap();
+      }
     });
 
     // minimap events
@@ -292,39 +295,30 @@ export class MapManager {
         widths: this.globe.coastline.widths,
         points: this.globe.coastline.points,
         miter: 1
+      }),
+      plateBorders: createLine(this.renderer.regl, {
+        color: [1.0, 0.0, 0.0, 1.0],
+        widths: this.globe.plateBorders.widths,
+        points: this.globe.plateBorders.points,
       })
     }
   }
 
   draw() {
-    // const { mesh, triangleGeometry, minimapGeometry, quadGeometry, r_xyz } = this.globe;
-    // if (this.mapMode$.value === EMapMode.NONE) {
-    //   if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.CENTROID]) {
-    //     this.renderer.renderTriangles({
-    //       a_xyz: triangleGeometry.xyz,
-    //       a_tm: triangleGeometry.tm,
-    //       count: triangleGeometry.xyz.length / 3,
-    //     });
-    //   }
-    //   else if (this.drawOptions$.get('drawMode') == EDrawMode[EDrawMode.QUADS]) {
-    //     this.renderer.renderIndexedTriangles({
-    //       a_xyz: quadGeometry.xyz,
-    //       a_tm: quadGeometry.tm,
-    //       elements: quadGeometry.I,
-    //     } as any);
-    //   }
-    // }
+    const { mapModeColors, triangleGeometry } = this.globe;
     if (this.drawOptions$.get('rivers')) {
       this.renderState.rivers.draw({
         model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
       });
     }
-    // if (this.drawOptions$.get('plateVectors')) {
-    //   this.renderer.drawPlateVectors(mesh, this.globe, this.globeOptions$.value);
-    // }
-    // if (this.drawOptions$.get('plateBorders')) {
-    //   this.renderer.drawPlateBoundaries(mesh, this.globe);
-    // }
+    if (this.drawOptions$.get('plateVectors')) {
+      this.renderer.drawPlateVectors(this.globe.plateVectors.line_xyz, this.globe.plateVectors.line_rgba);
+    }
+    if (this.drawOptions$.get('plateBorders')) {
+      this.renderState.plateBorders.draw({
+        model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
+      });
+    }
     // if (this.drawOptions$.get('grid')) {
     //   this.renderer.drawCellBorders(mesh, this.globe);
     // }
@@ -353,15 +347,14 @@ export class MapManager {
     //   }
     // }
 
-    const { mapModeColors, triangleGeometry } = this.globe;
     if (this.drawOptions$.get('surface') && this.mapMode$.value) {
       const rgba = mapModeColors[this.mapMode$.value];
       if (rgba) {
         this.renderer.renderCellColor({
           scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
-          a_xyz: triangleGeometry.xyz,
+          a_xyz: triangleGeometry,
           a_rgba: rgba,
-          count: triangleGeometry.xyz.length / 3,
+          count: triangleGeometry.length / 3,
         } as any);
       }
     }
@@ -377,21 +370,13 @@ export class MapManager {
   drawMinimap() {
     const { minimapGeometry, mapModeColors } = this.globe;
     // draw minimap
-    if (this.mapMode$.value !== EMapMode.NONE) {
-      const rgba = mapModeColors[this.mapMode$.value];
-      if (rgba) {
-        this.renderer.renderMinimapCellColor({
-          scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-          a_xy: minimapGeometry.xy,
-          a_rgba: rgba,
-          count: minimapGeometry.xy.length / 2,
-        });
-      }
-    } else {
-      this.renderer.renderMinimap({
-        a_xy: minimapGeometry.xy,
-        a_tm: minimapGeometry.tm,
-        count: minimapGeometry.xy.length / 2,
+    const rgba = mapModeColors[this.mapMode$.value];
+    if (rgba) {
+      this.renderer.renderMinimapCellColor({
+        scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+        a_xy: minimapGeometry,
+        a_rgba: rgba,
+        count: minimapGeometry.length / 2,
       });
     }
   }

@@ -2,7 +2,7 @@ import { Accordion, AccordionHeader, AccordionItem, AccordionPanel, Box, Button,
 import { get, groupBy, random, set } from 'lodash';
 import React, { useState } from 'react';
 import { MapManager } from '../MapManager';
-import { categoryTitles, drawModeTitles, IDrawOptions } from '../types';
+import { categoryTitles, IDrawOptions } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
 
@@ -197,13 +197,6 @@ const GLOBE_OPTIONS: ControlDef[] = [
 ];
 
 const DRAW_OPTIONS: ControlDef[] = [
-  {
-    key: 'drawMode',
-    title: 'Draw mode',
-    type: 'select',
-    desc: 'Changes the drawing method for planet surfaces',
-    options: { options: drawModeTitles, }
-  },
   {
     key: 'grid',
     title: 'Draw grid',

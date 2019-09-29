@@ -2,8 +2,8 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import { makeSphere } from "../SphereMesh";
 import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome, GlobeData } from '../types';
-import { getLatLng, logGroupTime, arrayStats, toFloat32SAB } from '../utils';
-import { coordinateForSide, generateMinimapGeometry, generateNoize3D, generateTriangleCenters, generateVoronoiGeometry, QuadGeometry } from './geometry';
+import { getLatLng, logGroupTime, arrayStats } from '../utils';
+import { coordinateForSide, generateMinimapGeometry, generateTriangleCenters, generateVoronoiGeometry } from './geometry';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
 import { clamp, isArray } from 'lodash';
@@ -11,6 +11,7 @@ import SimplexNoise from 'simplex-noise';
 import FlatQueue from 'flatqueue';
 import { number } from 'prop-types';
 import { mapModeDefs, createMapModeColor } from '../mapModes';
+import { vec3 } from 'gl-matrix';
 
 
 function createCoastline(mesh: TriangleMesh, globe: Globe) {
@@ -62,20 +63,49 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   };
 }
 
+function createPlateVectors(mesh: TriangleMesh, globe: Globe) {
+  const line_xyz = [];
+  const line_rgba = [];
+
+  for (let r = 0; r < mesh.numRegions; r++) {
+    line_xyz.push(globe.r_xyz.slice(3 * r, 3 * r + 3));
+    line_rgba.push([1, 1, 1, 1]);
+    line_xyz.push(
+      vec3.add([] as any, globe.r_xyz.slice(3 * r, 3 * r + 3),
+      vec3.scale([] as any, globe.plate_vec[globe.r_plate[r]], 2 / Math.sqrt(globe.options.sphere.numberCells)))
+    );
+    line_rgba.push([1, 0, 0, 0]);
+  }
+  return { line_xyz, line_rgba };
+}
+
+function createPlateBorders(mesh: TriangleMesh, globe: Globe) {
+  const points = [];
+  const widths = [];
+
+  for (let s = 0; s < mesh.numSides; s++) {
+    const begin_r = mesh.s_begin_r(s);
+    const end_r = mesh.s_end_r(s);
+    if (globe.r_plate[begin_r] !== globe.r_plate[end_r]) {
+      let inner_t = mesh.s_inner_t(s),
+        outer_t = mesh.s_outer_t(s);
+      const x = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+      const y = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+      points.push(...x, ...x, ...y, ...y);
+      widths.push(0, 3, 3, 0);
+    }
+  }
+
+  return { points, widths };
+}
+
 
 export class Globe {
   mesh: TriangleMesh;
   r_xyz: number[];
   latlong: number[];
-  triangleGeometry: {
-    xyz: Float32Array,
-    tm: Float32Array,
-  };
-  minimapGeometry: {
-    xy: Float32Array,
-    tm: Float32Array,
-  };
-  quadGeometry: QuadGeometry;
+  triangleGeometry: Float32Array;
+  minimapGeometry: Float32Array;
 
   t_xyz: Float32Array;
   minimap_t_xyz: Float32Array; // without height added
@@ -121,8 +151,6 @@ export class Globe {
     this.latlong = latlong;
 
     console.time('make quad geometry');
-    this.quadGeometry = new QuadGeometry();
-    this.quadGeometry.setMesh(mesh);
     console.timeEnd('make quad geometry');
 
     console.time('make triangles');
@@ -182,10 +210,12 @@ export class Globe {
   }
 
   export(): GlobeData {
+    console.time('map mode colors');
     const mapModeColors: Record<string, Float32Array> = {};
     for (const [mapMode, def] of mapModeDefs) {
       mapModeColors[mapMode] = createMapModeColor(this, def);
     }
+    console.timeEnd('map mode colors');
     
     
     return {
@@ -195,6 +225,8 @@ export class Globe {
       minimapGeometry: this.minimapGeometry,
       coastline: createCoastline(this.mesh, this),
       rivers: createRivers(this.mesh, this),
+      plateVectors: createPlateVectors(this.mesh, this),
+      plateBorders: createPlateBorders(this.mesh, this),
     };
   }
 
@@ -435,8 +467,6 @@ export class Globe {
 
     this.minimap_t_xyz = new Float32Array(Array.from(this.t_xyz));
     this.minimap_r_xyz = new Float32Array(Array.from(this.r_xyz));
-
-    this.quadGeometry.setMap(this.mesh, this, this.options.sphere.protrudeHeight);
     console.log('map', this);
 
     // terrain roughness

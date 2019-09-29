@@ -12,13 +12,14 @@ export class WorldgenClient {
   }
 
   newWorld(options: IGlobeOptions): Promise<GlobeData> {
+    console.time('worldgen worker');
     return new Promise((resolve) => {
       this.worker$.action('init').send(options);
 
       this.worker$.on('generate').subscribe(result => {
         console.log('[worldgen client] result', result);
 
-        const { t_xyz } = result;
+        console.timeEnd('worldgen worker');
         resolve(result);
       });
     });

@@ -84,32 +84,25 @@ export function coordinateForSide(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, s
 export function generateVoronoiGeometry(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, r_color_fn) {
   const { numSides } = mesh;
   const xyz_array = [];
-  const tm_array = [];
 
   for (let s = 0; s < numSides; s++) {
     const inner_t = mesh.s_inner_t(s);
     const outer_t = mesh.s_outer_t(s);
     const begin_r = mesh.s_begin_r(s);
 
-    const rgb = r_color_fn(begin_r);
-
     xyz_array.push(
       t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2],
       t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2],
       r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2],
     );
-    tm_array.push(rgb, rgb, rgb);
   }
 
-  return {
-    xyz: toFloat32SAB(xyz_array),
-    tm: toFloat32SAB(tm_array),
-  };
+  return toFloat32SAB(xyz_array);
 }
 
 export function generateMinimapGeometry(mesh: TriangleMesh, { minimap_r_xyz, minimap_t_xyz }: Globe, r_color_fn) {
   const { numSides } = mesh;
-  let xy = [], tm = [];
+  let xy = [];
 
   for (let s = 0; s < numSides; s++) {
     const inner_t = mesh.s_inner_t(s);
@@ -120,16 +113,11 @@ export function generateMinimapGeometry(mesh: TriangleMesh, { minimap_r_xyz, min
     const p2 = getUV([minimap_t_xyz[3 * outer_t], minimap_t_xyz[3 * outer_t + 1], minimap_t_xyz[3 * outer_t + 2]]);
     const p3 = getUV([minimap_r_xyz[3 * begin_r], minimap_r_xyz[3 * begin_r + 1], minimap_r_xyz[3 * begin_r + 2]]);
     xy.push(...p1, ...p2, ...p3);
-    tm.push(
-      rgb, rgb, rgb
-    );
   }
-  return {
-    xy: toFloat32SAB(xy),
-    tm: toFloat32SAB(tm),
-  };
+  return toFloat32SAB(xy);
 }
 
+// TODO: remove
 export class QuadGeometry {
   I: Int32Array; // I = indices for indexed drawing mode
   xyz: Float32Array; // position in 3-space

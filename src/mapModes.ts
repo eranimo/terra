@@ -2,16 +2,7 @@ import colormap from 'colormap';
 import { clamp } from 'lodash';
 import { Globe } from './worldgen/Globe';
 import { EMapMode, biomeColors } from './types';
-import { getUV } from './utils';
 
-
-interface ICellData {
-  biome: number;
-  roughness: number;
-  moisture: number;
-  height: number;
-  temperature: number;
-}
 
 export interface IMapModeColorMap {
   colors?: Record<string, any>;
@@ -19,6 +10,8 @@ export interface IMapModeColorMap {
   color: (
     value: number,
     colors: Record<string, { [index: number]: number[] }>,
+    globe: Globe,
+    r: number,
   ) => number[];
 }
 
@@ -27,7 +20,7 @@ export function createMapModeColor(globe: Globe, definition: IMapModeColorMap) {
   for (let s = 0; s < globe.mesh.numSides; s++) {
     const r = globe.mesh.s_begin_r(s);
     const value = definition.getter(globe, r);
-    const color = definition.color(value, definition.colors);
+    const color = definition.color(value, definition.colors, globe, r);
     rgba_array.push(...color, ...color, ...color);
   }
 
@@ -37,6 +30,32 @@ export function createMapModeColor(globe: Globe, definition: IMapModeColorMap) {
 }
 
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
+  [EMapMode.TECTONICS, {
+    getter: (globe, r) => globe.r_elevation[r],
+    colors: {
+      ocean: colormap({
+        colormap: 'velocity-blue',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+      land: colormap({
+        colormap: 'velocity-green',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+    },
+    color: (value, colors, globe, r) => {
+      const index = clamp(Math.round(((value + 1) / 2) * 100), 0, 99);
+      const plate_id = globe.r_plate[r];
+      const colorMode = globe.plate_is_ocean.has(plate_id) ? 'ocean' : 'land';
+      if (colors[colorMode][index]) {
+        return colors[colorMode][index];
+      }
+      return [0, 0, 0, 1];
+    }
+  }],
   [EMapMode.ELEVATION, {
     getter: (globe, r) => globe.r_elevation[r],
     colors: {

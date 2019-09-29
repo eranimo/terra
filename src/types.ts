@@ -43,20 +43,14 @@ export interface IDrawOptions {
   plateVectors: boolean,
   cellCenters: boolean,
   rivers: boolean,
-  drawMode: EDrawMode,
   surface: boolean,
   regions: boolean,
   coastline: boolean,
 }
 
-export enum EDrawMode {
-  QUADS = 'QUADS',
-  CENTROID = 'CENTROID',
-}
-
 export enum EMapMode {
-  NONE = 'NONE',
   ELEVATION = 'ELEVATION',
+  TECTONICS = 'TECTONICS',
   MOISTURE = 'MOISTURE',
   TEMPERATURE = 'TEMPERATURE',
   ROUGHNESS = 'ROUGHNESS',
@@ -65,7 +59,6 @@ export enum EMapMode {
 }
 
 export const defaultDrawOptions: IDrawOptions = {
-  drawMode: EDrawMode.CENTROID,
   grid: false,
   plateBorders: false,
   plateVectors: false,
@@ -77,7 +70,6 @@ export const defaultDrawOptions: IDrawOptions = {
 };
 
 export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
-  [EMapMode.NONE]: {},
   [EMapMode.ELEVATION]: {
     coastline: true,
     rivers: false,
@@ -96,22 +88,22 @@ export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
   [EMapMode.BIOME]: {},
   [EMapMode.FLOW]: {
     coastline: true,
+  },
+  [EMapMode.TECTONICS]: {
+    rivers: false,
+    plateBorders: true,
+    plateVectors: true,
   }
 }
 
 export const mapModeTitles = {
-  [EMapMode.NONE]: 'None',
   [EMapMode.ELEVATION]: 'Elevation',
+  [EMapMode.TECTONICS]: 'Plate Tectonics',
   [EMapMode.MOISTURE]: 'Moisture',
   [EMapMode.TEMPERATURE]: 'Temperature',
   [EMapMode.ROUGHNESS]: 'Terrain Roughness',
   [EMapMode.BIOME]: 'Biomes',
   [EMapMode.FLOW]: 'Flow',
-}
-
-export const drawModeTitles = {
-  [EDrawMode.QUADS]: 'Quads',
-  [EDrawMode.CENTROID]: 'Centroids',
 }
 
 export enum EMonth {
@@ -317,20 +309,22 @@ export type SharedArray<T> = {
 
 export type GlobeData = {
   t_xyz: Float32Array;
-  triangleGeometry: {
-    xyz: Float32Array,
-    tm: Float32Array,
-  };
-  minimapGeometry: {
-    xy: Float32Array,
-    tm: Float32Array,
-  };
+  triangleGeometry: Float32Array,
+  minimapGeometry: Float32Array,
   mapModeColors: Record<EMapMode, Float32Array>;
   coastline: {
     points: number[],
     widths: number[],
   };
   rivers: {
+    points: number[],
+    widths: number[],
+  };
+  plateVectors: {
+    line_xyz: number[],
+    line_rgba: number[],
+  };
+  plateBorders: {
     points: number[],
     widths: number[],
   };
