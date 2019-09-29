@@ -68,7 +68,13 @@ export class MapManager {
     plateBorders: any,
   };
 
-  constructor(protected screenCanvas: HTMLCanvasElement, protected minimapCanvas: HTMLCanvasElement, protected images: ImageRef[]) {
+  constructor(
+    protected screenCanvas: HTMLCanvasElement,
+    protected minimapCanvas: HTMLCanvasElement,
+    protected images: ImageRef[],
+    protected onBeforeGenerate: () => void,
+    protected onAfterGenerate: () => void,
+  ) {
     this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
     this.mapMode$ = new BehaviorSubject<EMapMode>(localStorage.lastMapMode || DEFAULT_MAP_MODE);
     this.drawOptions$ = new ObservableDict({
@@ -236,6 +242,7 @@ export class MapManager {
 
   @logGroupTime('generate')
   async generate() {
+    this.onBeforeGenerate();
     this.client = new WorldgenClient();
     const result = await this.client.newWorld(this.globeOptions$.value);
     this.globe = result;
@@ -245,6 +252,7 @@ export class MapManager {
 
     // this.calculateCellGroups();
     this.drawMinimap();
+    this.onAfterGenerate();
 
 
     // setInterval(() => {

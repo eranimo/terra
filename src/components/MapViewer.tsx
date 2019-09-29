@@ -40,9 +40,10 @@ export function MapViewer() {
         screenRef.current,
         minimapRef.current,
         images,
+        () => setLoading(true),
+        () => setLoading(false),
       );
       console.log('manager', manager);
-      setLoading(false);
     });
   }, []);
 
