@@ -104,6 +104,7 @@ export class MapManager {
         ...defaultDrawOptions,
         ...mapModeDrawOptions[mapMode],
       })
+      renderer.camera.setDirty();
       if (this.globe) {
         this.drawMinimap();
       }
