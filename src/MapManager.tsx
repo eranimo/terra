@@ -75,6 +75,7 @@ export class MapManager {
     protected onBeforeGenerate: () => void,
     protected onAfterGenerate: () => void,
   ) {
+    this.client = new WorldgenClient();
     this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
     this.mapMode$ = new BehaviorSubject<EMapMode>(localStorage.lastMapMode || DEFAULT_MAP_MODE);
     this.drawOptions$ = new ObservableDict({
@@ -240,7 +241,6 @@ export class MapManager {
   @logGroupTime('generate')
   async generate() {
     this.onBeforeGenerate();
-    this.client = new WorldgenClient();
     const result = await this.client.newWorld(this.globeOptions$.value);
     this.globe = result;
     console.log('worldgen', this.client);
