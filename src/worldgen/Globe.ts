@@ -99,6 +99,25 @@ function createPlateBorders(mesh: TriangleMesh, globe: Globe) {
   return { points, widths };
 }
 
+function createCellBorders(mesh: TriangleMesh, globe: Globe) {
+  const points = [];
+  const rgba = [];
+
+  let sides = [];
+  for (let r = 0; r < mesh.numRegions * 1; r++) {
+    mesh.r_circulate_s(sides, r);
+    for (let s of sides) {
+      const inner_t = mesh.s_inner_t(s);
+      const outer_t = mesh.s_outer_t(s);
+      const p1 = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+      const p2 = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+      points.push(p2, p1);
+      rgba.push([0, 0, 0, 0], [0, 0, 0, 0]);
+    }
+  }
+  return { points, rgba };
+}
+
 
 export class Globe {
   mesh: TriangleMesh;
@@ -227,6 +246,7 @@ export class Globe {
       rivers: createRivers(this.mesh, this),
       plateVectors: createPlateVectors(this.mesh, this),
       plateBorders: createPlateBorders(this.mesh, this),
+      cellBorders: createCellBorders(this.mesh, this),
     };
   }
 

@@ -319,9 +319,16 @@ export class MapManager {
         model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
       });
     }
-    // if (this.drawOptions$.get('grid')) {
-    //   this.renderer.drawCellBorders(mesh, this.globe);
-    // }
+    if (this.drawOptions$.get('grid')) {
+      this.renderer.renderLines({
+        scale: mat4.fromScaling(mat4.create(), [1.002, 1.002, 1.002]),
+        u_multiply_rgba: [1, 1, 1, 0.5],
+        u_add_rgba: [0, 0, 0, 0],
+        a_xyz: this.globe.cellBorders.points,
+        a_rgba: this.globe.cellBorders.rgba,
+        count: this.globe.cellBorders.points.length,
+      });
+    }
     // if (this.drawOptions$.get('cellCenters')) {
     //   let u_pointsize = 10.0 + (100 / Math.sqrt(this.globeOptions$.value['numberCells']));
     //   this.renderer.renderPoints({
