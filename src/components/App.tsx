@@ -11,7 +11,7 @@ export const history = createBrowserHistory();
 export const App = () => (
   <Router history={history}>
     <Switch>
-      <Route exact path="/" component={MainMenu} />
+      <Route exact path="/" component={MapViewer} />
       <Route path="/new" component={MapViewer} />
       <Route path="/load" component={MapViewer} />
     </Switch>
