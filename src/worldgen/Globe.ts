@@ -21,8 +21,8 @@ export class Globe {
   quadGeometry: QuadGeometry;
 
   t_xyz: number[];
-  minimap_t_xyz: number[]; // without height added
-  minimap_r_xyz: number[]; // without height added
+  minimap_t_xyz: Float32Array; // without height added
+  minimap_r_xyz: Float32Array; // without height added
   r_elevation: Float32Array;
   t_elevation: Float32Array;
   r_moisture: Float32Array;
@@ -49,8 +49,10 @@ export class Globe {
   r_coast: number[];
   max_distance_to_ocean: number;
   insolation: Record<number, number[]>;
+  currentMonth: number;
 
   constructor(public options: IGlobeOptions) {
+    this.currentMonth = 0;
     console.log('options', options)
     console.time('make sphere');
     const { mesh, r_xyz, latlong } = makeSphere(options.sphere.numberCells, options.sphere.jitter, makeRandFloat(options.core.seed));
@@ -69,7 +71,7 @@ export class Globe {
     console.time('make triangles');
     this.t_xyz = generateTriangleCenters(mesh, this);
     console.timeEnd('make triangles');
-    this.minimap_t_xyz = null;
+    this.minimap_t_xyz = new Float32Array(mesh.numTriangles);
     this.r_elevation = new Float32Array(mesh.numRegions);
     this.t_elevation = new Float32Array(mesh.numTriangles);
     this.r_biome = new Float32Array(mesh.numRegions);
@@ -122,46 +124,66 @@ export class Globe {
     this.protrudeHeight();
   }
 
+  export() {
+    const t_xyz_buffer = new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.t_xyz.length);
+    const t_xyz_array = new Float32Array(t_xyz_buffer);
+    t_xyz_array.set(this.t_xyz);
+
+    return {
+      t_xyz: t_xyz_array,
+    };
+  }
+
   /**
    * https://www.itacanet.org/the-sun-as-a-source-of-energy/part-2-solar-energy-reaching-the-earths-surface/
    */
+
+  @logGroupTime('insolation')
   private generateInsolation() {
     this.insolation = {};
 
-    const SOLAR_CONSTANT = 1367; // W/m^2
     const DAYS_PER_MONTH = 30;
     const MONTH_COUNT = 12;
     const DAYS_PER_YEAR = DAYS_PER_MONTH * MONTH_COUNT;
+    const AXIAL_TILT = 22; // deg
+    let randomNoise = new SimplexNoise(makeRandFloat(this.options.core.seed));
 
     for (let month = 0; month < MONTH_COUNT; month++) {
       const insolation: number[] = [];
       const n = (month * DAYS_PER_MONTH) + 15;
+      const year_ratio = n / DAYS_PER_YEAR;
       
       for (let r = 0; r < this.mesh.numRegions; r++) {
-        const I_0 = (
-          SOLAR_CONSTANT *
-          (1 + (0.034 * Math.cos(2 * Math.PI * (n / DAYS_PER_YEAR))))
-        );
+        const x = this.r_xyz[3 * r];
+        const y = this.r_xyz[3 * r + 1];
+        const z = this.r_xyz[3 * r + 2];
         const [lat, long] = this.r_lat_long[r];
-
-        // δ
-        const declination = 23.45 * (Math.PI / 180) * Math.sin(Math.PI * 2 * ((284 + n) / 365.25));
-        const declination_deg = declination * (180 / Math.PI);
-
-        const lat_radians = lat * (Math.PI / 180);
-
-        insolation[r] = I_0 * (
-          Math.cos(lat_radians) *
-          Math.cos(declination) *
-          (-Math.tan(lat_radians) * Math.tan(declination)) *
-          Math.sin(lat_radians) *
-          Math.sin(declination)
-        );
+        const latRatio = 1 - (Math.abs(lat) / 90);
+        const seasonal = (AXIAL_TILT / (5 * latRatio + 1)) * Math.cos(2 * year_ratio * Math.PI);
+        const latRatioSeasonal = 1 - (Math.abs(lat - seasonal) / 90);
+        const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
+        if (this.r_elevation[r] < 0) { // ocean
+          const altitude = 1 + this.r_elevation[r];
+          // shallow seas are warmer than deep oceans
+          insolation[r] = (
+            (0.10 * random1) +
+            (0.20 * altitude) +
+            (0.70 * latRatioSeasonal)
+          );
+        } else { // land
+          const altitude = 1 - Math.max(0, this.r_elevation[r]);
+          // higher is colder
+          // lower is warmer
+          insolation[r] = (
+            (0.10 * random1) +
+            (0.20 * altitude) +
+            (0.70 * latRatioSeasonal)
+          );
+        }
       }
 
       // normalize to 0 to 1
       const { min, max, avg } = arrayStats(insolation);
-      console.log(min, max, avg);
       for (let i = 0; i < insolation.length; i++) {
         insolation[i] = (insolation[i] - min) / (max - min);
       }
@@ -347,8 +369,8 @@ export class Globe {
     assignDownflow(this.mesh, this);
     for(let i = 0; i < 2; i++) assignFlow(this.mesh, this.options, this);
 
-    this.minimap_t_xyz = Array.from(this.t_xyz);
-    this.minimap_r_xyz = Array.from(this.r_xyz);
+    this.minimap_t_xyz = new Float32Array(Array.from(this.t_xyz));
+    this.minimap_r_xyz = new Float32Array(Array.from(this.r_xyz));
 
     this.quadGeometry.setMap(this.mesh, this, this.options.sphere.protrudeHeight);
     console.log('map', this);

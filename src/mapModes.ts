@@ -25,7 +25,6 @@ export interface IMapModeColorMap {
 export class MapMode {
   globe: Globe;
   rgba: number[];
-  minimap_rgba: number[][];
   definition: IMapModeColorMap;
 
   constructor(globe: Globe, definition: IMapModeColorMap) {
@@ -36,13 +35,11 @@ export class MapMode {
 
   generate() {
     this.rgba = [];
-    this.minimap_rgba = [];
     for (let s = 0; s < this.globe.mesh.numSides; s++) {
       const r = this.globe.mesh.s_begin_r(s);
       const value = this.definition.getter(this.globe, r);
       const color = this.definition.color(value, this.definition.colors);
       this.rgba.push(...color, ...color, ...color);
-      this.minimap_rgba.push(color, color, color);
     }
   }
 }
@@ -100,10 +97,10 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.TEMPERATURE, {
-    getter: (globe, r) => globe.r_temperature[r],
+    getter: (globe, r) => globe.insolation[globe.currentMonth][r],
     colors: {
       main: colormap({
-        colormap: 'jet',
+        colormap: 'rainbow',
         nshades: 100,
         format: 'float',
         alpha: 1,

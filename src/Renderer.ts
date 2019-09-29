@@ -75,7 +75,7 @@ type MinimapCellColorProps = {
   scale: mat4,
   count: number,
   a_xy: number[],
-  a_rgba?: number[][],
+  a_rgba?: number[],
 }
 
 type IndexedTrianglesUniforms = {

@@ -50,7 +50,7 @@ function pushCentroidOfTriangle(out, ax, ay, az, bx, by, bz, cx, cy, cz) {
 }
 
 
-export function generateTriangleCenters(mesh, { r_xyz }) {
+export function generateTriangleCenters(mesh: TriangleMesh, { r_xyz }: Globe) {
   let { numTriangles } = mesh;
   let t_xyz = [];
   for (let t = 0; t < numTriangles; t++) {
@@ -65,7 +65,7 @@ export function generateTriangleCenters(mesh, { r_xyz }) {
   return t_xyz;
 }
 
-export function coordinateForSide(mesh, { r_xyz, t_xyz }, s: number) {
+export function coordinateForSide(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, s: number) {
   const inner_t = mesh.s_inner_t(s);
   const outer_t = mesh.s_outer_t(s);
   const begin_r = mesh.s_begin_r(s);
@@ -77,7 +77,7 @@ export function coordinateForSide(mesh, { r_xyz, t_xyz }, s: number) {
   ];
 }
 
-export function generateVoronoiGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
+export function generateVoronoiGeometry(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, r_color_fn) {
   const { numSides } = mesh;
   const xyz = [];
   const tm = [];
@@ -99,7 +99,7 @@ export function generateVoronoiGeometry(mesh, { r_xyz, t_xyz }, r_color_fn) {
   return { xyz, tm };
 }
 
-export function generateMinimapGeometry(mesh, { minimap_r_xyz, minimap_t_xyz }, r_color_fn) {
+export function generateMinimapGeometry(mesh: TriangleMesh, { minimap_r_xyz, minimap_t_xyz }: Globe, r_color_fn) {
   const { numSides } = mesh;
   let xy = [], tm = [];
 

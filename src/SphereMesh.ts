@@ -38,9 +38,11 @@ function generateFibonacciSphere(N: number, jitter: number, randFloat: () => num
 function pushCartesianFromSpherical(out: number[], latDeg: number, lonDeg: number) {
   const latRad = latDeg / 180.0 * Math.PI;
   const lonRad = lonDeg / 180.0 * Math.PI;
-  out.push(Math.cos(latRad) * Math.cos(lonRad),
+  out.push(
+    Math.cos(latRad) * Math.cos(lonRad),
     Math.cos(latRad) * Math.sin(lonRad),
-    Math.sin(latRad));
+    Math.sin(latRad)
+  );
   return out;
 }
 

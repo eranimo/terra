@@ -114,6 +114,36 @@ export const drawModeTitles = {
   [EDrawMode.CENTROID]: 'Centroids',
 }
 
+export enum EMonth {
+  JANUARY,
+  FEBRUARY,
+  MARCH,
+  APRIL,
+  MAY,
+  JUNE,
+  JULY,
+  AUGUST,
+  SEPTEMBER,
+  OCTOBER,
+  NOVEMBER,
+  DECEMBER,
+}
+
+export const monthTitles = {
+  [EMonth.JANUARY]: 'January',
+  [EMonth.FEBRUARY]: 'February',
+  [EMonth.MARCH]: 'March',
+  [EMonth.APRIL]: 'April',
+  [EMonth.MAY]: 'May',
+  [EMonth.JUNE]: 'June',
+  [EMonth.JULY]: 'July',
+  [EMonth.AUGUST]: 'August',
+  [EMonth.SEPTEMBER]: 'September',
+  [EMonth.OCTOBER]: 'October',
+  [EMonth.NOVEMBER]: 'November',
+  [EMonth.DECEMBER]: 'December',
+}
+
 export enum EBiome {
   NONE,
 
@@ -277,4 +307,10 @@ export const biomeColors = {
   [EBiome.TEMPERATE_RAINFOREST]: hexToRgb('#425D27'),
   [EBiome.TROPICAL_FOREST]: hexToRgb('#4d703a'),
   [EBiome.TROPICAL_RAINFOREST]: hexToRgb('#426D18'),
+};
+
+
+export type SharedArray<T> = {
+  array: T,
+  buffer: SharedArrayBuffer,
 };
