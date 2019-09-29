@@ -77,10 +77,11 @@ export class MapManager {
   ) {
     this.client = new WorldgenClient();
     this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
-    this.mapMode$ = new BehaviorSubject<EMapMode>(localStorage.lastMapMode || DEFAULT_MAP_MODE);
+    const startMapMode = localStorage.lastMapMode || DEFAULT_MAP_MODE;
+    this.mapMode$ = new BehaviorSubject<EMapMode>(startMapMode);
     this.drawOptions$ = new ObservableDict({
       ...defaultDrawOptions,
-      ...mapModeDrawOptions[DEFAULT_MAP_MODE],
+      ...mapModeDrawOptions[startMapMode],
     });
 
     this.selectedCell = new BehaviorSubject(null);
@@ -101,11 +102,11 @@ export class MapManager {
     // redraw minimap when draw option changes
     this.mapMode$.subscribe(mapMode => {
       localStorage.lastMapMode = mapMode;
-      this.drawOptions$.replace({
-        ...defaultDrawOptions,
-        ...mapModeDrawOptions[mapMode],
-      })
       if (this.globe) {
+        this.drawOptions$.replace({
+          ...defaultDrawOptions,
+          ...mapModeDrawOptions[mapMode],
+        });
         this.client.setMapMode(mapMode).then(() => {
         renderer.camera.setDirty();
           this.drawMinimap();
