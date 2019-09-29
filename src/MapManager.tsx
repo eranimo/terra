@@ -4,7 +4,7 @@ import createLine from 'regl-line';
 import { Globe } from './worldgen/Globe';
 import { mapModeDefs } from './mapModes';
 import Renderer from './Renderer';
-import { EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions, monthTitles, GlobeData } from './types';
+import { EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions, monthTitles, GlobeData, CellPoints } from './types';
 import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { CellGroup } from "./CellGroup";
@@ -46,13 +46,14 @@ const DEFAULT_MAP_MODE = EMapMode.BIOME;
  * Contains CellGroups
  */
 export class MapManager {
+  client: WorldgenClient;
   globeOptions$: BehaviorSubject<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
   renderer: ReturnType<typeof Renderer>;
   camera: any;
   globe: GlobeData;
   removeDrawLoop: any;
-  hoveredCell: BehaviorSubject<number>;
+  selectedCell: BehaviorSubject<CellPoints>;
   minimapContext: CanvasRenderingContext2D;
   cellGroups: Set<CellGroup>;
   cell_group_xyz: number[];
@@ -75,7 +76,7 @@ export class MapManager {
       ...mapModeDrawOptions[DEFAULT_MAP_MODE],
     });
 
-    this.hoveredCell = new BehaviorSubject(null);
+    this.selectedCell = new BehaviorSubject(null);
     this.cellGroups = new Set();
     this.cell_cell_group = {};
     this.cell_group_lines = [];
@@ -136,73 +137,50 @@ export class MapManager {
     });
   }
 
-  @logGroupTime('init map modes')
-  initMapModes() {
-    // for (const [mapMode, def] of mapModeDefs) {
-    //   this.mapModes[mapMode] = new MapMode(this.globe, def);
-    //   console.log(mapMode, this.mapModes[mapMode]);
-    // }
-  }
-
   onLoad = (canvas) => () => {
-    // let isPanning = false;
-    // canvas.addEventListener('mouseup', () => isPanning = false);
-    // canvas.addEventListener('mousedown', (event) => {
-    //   if (this.hoveredCell.value && event.shiftKey) {
-    //     const { r_xyz } = this.globe;
-    //     const h_xyz = [r_xyz[3 * this.hoveredCell.value], r_xyz[3 * this.hoveredCell.value + 1], r_xyz[3 * this.hoveredCell.value + 2]];
-    //     const [long, lat] = getLatLng(h_xyz);
-    //     this.renderer.camera.centerLatLong(lat, long);
-    //   }
-    //   else {
-    //     // console.log(this.hoveredCell);
-    //   }
-    //   isPanning = true;
-    //   this.hoveredCell.next(null);
-    // });
-    // canvas.addEventListener('mousemove', (event) => {
-    //   if (event.shiftKey || isPanning) return;
-    //   const { left, top } = canvas.getBoundingClientRect();
-    //   const { clientX, clientY } = event;
-    //   const mouseX = clientX - left;
-    //   const mouseY = clientY - top;
-    //   const { projection, view } = this.renderer.camera.state;
-    //   const vp = mat4.multiply([] as any, projection, view);
-    //   let invVp = mat4.invert([] as any, vp);
-    //   // get a single point on the camera ray.
-    //   const rayPoint = vec3.transformMat4([] as any, [
-    //     2.0 * mouseX / canvas.width - 1.0,
-    //     -2.0 * mouseY / canvas.height + 1.0,
-    //     0.0
-    //   ], invVp);
-    //   // get the position of the camera.
-    //   const rayOrigin = vec3.transformMat4([] as any, [0, 0, 0], mat4.invert([] as any, view));
-    //   const rayDir = vec3.negate([] as any, vec3.normalize([] as any, vec3.subtract([] as any, rayPoint, rayOrigin)));
-    //   const { mesh, t_xyz, r_xyz } = this.globe;
-    //   let sides = [];
-    //   let maxT = -1e10;
-    //   this.hoveredCell.next(null);
-    //   for (let s = 0; s < mesh.numSides; s++) {
-    //     const inner_t = mesh.s_inner_t(s);
-    //     const outer_t = mesh.s_outer_t(s);
-    //     const begin_r = mesh.s_begin_r(s);
-    //     const x = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
-    //     const y = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
-    //     const z = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
-    //     const tri = [x, y, z];
-    //     let out = [];
-    //     const t = intersectTriangle(out, rayPoint, rayDir, tri);
-    //     if (t !== null) {
-    //       // console.log(s, t, out);
-    //       if (t > maxT) {
-    //         maxT = t;
-    //         this.hoveredCell.next(mesh.s_begin_r(s));
-    //         break;
-    //       }
-    //     }
-    //   }
-    //   this.renderer.camera.setDirty();
-    // });
+    let isPanning = false;
+    let isDown = false;
+    canvas.addEventListener('mousedown', event => {
+      isDown = true;
+    });
+    canvas.addEventListener('mousemove', event => {
+      if (isDown) {
+        isPanning = true;
+      }
+    });
+    canvas.addEventListener('mouseup', event => {
+      isDown = false;
+      if (isPanning) {
+        isPanning = false;
+        return;
+      }
+      const { left, top } = canvas.getBoundingClientRect();
+      const { clientX, clientY } = event;
+      const mouseX = clientX - left;
+      const mouseY = clientY - top;
+      const { projection, view } = this.renderer.camera.state;
+      const vp = mat4.multiply([] as any, projection, view);
+      let invVp = mat4.invert([] as any, vp);
+      // get a single point on the camera ray.
+      const rayPoint = vec3.transformMat4([] as any, [
+        2.0 * mouseX / canvas.width - 1.0,
+        -2.0 * mouseY / canvas.height + 1.0,
+        0.0
+      ], invVp);
+      // get the position of the camera.
+      const rayOrigin = vec3.transformMat4([] as any, [0, 0, 0], mat4.invert([] as any, view));
+      const rayDir = vec3.negate([] as any, vec3.normalize([] as any, vec3.subtract([] as any, rayPoint, rayOrigin)));
+      this.selectedCell.next(null);
+
+      this.client.getIntersectedCell(
+        [rayPoint[0], rayPoint[1], rayPoint[2]],
+        [rayDir[0], rayDir[1], rayDir[2]],
+      ).then(cellData => {
+        console.log(cellData)
+        this.selectedCell.next(cellData);
+        this.renderer.camera.setDirty();
+      });
+    });
   };
 
   destroy() {
@@ -254,22 +232,14 @@ export class MapManager {
 
   @logGroupTime('generate')
   async generate() {
-    const worldgen = new WorldgenClient();
-    const result = await worldgen.newWorld(this.globeOptions$.value);
+    this.client = new WorldgenClient();
+    const result = await this.client.newWorld(this.globeOptions$.value);
     this.globe = result;
-    console.log('worldgen', worldgen);
+    console.log('worldgen', this.client);
     this.setupRendering();
     this.startRenderLoop();
-    
-    // const globe = new Globe(this.globeOptions$.value as IGlobeOptions);
-    // delete (window as any).globe;
-    // delete this.globe;
-    // (window as any).globe = this.globe;
-    // this.globe = globe;
-    // console.log('globe', globe);
 
     // this.calculateCellGroups();
-    // this.renderer.camera.setDirty();
     this.drawMinimap();
 
 
@@ -330,16 +300,16 @@ export class MapManager {
       });
     }
     if (this.drawOptions$.get('cellCenters')) {
-      let u_pointsize = 10.0 + (100 / Math.sqrt(this.globeOptions$.value['numberCells']));
+      let u_pointsize = 10.0;
       this.renderer.renderPoints({
         u_pointsize,
         a_xyz: this.globe.r_xyz,
         count: this.globe.r_xyz.length / 3,
       });
     }
-    // if (this.hoveredCell.value) {
-    //   this.renderer.drawCellBorder(mesh, this.globe, this.hoveredCell.value);
-    // }
+    if (this.selectedCell.value) {
+      this.renderer.drawCellBorder(this.selectedCell.value.points);
+    }
     // if (this.drawOptions$.get('regions')) {
     //   this.renderer.renderCellColor({
     //     scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),

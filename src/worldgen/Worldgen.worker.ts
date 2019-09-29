@@ -4,7 +4,7 @@ import { mapModeDefs } from '../mapModes';
 
 
 const ctx: Worker = self as any;
-const worker = new ReactiveWorker(ctx, true);
+const worker = new ReactiveWorker(ctx, false);
 let globe: Globe;
 
 worker.on('init', (options) => {
@@ -15,4 +15,8 @@ worker.on('init', (options) => {
   console.log('!globe', globe)
 
   worker.send('generate', globe.export());
+}, true);
+
+worker.on('getIntersectedCell', async ({ point, dir }) => {
+  return globe.getIntersectedCell(point, dir);
 }, true);

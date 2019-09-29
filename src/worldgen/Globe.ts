@@ -1,8 +1,8 @@
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
 import { makeSphere } from "../SphereMesh";
-import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome, GlobeData } from '../types';
-import { getLatLng, logGroupTime, arrayStats } from '../utils';
+import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome, GlobeData, CellPoints } from '../types';
+import { getLatLng, logGroupTime, arrayStats, intersectTriangle } from '../utils';
 import { coordinateForSide, generateMinimapGeometry, generateTriangleCenters, generateVoronoiGeometry } from './geometry';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
@@ -249,6 +249,48 @@ export class Globe {
       plateBorders: createPlateBorders(this.mesh, this),
       cellBorders: createCellBorders(this.mesh, this),
     };
+  }
+
+  getBorderForCell(r: number) {
+    let points = [];
+    const sides = this.mesh.r_circulate_s([], r);
+    for (const s of sides) {
+      const inner_t = this.mesh.s_inner_t(s);
+      const outer_t = this.mesh.s_outer_t(s);
+      const p1 = this.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+      const p2 = this.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+      points.push(...p1, ...p2);
+    }
+
+    return points;
+  }
+
+  getIntersectedCell(rayPoint, rayDir): CellPoints | null {
+    const { mesh, t_xyz, r_xyz } = this;
+    let maxT = -1e10;
+    for (let s = 0; s < mesh.numSides; s++) {
+      const inner_t = mesh.s_inner_t(s);
+      const outer_t = mesh.s_outer_t(s);
+      const begin_r = mesh.s_begin_r(s);
+      const x = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
+      const y = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
+      const z = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
+      const tri = [x, y, z];
+      let out = [];
+      const t = intersectTriangle(out, rayPoint, rayDir, tri);
+      if (t !== null) {
+        // console.log(s, t, out);
+        if (t > maxT) {
+          maxT = t;
+          const r = mesh.s_begin_r(s);
+          return {
+            cell: r,
+            points: this.getBorderForCell(r),
+          };
+        }
+      }
+    }
+    return null;
   }
 
   /**

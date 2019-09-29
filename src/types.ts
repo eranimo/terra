@@ -334,3 +334,8 @@ export type GlobeData = {
     rgba: number[],
   };
 }
+
+export type CellPoints = {
+  cell: number; // r value
+  points: number[]
+};
