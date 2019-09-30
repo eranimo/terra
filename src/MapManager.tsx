@@ -108,7 +108,7 @@ export class MapManager {
           ...mapModeDrawOptions[mapMode],
         });
         this.client.setMapMode(mapMode).then(() => {
-        renderer.camera.setDirty();
+          renderer.camera.setDirty();
           this.drawMinimap();
         });
       }
@@ -134,6 +134,13 @@ export class MapManager {
     minimapCanvas.addEventListener('mousemove', (event: MouseEvent) => {
       if (isPanningMinimap) {
         jumpToPosition(event.offsetX, event.offsetY);
+      }
+    });
+
+    this.client.worker$.on('draw').subscribe(() => {
+      if (this.globe) {
+        renderer.camera.setDirty();
+        this.drawMinimap();
       }
     });
   }

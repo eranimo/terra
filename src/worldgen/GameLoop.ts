@@ -109,6 +109,10 @@ export class GameLoop {
     });
   }
 
+  get ticks() {
+    return this.state.ticks.value;
+  }
+
   public start() {
     // console.log('PLAY');
     if (this.state.started.value) return;

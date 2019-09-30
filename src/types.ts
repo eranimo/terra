@@ -53,6 +53,7 @@ export enum EMapMode {
   TECTONICS = 'TECTONICS',
   MOISTURE = 'MOISTURE',
   TEMPERATURE = 'TEMPERATURE',
+  INSOLATION = 'INSOLATION',
   ROUGHNESS = 'ROUGHNESS',
   BIOME = 'BIOME',
   FLOW = 'FLOW',
@@ -81,6 +82,10 @@ export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
     coastline: true,
     rivers: false,
   },
+  [EMapMode.INSOLATION]: {
+    coastline: true,
+    rivers: false,
+  },
   [EMapMode.ROUGHNESS]: {
     coastline: true,
     rivers: false,
@@ -101,6 +106,7 @@ export const mapModeTitles = {
   [EMapMode.TECTONICS]: 'Plate Tectonics',
   [EMapMode.MOISTURE]: 'Moisture',
   [EMapMode.TEMPERATURE]: 'Temperature',
+  [EMapMode.INSOLATION]: 'Insolation',
   [EMapMode.ROUGHNESS]: 'Terrain Roughness',
   [EMapMode.BIOME]: 'Biomes',
   [EMapMode.FLOW]: 'Flow',

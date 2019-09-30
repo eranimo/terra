@@ -154,12 +154,10 @@ export class Globe {
   r_distance_to_ocean: number[];
   r_coast: number[];
   max_distance_to_ocean: number;
-  insolation: Record<number, number[]>;
-  currentMonth: number;
+  insolation: Float32Array;
   mapModeColor: Float32Array;
 
   constructor(public options: IGlobeOptions, public mapMode: EMapMode) {
-    this.currentMonth = 0;
     console.log('options', options)
     console.time('make sphere');
     const { mesh, r_xyz, latlong } = makeSphere(options.sphere.numberCells, options.sphere.jitter, makeRandFloat(options.core.seed));
@@ -222,7 +220,7 @@ export class Globe {
 
     
     this.generateCoastline();
-    this.generateInsolation();
+    this.generateInsolation(0);
     this.generateTemperature();
     this.generateMoisture();
     this.generateRivers();
@@ -230,7 +228,7 @@ export class Globe {
     this.protrudeHeight();
   }
 
-  private setupMapMode() {
+  public setupMapMode() {
     const def = mapModeDefs.get(this.mapMode);
     const array = createMapModeColor(this, def);
     this.mapModeColor.set(array);
@@ -318,59 +316,50 @@ export class Globe {
    */
 
   @logGroupTime('insolation')
-  private generateInsolation() {
-    this.insolation = {};
+  generateInsolation(year_ratio) {
+    this.insolation = new Float32Array(Float32Array.BYTES_PER_ELEMENT * this.mesh.numRegions);
 
     const DAYS_PER_MONTH = 30;
     const MONTH_COUNT = 12;
     const DAYS_PER_YEAR = DAYS_PER_MONTH * MONTH_COUNT;
     const AXIAL_TILT = 22; // deg
     let randomNoise = new SimplexNoise(makeRandFloat(this.options.core.seed));
-
-    for (let month = 0; month < MONTH_COUNT; month++) {
-      const insolation: number[] = [];
-      const n = (month * DAYS_PER_MONTH) + 15;
-      const year_ratio = n / DAYS_PER_YEAR;
       
-      for (let r = 0; r < this.mesh.numRegions; r++) {
-        const x = this.r_xyz[3 * r];
-        const y = this.r_xyz[3 * r + 1];
-        const z = this.r_xyz[3 * r + 2];
-        const [lat, long] = this.r_lat_long[r];
-        const latRatio = 1 - (Math.abs(lat) / 90);
-        const seasonal = (AXIAL_TILT / (5 * latRatio + 1)) * Math.cos(2 * year_ratio * Math.PI);
-        const latRatioSeasonal = 1 - (Math.abs(lat - seasonal) / 90);
-        const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
-        if (this.r_elevation[r] < 0) { // ocean
-          const altitude = 1 + this.r_elevation[r];
-          // shallow seas are warmer than deep oceans
-          insolation[r] = (
-            (0.10 * random1) +
-            (0.20 * altitude) +
-            (0.70 * latRatioSeasonal)
-          );
-        } else { // land
-          const altitude = 1 - Math.max(0, this.r_elevation[r]);
-          // higher is colder
-          // lower is warmer
-          insolation[r] = (
-            (0.10 * random1) +
-            (0.20 * altitude) +
-            (0.70 * latRatioSeasonal)
-          );
-        }
-      }
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      const x = this.r_xyz[3 * r];
+      const y = this.r_xyz[3 * r + 1];
+      const z = this.r_xyz[3 * r + 2];
+      const [lat, long] = this.r_lat_long[r];
+      const latRatio = 1 - (Math.abs(lat) / 90);
+      const seasonal = (AXIAL_TILT / (5 * latRatio + 1)) * Math.cos(2 * year_ratio * Math.PI);
+      const latRatioSeasonal = 1 - (Math.abs(lat + seasonal) / 90);
+      const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
 
-      // normalize to 0 to 1
-      const { min, max, avg } = arrayStats(insolation);
-      for (let i = 0; i < insolation.length; i++) {
-        insolation[i] = (insolation[i] - min) / (max - min);
+      if (this.r_elevation[r] < 0) { // ocean
+        const altitude = 1 + this.r_elevation[r];
+        // shallow seas are warmer than deep oceans
+        this.insolation[r] = (
+          (0.10 * random1) +
+          (0.20 * altitude) +
+          (0.70 * latRatioSeasonal)
+        );
+      } else { // land
+        const altitude = 1 - Math.max(0, this.r_elevation[r]);
+        // higher is colder
+        // lower is warmer
+        this.insolation[r] = (
+          (0.10 * random1) +
+          (0.20 * altitude) +
+          (0.70 * latRatioSeasonal)
+        );
       }
-
-      this.insolation[month] = insolation;
     }
 
-    console.log('insolation', this.insolation);
+    // normalize to 0 to 1
+    const { min, max, avg } = arrayStats(this.insolation);
+    for (let i = 0; i < this.insolation.length; i++) {
+      this.insolation[i] = (this.insolation[i] - min) / (max - min);
+    }
   }
 
   private generateCoastline() {

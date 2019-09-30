@@ -18,6 +18,17 @@ worker.on('init', ({ options, mapMode }) => {
 
   console.log('!globe', globe)
 
+  game.addTimer({
+    ticksLength: 30,
+    isRepeated: true,
+    onFinished: () => {
+      const yearRatio = (game.state.ticks.value % 360) / 360;
+      globe.generateInsolation(yearRatio);
+      globe.setupMapMode();
+      worker.send('draw');
+    }
+  });
+
   game.state.speedIndex.subscribe(speedIndex => worker.send('speedIndex', speedIndex));
   game.state.speed.subscribe(speed => worker.send('speed', speed));
   game.state.running.subscribe(running => worker.send('running', running));

@@ -105,8 +105,25 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     },
   }],
   [EMapMode.TEMPERATURE, {
-    // getter: (globe, r) => globe.insolation[globe.currentMonth][r],
     getter: (globe, r) => globe.r_temperature[r],
+    colors: {
+      main: colormap({
+        colormap: 'rainbow',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+    },
+    color: (value, colors) => {
+      const index = clamp(Math.round(value * 100), 0, 99);
+      if (colors.main[index]) {
+        return colors.main[index];
+      }
+      return [0, 0, 0, 1];
+    },
+  }],
+  [EMapMode.INSOLATION, {
+    getter: (globe, r) => globe.insolation[r],
     colors: {
       main: colormap({
         colormap: 'rainbow',
