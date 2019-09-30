@@ -6,6 +6,8 @@ import { loadImages } from '../utils';
 import { CellInfo } from './CellInfo';
 import { Controls } from './Controls';
 import { ViewControl } from './ViewControl';
+import createContainer from 'constate';
+import { TimeControls } from './TimeControls';
 
 
 const LoadingOverlay = () => (
@@ -20,6 +22,9 @@ const LoadingOverlay = () => (
   </Flex>
 );
 
+export const MapManagerContainer = createContainer(({ manager }: { manager: MapManager }) => {
+  return useState(manager)[0];
+});
 
 (window as any)._ = require('lodash');
 
@@ -47,6 +52,7 @@ export function MapViewer() {
     });
   }, []);
 
+
   const { width, height } = useWindowSize();
   return (
     <div>
@@ -56,7 +62,6 @@ export function MapViewer() {
         width={width}
         height={height}
       />
-      {!isLoading && <ViewControl manager={manager} />}
       <Box
         bg="black"
         borderWidth="1px"
@@ -79,10 +84,16 @@ export function MapViewer() {
             width: '360px',
             height: '180px',
           }}
-        />
+          />
       </Box>
-      {!isLoading && <Controls manager={manager} />}
-      {!isLoading && <CellInfo manager={manager} />}
+      {!isLoading && (
+        <MapManagerContainer.Provider manager={manager}>
+          <TimeControls />
+          <ViewControl />
+          <Controls />
+          <CellInfo />
+        </MapManagerContainer.Provider>
+      )}
     </div>
   );
 }

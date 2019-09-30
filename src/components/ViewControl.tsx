@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { MapManager } from '../MapManager';
 import {
   Box,
@@ -21,14 +21,17 @@ import {
 import { mapModeTitles } from '../types';
 import { useObservable } from '../utils/hooks';
 import { DrawOptionsTab } from './Controls';
+import { MapManagerContainer } from './MapViewer';
 
 
 const MenuItem$ = MenuItem as any;
 const MenuButton$ = MenuButton as any;
 
-export const ViewControl = ({ manager }: { manager: MapManager }) => {
+export const ViewControl = () => {
+  const manager = useContext(MapManagerContainer.Context);
   const mapMode = useObservable(manager.mapMode$, manager.mapMode$.value);
   const [isModalOpen, setModalOpen] = useState(false);
+
   return (
     <Box
       p="5"
@@ -66,7 +69,7 @@ export const ViewControl = ({ manager }: { manager: MapManager }) => {
               <ModalHeader>Draw Options</ModalHeader>
               <ModalCloseButton />
               <ModalBody>
-                <DrawOptionsTab manager={manager} />
+                <DrawOptionsTab />
               </ModalBody>
             </ModalContent>
           </Modal>

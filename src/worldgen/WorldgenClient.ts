@@ -25,6 +25,20 @@ export class WorldgenClient {
     });
   }
 
+  // time
+  start() {
+    this.worker$.action('start').send();
+  }
+  stop() {
+    this.worker$.action('stop').send();
+  }
+  faster() {
+    this.worker$.action('faster').send();
+  }
+  slower() {
+    this.worker$.action('slower').send();
+  }
+
   async getIntersectedCell(point: number[], dir: number[]): Promise<CellPoints | null> {
     return new Promise((resolve) => {
       this.worker$.action('getIntersectedCell')

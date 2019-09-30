@@ -1,10 +1,11 @@
 import { Accordion, AccordionHeader, AccordionItem, AccordionPanel, Box, Button, Checkbox, Collapse, Heading, Input, Select, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Stack, Text } from '@chakra-ui/core';
 import { get, groupBy, random, set } from 'lodash';
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { MapManager } from '../MapManager';
 import { categoryTitles, IDrawOptions } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
+import { MapManagerContainer } from './MapViewer';
 
 
 interface IControlOptions {
@@ -247,7 +248,8 @@ const DRAW_OPTIONS: ControlDef[] = [
   }
 ]
 
-const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
+const GlobeOptionsTab = () => {
+  const manager = useContext(MapManagerContainer.Context);
   const globeOptions = useObservable(manager.globeOptions$, manager.globeOptions$.value);
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
@@ -307,7 +309,8 @@ const GlobeOptionsTab = ({ manager }: { manager: MapManager }) => {
   )
 }
 
-export const DrawOptionsTab = ({ manager }: { manager: MapManager }) => {
+export const DrawOptionsTab = () => {
+  const manager = useContext(MapManagerContainer.Context);
   const drawOptions = useObservableDict(manager.drawOptions$);
   return (
     <Box pt={5}>
@@ -328,7 +331,7 @@ export const DrawOptionsTab = ({ manager }: { manager: MapManager }) => {
   );
 }
 
-export function Controls({ manager }: { manager: MapManager }) {
+export function Controls() {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <Box
@@ -357,7 +360,7 @@ export function Controls({ manager }: { manager: MapManager }) {
       </Stack>
 
       <Collapse isOpen={isOpen}>
-        <GlobeOptionsTab manager={manager} />
+        <GlobeOptionsTab />
       </Collapse>
     </Box>
   );

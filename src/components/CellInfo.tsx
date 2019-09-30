@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { MapManager } from '../MapManager';
 import { Box, Heading, Text, Spinner } from '@chakra-ui/core';
 import { useObservable } from 'react-use';
 import { round } from 'lodash';
 import { biomeTitles } from '../types';
+import { MapManagerContainer } from './MapViewer';
 
 
 function formatLatLong(lat: number, long: number): string {
@@ -13,7 +14,8 @@ function formatLatLong(lat: number, long: number): string {
   ].join(' ')
 }
 
-export function CellInfo({ manager }: { manager: MapManager }) {
+export function CellInfo() {
+  const manager = useContext(MapManagerContainer.Context);
   const selectedCell = useObservable(manager.selectedCell);
   const [cellData, setCellData] = useState(null);
 

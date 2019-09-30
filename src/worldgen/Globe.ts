@@ -222,8 +222,8 @@ export class Globe {
 
     
     this.generateCoastline();
-    this.generateTemperature();
     this.generateInsolation();
+    this.generateTemperature();
     this.generateMoisture();
     this.generateRivers();
     this.generateBiomes();
