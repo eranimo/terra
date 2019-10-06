@@ -108,7 +108,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     getter: (globe, r) => globe.r_temperature[r],
     colors: {
       main: colormap({
-        colormap: 'rainbow',
+        colormap: 'jet',
         nshades: 100,
         format: 'float',
         alpha: 1,
@@ -126,7 +126,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
     getter: (globe, r) => globe.insolation[r],
     colors: {
       main: colormap({
-        colormap: 'rainbow',
+        colormap: 'jet',
         nshades: 100,
         format: 'float',
         alpha: 1,

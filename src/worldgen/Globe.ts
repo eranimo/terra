@@ -331,7 +331,7 @@ export class Globe {
       const z = this.r_xyz[3 * r + 2];
       const [lat, long] = this.r_lat_long[r];
       const latRatio = 1 - (Math.abs(lat) / 90);
-      const seasonal = (AXIAL_TILT / (5 * latRatio + 1)) * Math.cos(2 * year_ratio * Math.PI);
+      const seasonal = (AXIAL_TILT / (1 * latRatio + 1)) * Math.cos(2 * year_ratio * Math.PI);
       const latRatioSeasonal = 1 - (Math.abs(lat + seasonal) / 90);
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
 
@@ -339,18 +339,18 @@ export class Globe {
         const altitude = 1 + this.r_elevation[r];
         // shallow seas are warmer than deep oceans
         this.insolation[r] = (
-          (0.10 * random1) +
+          (0.05 * random1) +
           (0.20 * altitude) +
-          (0.70 * latRatioSeasonal)
+          (0.75 * latRatioSeasonal)
         );
       } else { // land
         const altitude = 1 - Math.max(0, this.r_elevation[r]);
         // higher is colder
         // lower is warmer
         this.insolation[r] = (
-          (0.10 * random1) +
+          (0.05 * random1) +
           (0.20 * altitude) +
-          (0.70 * latRatioSeasonal)
+          (0.75 * latRatioSeasonal)
         );
       }
     }
