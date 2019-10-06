@@ -4,9 +4,10 @@ import { EMonth } from '../types';
 import { clamp } from 'lodash';
 
 
-const MONTHS_IN_YEAR = 12;
-const DAYS_IN_MONTH = 30;
-const TICKS_PER_DAY = 1;
+export const MONTHS_IN_YEAR = 12;
+export const DAYS_IN_MONTH = 30;
+export const DAYS_PER_YEAR = MONTHS_IN_YEAR * DAYS_IN_MONTH;
+export const TICKS_PER_DAY = 1;
 
 function dateFormat(dayCount: number): IGameDate {
   const years = dayCount / (MONTHS_IN_YEAR * DAYS_IN_MONTH);

@@ -2,6 +2,7 @@ import { ReactiveWorker } from '../utils/workers';
 import { Globe } from './Globe';
 import { mapModeDefs } from '../mapModes';
 import { GameLoop } from './GameLoop';
+import { World, IWorldOptions } from '../World';
 
 const game = new GameLoop(error => {
   console.error(error);
@@ -9,22 +10,26 @@ const game = new GameLoop(error => {
 
 const ctx: Worker = self as any;
 const worker = new ReactiveWorker(ctx, false);
-let globe: Globe;
+let world: World;
 
 worker.on('init', ({ options, mapMode }) => {
   console.log('worldgen init', options);
 
-  globe = new Globe(options, mapMode);
+  const worldOptions: IWorldOptions = {
+    initialMapMode: mapMode
+  };
 
-  console.log('!globe', globe)
+  world = new World(options, worldOptions);
+
+  console.log('!globe', world.globe);
 
   game.addTimer({
     ticksLength: 30,
     isRepeated: true,
     onFinished: () => {
       const yearRatio = (game.state.ticks.value % 360) / 360;
-      globe.generateInsolation(yearRatio);
-      globe.setupMapMode();
+      world.updateGlobe(yearRatio);
+      world.globe.setupMapMode();
       worker.send('draw');
     }
   });
@@ -36,19 +41,19 @@ worker.on('init', ({ options, mapMode }) => {
     worker.send('date', date);
   });
 
-  worker.send('generate', globe.export());
+  worker.send('generate', world.globe.export());
 }, true);
 
 worker.on('getIntersectedCell', async ({ point, dir }) => {
-  return globe.getIntersectedCell(point, dir);
+  return world.globe.getIntersectedCell(point, dir);
 }, true);
 
 worker.on('getCellData', async (r) => {
-  return globe.getCellData(r);
+  return world.globe.getCellData(r);
 }, true);
 
 worker.on('setMapMode', async (mapMode) => {
-  globe.setMapMode(mapMode);
+  world.globe.setMapMode(mapMode);
 }, true);
 
 worker.on('start', async () => game.start());
