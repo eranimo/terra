@@ -55,6 +55,7 @@ export enum EMapMode {
   TEMPERATURE = 'TEMPERATURE',
   INSOLATION = 'INSOLATION',
   ROUGHNESS = 'ROUGHNESS',
+  DESIRABILITY = 'DESIRABILITY',
   BIOME = 'BIOME',
   FLOW = 'FLOW',
 }
@@ -98,7 +99,11 @@ export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
     rivers: false,
     plateBorders: true,
     plateVectors: true,
-  }
+  },
+  [EMapMode.DESIRABILITY]: {
+    rivers: false,
+    coastline: true,
+  },
 }
 
 export const mapModeTitles = {
@@ -108,6 +113,7 @@ export const mapModeTitles = {
   [EMapMode.TEMPERATURE]: 'Temperature',
   [EMapMode.INSOLATION]: 'Insolation',
   [EMapMode.ROUGHNESS]: 'Terrain Roughness',
+  [EMapMode.DESIRABILITY]: 'Desirability',
   [EMapMode.BIOME]: 'Biomes',
   [EMapMode.FLOW]: 'Flow',
 }

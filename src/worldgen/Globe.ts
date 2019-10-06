@@ -140,6 +140,7 @@ export class Globe {
   s_flow: Float32Array;
   r_roughness: Float32Array;
   max_roughness: number;
+  r_desirability: Float32Array;
 
   r_moisture_zone: number[];
   r_temperature_zone: number[];
@@ -175,19 +176,21 @@ export class Globe {
     console.time('make triangles');
     this.t_xyz = generateTriangleCenters(mesh, this);
     console.timeEnd('make triangles');
-    this.minimap_t_xyz = new Float32Array(mesh.numTriangles);
     this.r_elevation = new Float32Array(mesh.numRegions);
-    this.t_elevation = new Float32Array(mesh.numTriangles);
     this.r_biome = new Float32Array(mesh.numRegions);
     this.r_moisture = new Float32Array(mesh.numRegions);
     this.r_roughness = new Float32Array(mesh.numRegions);
-    this.max_roughness = 0;
+    
+    this.minimap_t_xyz = new Float32Array(mesh.numTriangles);
+    this.t_elevation = new Float32Array(mesh.numTriangles);
     this.t_moisture = new Float32Array(mesh.numTriangles);
     this.t_downflow_s = new Int32Array(mesh.numTriangles);
     this.order_t = new Int32Array(mesh.numTriangles);
     this.t_flow = new Float32Array(mesh.numTriangles);
     this.s_flow = new Float32Array(mesh.numSides);
+
     this.r_temperature = [];
+    this.max_roughness = 0;
 
     this.r_lat_long = [];
     for (let r = 0; r < this.mesh.numRegions; r++) {
@@ -225,6 +228,9 @@ export class Globe {
     this.generateMoisture();
     this.generateRivers();
     this.generateBiomes();
+    
+    this.generatePops();
+
     this.protrudeHeight();
   }
 
@@ -511,6 +517,43 @@ export class Globe {
     for (let r = 0; r < this.mesh.numRegions; r++) {
       this.r_temperature[r] = (this.r_temperature[r] - temperature_min) / (temperature_max - temperature_min);
     }
+  }
+
+  @logGroupTime('generate pops', true)
+  private generatePops() {
+
+    // calculate land desirability
+    // 
+    this.r_desirability = new Float32Array(this.mesh.numRegions);
+
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      if (this.r_elevation[r] < 0) {
+        this.r_desirability[r] = 0;
+        continue;
+      }
+
+      // Elevation:
+      // 1 at lowest elevation
+      // 0 at highest elevation
+      // shape: linear
+      const elevation_value = 1 - this.r_elevation[r];
+
+      // Temperature:
+      // 0 at 0 and 1 temperature (extremes)
+      // 100 at 0.5 temperature (temperate)
+      // shape: sine
+      const temperature_value = Math.sin(this.r_temperature[r] * Math.PI);
+
+      // Moisture:
+      // 0 at 0 moisture
+      // 100 at 1 moisture
+      // shape: linear
+      const moisture_value = this.r_moisture[r];
+
+      this.r_desirability[r] = elevation_value * temperature_value * moisture_value;
+    }
+
+    console.log('desirability', arrayStats(this.r_desirability));
   }
 
   temperatureTick() {
