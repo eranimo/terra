@@ -251,13 +251,11 @@ export class GlobeGen {
       this.globe.r_temperature[r] = clamp(this.globe.r_temperature[r], 0, 1);
     }
 
-    const temperature_min = Math.min(...this.globe.r_temperature.filter(i => i));
-    const temperature_max = Math.max(...this.globe.r_temperature.filter(i => i));
-    console.log('min temperature', temperature_min);
-    console.log('max temperature', temperature_max);
+
+    const { min, max } = arrayStats(this.globe.r_temperature);
 
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      this.globe.r_temperature[r] = (this.globe.r_temperature[r] - temperature_min) / (temperature_max - temperature_min);
+      this.globe.r_temperature[r] = (this.globe.r_temperature[r] - min) / (max - min);
     }
   }
 
