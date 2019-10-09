@@ -1,5 +1,4 @@
-import { Cell } from "./Cell";
-import { DAYS_PER_YEAR } from './worldgen/GameLoop';
+import { DAYS_PER_YEAR } from './GameLoop';
 import shortid = require("shortid");
 
 
@@ -16,7 +15,7 @@ export class Population {
   pop_class: Map<string, number>;
 
   constructor(
-    public cell: Cell,
+    
   ) {
     this.pop_ids = new Set();
     this.pop_count = new Map();

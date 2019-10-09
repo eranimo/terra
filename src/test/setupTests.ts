@@ -1,0 +1,1 @@
+(global as any).SharedArrayBuffer = global.ArrayBuffer;

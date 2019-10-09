@@ -1,8 +1,6 @@
 import { ReactiveWorker } from '../utils/workers';
-import { Globe } from './Globe';
-import { mapModeDefs } from '../mapModes';
 import { GameLoop } from './GameLoop';
-import { World, IWorldOptions } from '../World';
+import { IWorldOptions, World } from './World';
 
 const game = new GameLoop(error => {
   console.error(error);

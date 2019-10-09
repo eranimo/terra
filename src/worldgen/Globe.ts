@@ -1,18 +1,11 @@
 import TriangleMesh from '@redblobgames/dual-mesh';
-import { makeRandFloat, makeRandInt } from '@redblobgames/prng';
-import { makeSphere } from "../SphereMesh";
-import { IGlobeOptions, moistureZoneRanges, temperatureZoneRanges, biomeRanges, EBiome, GlobeData, CellPoints, EMapMode } from '../types';
-import { getLatLng, logGroupTime, arrayStats, intersectTriangle } from '../utils';
-import { coordinateForSide, generateMinimapGeometry, generateTriangleCenters, generateVoronoiGeometry } from './geometry';
-import { assignRegionElevation, generatePlates } from './plates';
-import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
-import { clamp, isArray } from 'lodash';
-import SimplexNoise from 'simplex-noise';
-import FlatQueue from 'flatqueue';
-import { number } from 'prop-types';
-import { mapModeDefs, createMapModeColor } from '../mapModes';
+import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
-import { GlobeGen } from './GlobeGen';
+import { createMapModeColor, mapModeDefs } from '../mapModes';
+import { CellPoints, EMapMode, GlobeData, IGlobeOptions } from '../types';
+import { getLatLng, intersectTriangle } from '../utils';
+import { coordinateForSide, generateTriangleCenters } from './geometry';
+import { makeSphere } from "./SphereMesh";
 
 
 function createCoastline(mesh: TriangleMesh, globe: Globe) {
@@ -200,7 +193,6 @@ export class Globe {
       const z = this.r_xyz[3 * r + 2];
       this.r_lat_long[r] = getLatLng([x, y, z]);
     }
-    this.setupMapMode();
   }
 
   public setupMapMode() {

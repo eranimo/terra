@@ -301,7 +301,7 @@ export class GlobeGen {
 
     const POP_CELLS = 10;  // number of cells to put pops
     const POP_SIZE = [100, 1000] // population size of each pop
-    const POPS_PER_CELL = 5;
+    const POPS_PER_CELL = 5; // number of pops to add at each cell
 
   }
 
