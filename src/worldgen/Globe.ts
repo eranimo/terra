@@ -247,6 +247,7 @@ export class Globe {
       elevation: this.r_elevation[r],
       distance_to_ocean: this.r_distance_to_ocean[r],
       biome: this.r_biome[r],
+      insolation: this.insolation[r],
     };
   }
 

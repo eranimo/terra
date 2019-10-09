@@ -68,6 +68,10 @@ export function CellInfo() {
             <td><Text color="gray.400" mr={5}>Biome</Text></td>
             <td>{biomeTitles[cellData.biome] || 'None'}</td>
           </tr>
+          <tr>
+            <td><Text color="gray.400" mr={5}>Insolation</Text></td>
+            <td>{cellData.insolation || 'N/A'}</td>
+          </tr>
         </tbody>
       </table>
     </Box>

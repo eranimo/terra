@@ -29,7 +29,7 @@ export class GlobeGen {
   }
 
   update(year_ratio: number) {
-    this.generateInsolation(0);
+    this.generateInsolation(year_ratio);
   }
 
   @logGroupTime('setup geometry')
@@ -48,10 +48,12 @@ export class GlobeGen {
   @logGroupTime('insolation')
   generateInsolation(year_ratio) {
     const globe = this.globe;
-
     globe.insolation = new Float32Array(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numRegions);
 
     const AXIAL_TILT = 22; // deg
+    const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * year_ratio * Math.PI);
+    console.log(year_ratio);
+    console.log(seasonalRatio);
     let randomNoise = new SimplexNoise(makeRandFloat(globe.options.core.seed));
       
     for (let r = 0; r < globe.mesh.numRegions; r++) {
@@ -59,9 +61,7 @@ export class GlobeGen {
       const y = globe.r_xyz[3 * r + 1];
       const z = globe.r_xyz[3 * r + 2];
       const [lat, long] = globe.r_lat_long[r];
-      const latRatio = 1 - (Math.abs(lat) / 90);
-      const seasonal = (AXIAL_TILT / (1 * latRatio + 1)) * Math.cos(2 * year_ratio * Math.PI);
-      const latRatioSeasonal = 1 - (Math.abs(lat + seasonal) / 90);
+      const latRatioSeasonal = Math.max(0, Math.cos((lat - seasonalRatio) * Math.PI / 180));
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
 
       if (globe.r_elevation[r] < 0) { // ocean
