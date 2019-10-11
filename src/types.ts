@@ -1,4 +1,5 @@
 import { hexToRgb } from './utils/color';
+import { ICellGroupData } from './CellGroup';
 export type Size = {
   width: number,
   height: number,
@@ -345,6 +346,11 @@ export type GlobeData = {
     points: number[],
     rgba: number[],
   };
+}
+
+export type WorldData = {
+  globe: GlobeData,
+  cellGroups: ICellGroupData[],
 }
 
 export type CellPoints = {

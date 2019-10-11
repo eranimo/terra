@@ -296,7 +296,7 @@ export class Globe {
     }
   }
 
-  public coordinatesForCell(cell: number) {
+  public coordinatesForCell(cell: number): number[] {
     const sides = [];
     this.mesh.r_circulate_s(sides, cell);
     const xyz = [];

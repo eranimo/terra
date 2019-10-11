@@ -19,6 +19,12 @@ worker.on('init', ({ options, mapMode }) => {
 
   world = new World(options, worldOptions);
 
+  world.addCellGroup({
+    name: 'foo',
+    color: [0.5, 0.5, 0.5, 1],
+    cells: [15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]
+  });
+
   console.log('!globe', world.globe);
 
   game.addTimer({
@@ -40,7 +46,7 @@ worker.on('init', ({ options, mapMode }) => {
     worker.send('date', date);
   });
 
-  worker.send('generate', world.globe.export());
+  worker.send('generate', world.export());
 }, true);
 
 worker.on('getIntersectedCell', async ({ point, dir }) => {
