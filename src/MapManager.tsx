@@ -1,15 +1,11 @@
 import { mat4, vec3 } from 'gl-matrix';
-import { times } from 'lodash';
 import createLine from 'regl-line';
-import { Globe } from './worldgen/Globe';
-import { mapModeDefs } from './mapModes';
-import Renderer from './Renderer';
-import { EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions, monthTitles, GlobeData, CellPoints } from './types';
-import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
-import { ObservableDict } from './utils/ObservableDict';
 import { BehaviorSubject } from 'rxjs';
+import Renderer from './Renderer';
+import { CellPoints, defaultDrawOptions, EMapMode, GlobeData, IDrawOptions, IGlobeOptions, mapModeDrawOptions, ICellGroupData } from './types';
+import { ImageRef, logGroupTime } from './utils';
+import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
-import { ICellGroupData } from './CellGroup';
 
 
 export const initialOptions: IGlobeOptions = {
@@ -105,6 +101,10 @@ export class MapManager {
           this.drawMinimap();
         });
       }
+    });
+
+    window.addEventListener('resize', () => {
+      renderer.camera.setDirty();
     });
 
     // minimap events

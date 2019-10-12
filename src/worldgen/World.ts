@@ -1,7 +1,6 @@
-import { IGlobeOptions, EMapMode, WorldData } from '../types';
+import { IGlobeOptions, EMapMode, WorldData, ICellGroupOptions, ICellGroupData } from '../types';
 import { GlobeGen } from './GlobeGen';
 import { Globe } from './Globe';
-import { ICellGroupOptions, ICellGroupData } from '../CellGroup';
 import { times } from 'lodash';
 
 

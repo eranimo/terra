@@ -1,5 +1,5 @@
 import { hexToRgb } from './utils/color';
-import { ICellGroupData } from './CellGroup';
+
 export type Size = {
   width: number,
   height: number,
@@ -365,4 +365,18 @@ export type CellData = {
   elevation: number,
   distance_to_ocean: number,
   biome: number,
+}
+
+export interface ICellGroupOptions {
+  name: string;
+  cells: number[];
+  color: number[];
+}
+
+export interface ICellGroupData {
+  name: string;
+  cells_xyz: number[];
+  cells_rgba: number[];
+  border_points: number[];
+  border_widths: number[];
 }
