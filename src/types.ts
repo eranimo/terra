@@ -364,6 +364,7 @@ export type CellGlobeData = {
   moisture: number,
   elevation: number,
   distance_to_ocean: number,
+  desirability: number,
   biome: number,
 }
 

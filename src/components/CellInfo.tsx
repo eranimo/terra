@@ -76,6 +76,10 @@ export function CellInfo() {
             <td><Text color="gray.400" mr={5}>Insolation</Text></td>
             <td>{round(cellData.globe.insolation, 2) || 'N/A'}</td>
           </tr>
+          <tr>
+            <td><Text color="gray.400" mr={5}>Desirability</Text></td>
+            <td>{round(cellData.globe.desirability, 2) || 'N/A'}</td>
+          </tr>
           {cellData.cellGroup && <tr>
             <td><Text color="gray.400" mr={5}>Cell Group</Text></td>
             <td>{cellData.cellGroup}</td>

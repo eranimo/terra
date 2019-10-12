@@ -277,11 +277,16 @@ export class GlobeGen {
       // shape: linear
       const elevation_value = 1 - this.globe.r_elevation[r];
 
+      // Terrain Roughness
+      // 1 at flat
+      // 0 at rough
+      const roughness_value = 1 - this.globe.r_roughness[r];
+
       // Temperature:
       // 0 at 0 and 1 temperature (extremes)
-      // 100 at 0.5 temperature (temperate)
+      // 1 at 0.5 temperature (temperate)
       // shape: sine
-      const temperature_value = Math.sin(this.globe.r_temperature[r] * Math.PI);
+      const temperature_value = Math.sin((this.globe.r_temperature[r] ** 2) * Math.PI);
 
       // Moisture:
       // 0 at 0 moisture
@@ -289,7 +294,12 @@ export class GlobeGen {
       // shape: linear
       const moisture_value = this.globe.r_moisture[r];
 
-      this.globe.r_desirability[r] = elevation_value * temperature_value * moisture_value;
+      this.globe.r_desirability[r] = (
+        elevation_value *
+        roughness_value *
+        temperature_value *
+        moisture_value
+      );
     }
 
     console.log('desirability', arrayStats(this.globe.r_desirability));
