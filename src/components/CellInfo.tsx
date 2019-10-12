@@ -3,7 +3,7 @@ import { MapManager } from '../MapManager';
 import { Box, Heading, Text, Spinner } from '@chakra-ui/core';
 import { useObservable } from 'react-use';
 import { round } from 'lodash';
-import { biomeTitles } from '../types';
+import { biomeTitles, CellGlobeData, CellWorldData } from '../types';
 import { MapManagerContainer } from './MapViewer';
 
 
@@ -17,7 +17,7 @@ function formatLatLong(lat: number, long: number): string {
 export function CellInfo() {
   const manager = useContext(MapManagerContainer.Context);
   const selectedCell = useObservable(manager.selectedCell);
-  const [cellData, setCellData] = useState(null);
+  const [cellData, setCellData] = useState<CellWorldData>(null);
 
   if (selectedCell === null || selectedCell === undefined) return null;
 
@@ -30,7 +30,7 @@ export function CellInfo() {
     return <Spinner />;
   }
 
-  const [lat, long] = cellData.lat_long;
+  const [lat, long] = cellData.globe.lat_long;
   return (
     <Box
       p={5}
@@ -54,28 +54,32 @@ export function CellInfo() {
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Temperature</Text></td>
-            <td>{round(cellData.temperature, 2)}</td>
+            <td>{round(cellData.globe.temperature, 2)}</td>
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Moisture</Text></td>
-            <td>{round(cellData.moisture, 2)}</td>
+            <td>{round(cellData.globe.moisture, 2)}</td>
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Elevation</Text></td>
-            <td>{round(cellData.elevation, 2)}</td>
+            <td>{round(cellData.globe.elevation, 2)}</td>
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Distance to ocean</Text></td>
-            <td>{cellData.distance_to_ocean || 'N/A'}</td>
+            <td>{cellData.globe.distance_to_ocean || 'N/A'}</td>
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Biome</Text></td>
-            <td>{biomeTitles[cellData.biome] || 'None'}</td>
+            <td>{biomeTitles[cellData.globe.biome] || 'None'}</td>
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Insolation</Text></td>
-            <td>{round(cellData.insolation, 2) || 'N/A'}</td>
+            <td>{round(cellData.globe.insolation, 2) || 'N/A'}</td>
           </tr>
+          {cellData.cellGroup && <tr>
+            <td><Text color="gray.400" mr={5}>Cell Group</Text></td>
+            <td>{cellData.cellGroup}</td>
+          </tr>}
         </tbody>
       </table>
     </Box>

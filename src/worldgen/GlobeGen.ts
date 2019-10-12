@@ -3,7 +3,7 @@ import FlatQueue from 'flatqueue';
 import { clamp, isArray } from 'lodash';
 import SimplexNoise from 'simplex-noise';
 import { biomeRanges, EBiome, EMapMode, IGlobeOptions, moistureZoneRanges, temperatureZoneRanges } from '../types';
-import { arrayStats, logGroupTime } from '../utils';
+import { arrayStats, logGroupTime, getLatLng } from '../utils';
 import { Globe } from './Globe';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
@@ -60,7 +60,7 @@ export class GlobeGen {
       const x = globe.r_xyz[3 * r];
       const y = globe.r_xyz[3 * r + 1];
       const z = globe.r_xyz[3 * r + 2];
-      const [lat, long] = globe.r_lat_long[r];
+      const [lat, long] = globe.getLatLongForCell(r);
       const latRatioSeasonal = Math.max(0, Math.cos((lat - seasonalRatio) * Math.PI / 180));
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
 
@@ -186,7 +186,7 @@ export class GlobeGen {
       // const x = this.globe.r_xyz[3 * r];
       // const y = this.globe.r_xyz[3 * r + 1];
       // const z = this.globe.r_xyz[3 * r + 2];
-      const [lat, long] = this.globe.r_lat_long[r];
+      const [lat, long] = this.globe.getLatLongForCell(r);
       const latRatio = 1 - (Math.abs(lat) / 90);
       const random1 = randomNoise.noise2D(lat / (1000 * VARIANCE), long / (1000 * VARIANCE))
       const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
@@ -225,7 +225,7 @@ export class GlobeGen {
       const y = this.globe.r_xyz[3 * r + 1];
       const z = this.globe.r_xyz[3 * r + 2];
       const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
-      const [lat, long] = this.globe.r_lat_long[r];
+      const [lat, long] = this.globe.getLatLongForCell(r);
       const latRatio = 1 - (Math.abs(lat) / 90);
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
       if (this.globe.r_elevation[r] < 0) { // ocean

@@ -155,13 +155,35 @@ export class MapManager {
     });
   }
 
-  onLoad = (canvas) => () => {
+  getCellAtPosition(x: number, y: number) {
+    const { projection, view } = this.renderer.camera.state;
+    const vp = mat4.multiply([] as any, projection, view);
+    let invVp = mat4.invert([] as any, vp);
+    // get a single point on the camera ray.
+    const rayPoint = vec3.transformMat4([] as any, [
+      2.0 * x / this.screenCanvas.width - 1.0,
+      -2.0 * y / this.screenCanvas.height + 1.0,
+      0.0
+    ], invVp);
+
+    // get the position of the camera.
+    const rayOrigin = vec3.transformMat4([] as any, [0, 0, 0], mat4.invert([] as any, view));
+    const rayDir = vec3.negate([] as any, vec3.normalize([] as any, vec3.subtract([] as any, rayPoint, rayOrigin)));
+
+    return this.client.getIntersectedCell(
+      [rayPoint[0], rayPoint[1], rayPoint[2]],
+      [rayDir[0], rayDir[1], rayDir[2]],
+    );
+  }
+
+  onLoad = (canvas: HTMLCanvasElement) => () => {
     let downX = 0;
     let downY = 0;
     canvas.addEventListener('mousedown', event => {
       downX = event.clientX;
       downY = event.clientY;
     });
+
     canvas.addEventListener('mouseup', event => {
       const distance = Math.sqrt(
         Math.pow(downX - event.clientX, 2) +
@@ -174,30 +196,16 @@ export class MapManager {
       const { clientX, clientY } = event;
       const mouseX = clientX - left;
       const mouseY = clientY - top;
-      const { projection, view } = this.renderer.camera.state;
-      const vp = mat4.multiply([] as any, projection, view);
-      let invVp = mat4.invert([] as any, vp);
-      // get a single point on the camera ray.
-      const rayPoint = vec3.transformMat4([] as any, [
-        2.0 * mouseX / canvas.width - 1.0,
-        -2.0 * mouseY / canvas.height + 1.0,
-        0.0
-      ], invVp);
-      // get the position of the camera.
-      const rayOrigin = vec3.transformMat4([] as any, [0, 0, 0], mat4.invert([] as any, view));
-      const rayDir = vec3.negate([] as any, vec3.normalize([] as any, vec3.subtract([] as any, rayPoint, rayOrigin)));
-      this.client.getIntersectedCell(
-        [rayPoint[0], rayPoint[1], rayPoint[2]],
-        [rayDir[0], rayDir[1], rayDir[2]],
-      ).then(cellPoints => {
-        console.log(this.selectedCell.value, cellPoints.cell);
-        if (this.selectedCell.value && cellPoints.cell === this.selectedCell.value.cell) {
-          this.selectedCell.next(null);
-        } else {
-          this.selectedCell.next(cellPoints);
-        }
-        this.renderer.camera.setDirty();
-      });
+      this.getCellAtPosition(mouseX, mouseY)
+        .then(cellPoints => {
+          if (this.selectedCell.value && cellPoints.cell === this.selectedCell.value.cell) {
+            this.selectedCell.next(null);
+          } else {
+            this.selectedCell.next(cellPoints);
+          }
+
+          this.renderer.camera.setDirty();
+        });
     });
   };
 

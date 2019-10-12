@@ -1,4 +1,4 @@
-import { IGlobeOptions, EMapMode, WorldData, ICellGroupOptions, ICellGroupData } from '../types';
+import { IGlobeOptions, EMapMode, WorldData, ICellGroupOptions, ICellGroupData, ICellGroupTooltipData, CellWorldData } from '../types';
 import { GlobeGen } from './GlobeGen';
 import { Globe } from './Globe';
 import { times } from 'lodash';
@@ -69,6 +69,13 @@ export class World {
     };
   }
 
+  getCellData(cell: number): CellWorldData {
+    return {
+      globe: this.globe.getCellData(cell),
+      cellGroup: this.cellCellGroup.get(cell),
+    }
+  }
+
   updateGlobe(yearRatio: number) {
     this.globeGen.update(yearRatio);
   }
@@ -78,6 +85,17 @@ export class World {
     this.cellGroups.add(cellGroup);
     this.calculateCellGroup(cellGroup);
     return cellGroup;
+  }
+
+  getCellGroupForCell(cell: number): ICellGroupTooltipData | null {
+    for (const group of this.cellGroups) {
+      if (group.cells.has(cell)) {
+        return {
+          name: group.options.name
+        };
+      }
+    }
+    return null;
   }
 
   /**

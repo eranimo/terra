@@ -2,8 +2,8 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
 import { createMapModeColor, mapModeDefs } from '../mapModes';
-import { CellPoints, EMapMode, GlobeData, IGlobeOptions } from '../types';
-import { getLatLng, intersectTriangle } from '../utils';
+import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '../types';
+import { getLatLng, intersectTriangle, distance3D } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
 
@@ -143,7 +143,7 @@ export class Globe {
   r_plate: Int32Array;
   plate_vec: any[];
   plate_is_ocean: Set<unknown>;
-  r_lat_long: number[][];
+  r_lat_long: Float32Array;
   r_temperature: number[];
 
   r_distance_to_ocean: number[];
@@ -186,13 +186,21 @@ export class Globe {
     this.r_temperature = [];
     this.max_roughness = 0;
 
-    this.r_lat_long = [];
+    this.r_lat_long = new Float32Array(mesh.numRegions * 2);
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
       const y = this.r_xyz[3 * r + 1];
       const z = this.r_xyz[3 * r + 2];
-      this.r_lat_long[r] = getLatLng([x, y, z]);
+      const [lat, long] = getLatLng([x, y, z]);
+      this.r_lat_long[2 * r] = lat;
+      this.r_lat_long[2 * r + 1] = long;
     }
+  }
+
+  getLatLongForCell(cell: number): [number, number] {
+    const lat = this.r_lat_long[2 * cell];
+    const long = this.r_lat_long[2 * cell + 1];
+    return [lat, long];
   }
 
   public setupMapMode() {
@@ -239,9 +247,9 @@ export class Globe {
     return points;
   }
 
-  getCellData(r: number) {
+  getCellData(r: number): CellGlobeData {
     return {
-      lat_long: this.r_lat_long[r],
+      lat_long: this.getLatLongForCell(r),
       temperature: this.r_temperature[r],
       moisture: this.r_moisture[r],
       elevation: this.r_elevation[r],
@@ -265,13 +273,12 @@ export class Globe {
       let out = [];
       const t = intersectTriangle(out, rayPoint, rayDir, tri);
       if (t !== null) {
-        // console.log(s, t, out);
         if (t > maxT) {
           maxT = t;
-          const r = mesh.s_begin_r(s);
+
           return {
-            cell: r,
-            points: this.getBorderForCell(r),
+            cell: begin_r,
+            points: this.getBorderForCell(begin_r),
           };
         }
       }

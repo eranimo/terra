@@ -183,3 +183,11 @@ export function toFloat32SAB(array: number[]) {
   float_array.set(array);
   return float_array;
 }
+
+export function distance3D(v1: number[], v2: number[]): number {
+  const dx = v1[0] - v2[0];
+  const dy = v1[1] - v2[1];
+  const dz = v1[2] - v2[2];
+
+  return Math.sqrt( dx * dx + dy * dy + dz * dz );
+}

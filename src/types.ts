@@ -357,13 +357,19 @@ export type CellPoints = {
   points: number[]
 };
 
-export type CellData = {
+export type CellGlobeData = {
   lat_long: [number, number],
   temperature: number,
+  insolation: number,
   moisture: number,
   elevation: number,
   distance_to_ocean: number,
   biome: number,
+}
+
+export type CellWorldData = {
+  globe: CellGlobeData;
+  cellGroup: string;
 }
 
 export interface ICellGroupOptions {
@@ -377,4 +383,8 @@ export interface ICellGroupData {
   cells_rgba: number[];
   border_points: number[];
   border_widths: number[];
+}
+
+export interface ICellGroupTooltipData {
+  name: string;
 }

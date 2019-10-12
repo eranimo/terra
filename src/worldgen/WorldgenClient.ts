@@ -1,7 +1,7 @@
 import { ReactiveWorkerClient } from '../utils/workers';
 import WorldgenWorker from 'worker-loader!./Worldgen.worker';
 import { IGlobeOptions, EMapMode } from 'src/types';
-import { GlobeData, CellPoints, CellData, WorldData } from '../types';
+import { GlobeData, CellPoints, CellGlobeData, WorldData, ICellGroupTooltipData, CellWorldData } from '../types';
 
 
 export class WorldgenClient {
@@ -47,12 +47,16 @@ export class WorldgenClient {
     });
   }
 
-  async getCellData(r: number) {
-    return new Promise((resolve) => {
-      this.worker$.action('getCellData')
-        .observe(r)
-        .subscribe(result => resolve(result as CellData));
-    })
+  async getCellGroupForCell(cell: number): Promise<ICellGroupTooltipData | null> {
+    return this.worker$.action('getCellGroupForCell')
+        .observe(cell)
+        .toPromise() as Promise<ICellGroupTooltipData>;
+  }
+
+  async getCellData(r: number): Promise<CellWorldData> {
+    return this.worker$.action('getCellData')
+      .observe(r)
+      .toPromise() as Promise<CellWorldData>;
   }
 
   async setMapMode(mapMode: EMapMode) {

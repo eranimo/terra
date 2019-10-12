@@ -25,7 +25,7 @@ worker.on('init', ({ options, mapMode }) => {
 
   const group1 = world.createCellGroup({
     name: 'Foo',
-    color: [0.5, 0.5, 0.5, 1],
+    color: [0.5, 0.5, 0.5, 0.1],
   });
   group1.addCell(...[15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]);
 
@@ -62,8 +62,12 @@ worker.on('getIntersectedCell', async ({ point, dir }) => {
   return world.globe.getIntersectedCell(point, dir);
 }, true);
 
+worker.on('getCellGroupForCell', async (cell) => {
+  return world.getCellGroupForCell(cell);
+}, true);
+
 worker.on('getCellData', async (r) => {
-  return world.globe.getCellData(r);
+  return world.getCellData(r);
 }, true);
 
 worker.on('setMapMode', async (mapMode) => {
