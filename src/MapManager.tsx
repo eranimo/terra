@@ -48,7 +48,7 @@ export class MapManager {
   renderer: ReturnType<typeof Renderer>;
   camera: any;
   globe: GlobeData;
-  cellGroups: ICellGroupData[];
+  cellGroups: Map<string, ICellGroupData>;
   cellGroupLines: Record<string, any>;
   removeDrawLoop: any;
   selectedCell: BehaviorSubject<CellPoints>;
@@ -136,6 +136,13 @@ export class MapManager {
         this.drawMinimap();
       }
     });
+
+    this.cellGroups = new Map();
+    this.client.worker$.on('cellGroupUpdate').subscribe((data: ICellGroupData) => {
+      renderer.camera.setDirty();
+      this.cellGroups.set(data.name, data);
+      this.generateCellGroupLines();
+    })
   }
 
   startRenderLoop() {
@@ -203,8 +210,8 @@ export class MapManager {
   }
 
   @logGroupTime('calculate cell groups')
-  calculateCellGroups() {
-    for (const groupData of this.cellGroups) {
+  generateCellGroupLines() {
+    for (const groupData of this.cellGroups.values()) {
       const line = createLine(this.renderer.regl, {
         color: [0.0, 0.0, 0.0, 0.5],
         widths: groupData.border_widths,
@@ -219,12 +226,11 @@ export class MapManager {
     this.onBeforeGenerate();
     const result = await this.client.newWorld(this.globeOptions$.value, this.mapMode$.value);
     this.globe = result.globe;
-    this.cellGroups = result.cellGroups;
     console.log('worldgen', this.client);
     this.setupRendering();
     this.startRenderLoop();
 
-    this.calculateCellGroups();
+    this.generateCellGroupLines();
     this.drawMinimap();
     this.onAfterGenerate();
   }
@@ -288,7 +294,7 @@ export class MapManager {
       this.renderer.drawCellBorder(this.selectedCell.value.points);
     }
     if (this.drawOptions$.get('regions')) {
-      for (const cellGroup of this.cellGroups) {
+      for (const cellGroup of this.cellGroups.values()) {
         this.renderer.renderCellColor({
           scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
           a_xyz: cellGroup.cells_xyz,

@@ -49,6 +49,10 @@ export function CellInfo() {
       <table>
         <tbody>
           <tr>
+            <td><Text color="gray.400" mr={5}>(debug) Cell ID</Text></td>
+            <td>#{selectedCell.cell}</td>
+          </tr>
+          <tr>
             <td><Text color="gray.400" mr={5}>Temperature</Text></td>
             <td>{round(cellData.temperature, 2)}</td>
           </tr>
@@ -70,7 +74,7 @@ export function CellInfo() {
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Insolation</Text></td>
-            <td>{cellData.insolation || 'N/A'}</td>
+            <td>{round(cellData.insolation, 2) || 'N/A'}</td>
           </tr>
         </tbody>
       </table>

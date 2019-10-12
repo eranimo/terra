@@ -2,7 +2,32 @@ import { IGlobeOptions, EMapMode, WorldData, ICellGroupOptions, ICellGroupData }
 import { GlobeGen } from './GlobeGen';
 import { Globe } from './Globe';
 import { times } from 'lodash';
+import { Subject } from 'rxjs';
 
+
+export class CellGroup {
+  cells: Set<number>;
+
+  constructor(
+    public world: World,
+    public options: ICellGroupOptions,
+    cells: number[] = [],
+  ) {
+    this.cells = new Set(cells);
+  }
+
+  addCell(...cell: number[]) {
+    for (const r of cell) {
+      this.cells.add(r);
+    }
+    this.world.calculateCellGroup(this);
+  }
+
+  removeCell(cell: number) {
+    this.cells.delete(cell);
+    this.world.calculateCellGroup(this);
+  }
+}
 
 export interface IWorldOptions {
   initialMapMode: EMapMode;
@@ -11,8 +36,16 @@ export interface IWorldOptions {
 export class World {
   globeGen: GlobeGen;
   globe: Globe;
-  cell_cell_group: Record<number, string>;
-  cellGroupData: ICellGroupData[];
+
+  cellGroups: Set<CellGroup>;
+
+  // mapping of cell id to cell group name
+  cellCellGroup: Map<number, string>;
+
+  // calculated cell group borders and cells
+  cellGroupData: Map<CellGroup, ICellGroupData>
+
+  cellGroupUpdates$: Subject<ICellGroupData>;
   
   // TODO: factor out into static create and load methods
   constructor(
@@ -22,8 +55,10 @@ export class World {
     this.globeGen = new GlobeGen();
     this.globe = this.globeGen.generate(globeOptions, worldOptions.initialMapMode);
     this.globeGen.update(0);
-    this.cell_cell_group = {};
-    this.cellGroupData = [];
+    this.cellGroups = new Set();
+    this.cellCellGroup = new Map();
+    this.cellGroupData = new Map();
+    this.cellGroupUpdates$ = new Subject<ICellGroupData>();
 
     // build map
   }
@@ -31,7 +66,6 @@ export class World {
   export(): WorldData {
     return {
       globe: this.globe.export(),
-      cellGroups: this.cellGroupData,
     };
   }
 
@@ -39,13 +73,25 @@ export class World {
     this.globeGen.update(yearRatio);
   }
 
-  addCellGroup(cellGroupOptions: ICellGroupOptions) {
-    const { name, cells, color } = cellGroupOptions;
+  createCellGroup(options: ICellGroupOptions) {
+    const cellGroup = new CellGroup(this, options);
+    this.cellGroups.add(cellGroup);
+    this.calculateCellGroup(cellGroup);
+    return cellGroup;
+  }
+
+  /**
+   * Calculates borders and rendering data
+   * Call this function after updating CellGroup members
+   * @param cellGroup the CellGroup instance to calculate
+   */
+  calculateCellGroup(cellGroup: CellGroup) {
+    const { name, color } = cellGroup.options;
     const cells_xyz = [];
     const cells_rgba = [];
-    for (const cell of cells) {
+    for (const cell of cellGroup.cells) {
       const xyz = this.globe.coordinatesForCell(cell);
-      this.cell_cell_group[cell] = name;
+      this.cellCellGroup.set(cell, name);
       cells_xyz.push(...xyz);
       cells_rgba.push(...times(xyz.length / 3).map(() => color) as any);
     }
@@ -53,7 +99,7 @@ export class World {
     // find all points for sides not facing this region
     let points = [];
     let widths = [];
-    for (const cell of cells) {
+    for (const cell of cellGroup.cells) {
       let sides = [];
       this.globe.mesh.r_circulate_s(sides, cell);
       for (const s of sides) {
@@ -63,20 +109,24 @@ export class World {
         const outer_t = this.globe.mesh.s_outer_t(s);
         const p1 = this.globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
         const p2 = this.globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-        if (this.cell_cell_group[end_r] != name) {
+        if (this.cellCellGroup.get(end_r) != name) {
           points.push(...p1, ...p1, ...p2, ...p2);
           widths.push(0, 2, 2, 0);
         }
       }
     }
 
-    this.cellGroupData.push({
+    const data: ICellGroupData = {
       name,
       cells_xyz,
       cells_rgba,
       border_points: points,
       border_widths: widths,
-    });
+    };
+
+    this.cellGroupUpdates$.next(data);
+
+    this.cellGroupData.set(cellGroup, data);
   }
 
 }

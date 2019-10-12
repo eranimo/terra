@@ -1,6 +1,6 @@
 import { ReactiveWorker } from '../utils/workers';
 import { GameLoop } from './GameLoop';
-import { IWorldOptions, World } from './World';
+import { IWorldOptions, World, CellGroup } from './World';
 
 const game = new GameLoop(error => {
   console.error(error);
@@ -19,13 +19,22 @@ worker.on('init', ({ options, mapMode }) => {
 
   world = new World(options, worldOptions);
 
-  world.addCellGroup({
-    name: 'foo',
-    color: [0.5, 0.5, 0.5, 1],
-    cells: [15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]
+  world.cellGroupUpdates$.subscribe(data => {
+    worker.send('cellGroupUpdate', data);
   });
 
+  const group1 = world.createCellGroup({
+    name: 'Foo',
+    color: [0.5, 0.5, 0.5, 1],
+  });
+  group1.addCell(...[15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]);
+
   console.log('!globe', world.globe);
+
+  setTimeout(() => {
+    group1.addCell(16957);
+  }, 4000);
+
 
   game.addTimer({
     ticksLength: 30,

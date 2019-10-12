@@ -68,7 +68,7 @@ export const defaultDrawOptions: IDrawOptions = {
   rivers: true,
   cellCenters: false,
   surface: true,
-  regions: false,
+  regions: true,
   coastline: false,
 };
 
@@ -350,7 +350,6 @@ export type GlobeData = {
 
 export type WorldData = {
   globe: GlobeData,
-  cellGroups: ICellGroupData[],
 }
 
 export type CellPoints = {
@@ -369,7 +368,6 @@ export type CellData = {
 
 export interface ICellGroupOptions {
   name: string;
-  cells: number[];
   color: number[];
 }
 
