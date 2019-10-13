@@ -53,6 +53,8 @@
     "lodash": "^4.17.15",
     "mouse-change": "^1.4.0",
     "mouse-wheel": "^1.2.0",
+    "ngraph.graph": "^18.0.1",
+    "ngraph.path": "^1.2.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-icons": "^3.7.0",

@@ -191,3 +191,7 @@ export function distance3D(v1: number[], v2: number[]): number {
 
   return Math.sqrt( dx * dx + dy * dy + dz * dz );
 }
+
+export function degreesToRadians(degrees): number {
+  return degrees * (Math.PI / 180);
+}

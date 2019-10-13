@@ -3,7 +3,9 @@ import { GlobeGen } from './GlobeGen';
 import { Globe } from './Globe';
 import { times } from 'lodash';
 import { Subject } from 'rxjs';
-
+import { degreesToRadians } from '../utils';
+import createGraph, { Graph } from 'ngraph.graph';
+import path from 'ngraph.path';
 
 export class CellGroup {
   cells: Set<number>;
@@ -33,6 +35,15 @@ export interface IWorldOptions {
   initialMapMode: EMapMode;
 }
 
+type CellNodeData = {
+  r: number;
+  elevation: number;
+}
+
+type CellLinkData = {
+  deltaHeight: number;
+}
+
 export class World {
   globeGen: GlobeGen;
   globe: Globe;
@@ -46,6 +57,12 @@ export class World {
   cellGroupData: Map<CellGroup, ICellGroupData>
 
   cellGroupUpdates$: Subject<ICellGroupData>;
+
+  // population count array for map mode
+  // TODO: hook up to Population
+  cellPopulationCount: Int32Array;
+
+  graph: Graph<CellNodeData, CellLinkData>;
   
   // TODO: factor out into static create and load methods
   constructor(
@@ -60,7 +77,50 @@ export class World {
     this.cellGroupData = new Map();
     this.cellGroupUpdates$ = new Subject<ICellGroupData>();
 
-    // build map
+    this.cellPopulationCount = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * this.globe.mesh.numRegions));
+    this.cellPopulationCount.fill(0);
+
+    // build ngraph
+
+    console.time('build world graph');
+    this.graph = createGraph<CellNodeData, CellLinkData>();
+    this.graph.beginUpdate();
+    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
+      this.graph.addNode(r, {
+        r,
+        elevation: this.globe.r_elevation[r],
+      });
+      const neighbors = this.globe.mesh.r_circulate_r([], r);
+      for (const n of neighbors) {
+        this.graph.addLink(r, n, {
+          deltaHeight: this.globe.r_elevation[n] - this.globe.r_elevation[r],
+        });
+      }
+    }
+    this.graph.endUpdate();
+    console.timeEnd('build world graph');
+    console.log('world graph', this.graph);
+
+    const pathfinder = path.aStar(this.graph, {
+      distance: (from, to, link) => {
+        if (from.data.elevation > 0 && to.data.elevation < 0) {
+          return Infinity;
+        }
+        return this.distanceBetweenCells(from.data.r, to.data.r);
+      }
+    });
+
+    // console.time('short path');
+    // console.log('short path', pathfinder.find(19368, 15166));
+    // console.timeEnd('short path');
+
+    // console.time('long path');
+    // console.log('long path', pathfinder.find(19368, 880));
+    // console.timeEnd('long path');
+
+    // console.time('impossible path');
+    // console.log('impossible path', pathfinder.find(19368, 28649));
+    // console.timeEnd('impossible path');
   }
 
   export(): WorldData {
@@ -74,6 +134,21 @@ export class World {
       globe: this.globe.getCellData(cell),
       cellGroup: this.cellCellGroup.get(cell),
     }
+  }
+
+  distanceBetweenCells(cellA: number, cellB: number) {
+    const [latA, longA] = this.globe.getLatLongForCell(cellA);
+    const [latB, longB] = this.globe.getLatLongForCell(cellB);
+    const latARadians = degreesToRadians(latA);
+    const latBRadians = degreesToRadians(latB);
+    const longARadians = degreesToRadians(longA);
+    const longBRadians = degreesToRadians(longB);
+    const deltaLongRadians = (longARadians - longBRadians);
+    const radius = 1;
+    return Math.acos(
+      Math.sin(latARadians) * Math.sin(latBRadians) +
+      Math.cos(latARadians) * Math.cos(latBRadians) * Math.cos(deltaLongRadians)
+    ) * radius;
   }
 
   /**
