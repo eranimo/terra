@@ -2,6 +2,7 @@ import colormap from 'colormap';
 import { clamp } from 'lodash';
 import { Globe } from './worldgen/Globe';
 import { EMapMode, biomeColors } from './types';
+import { arrayStats } from './utils';
 
 
 export interface IMapModeColorMap {
@@ -12,15 +13,24 @@ export interface IMapModeColorMap {
     colors: Record<string, { [index: number]: number[] }>,
     globe: Globe,
     r: number,
+    percent: number,
   ) => number[];
 }
 
 export function createMapModeColor(globe: Globe, definition: IMapModeColorMap) {
   const rgba_array = [];
+  let r_value = [];
   for (let s = 0; s < globe.mesh.numSides; s++) {
     const r = globe.mesh.s_begin_r(s);
     const value = definition.getter(globe, r);
-    const color = definition.color(value, definition.colors, globe, r);
+    r_value[r] = value;
+  }
+  const { min, max } = arrayStats(r_value);
+  for (let s = 0; s < globe.mesh.numSides; s++) {
+    const r = globe.mesh.s_begin_r(s);
+    const value = r_value[r];
+    const percent = (r_value[r] - min) / (max - min);
+    const color = definition.color(value, definition.colors, globe, r, percent);
     rgba_array.push(...color, ...color, ...color);
   }
   return rgba_array;
@@ -200,8 +210,8 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
       r_flow /= triangles.length;
       return r_flow;
     },
-    color: (value, colors) => {
-      const index = clamp(Math.round(value * 100), 0, 99);
+    color: (value, colors, globe, r, percent) => {
+      const index = clamp(Math.round(percent * 100), 0, 99);
       if (colors.main[index]) {
         return colors.main[index];
       }
