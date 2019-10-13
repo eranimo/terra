@@ -76,6 +76,11 @@ export class World {
     }
   }
 
+  /**
+   * Run the Globe climate simulation
+   * 
+   * @param yearRatio Percent through the year
+   */
   updateGlobe(yearRatio: number) {
     this.globeGen.update(yearRatio);
   }
