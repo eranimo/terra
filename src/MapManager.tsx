@@ -196,8 +196,10 @@ export class MapManager {
       const { clientX, clientY } = event;
       const mouseX = clientX - left;
       const mouseY = clientY - top;
+      console.time('getCellAtPosition');
       this.getCellAtPosition(mouseX, mouseY)
         .then(cellPoints => {
+          console.timeEnd('getCellAtPosition');
           if (this.selectedCell.value && cellPoints.cell === this.selectedCell.value.cell) {
             this.selectedCell.next(null);
           } else {

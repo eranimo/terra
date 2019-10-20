@@ -23,6 +23,7 @@ export class GlobeGen {
     this.generateBiomes();
     this.generatePops();
     this.protrudeHeight();
+    this.globe.setup();
     this.setupGeometry();
 
     return this.globe;

@@ -151,6 +151,8 @@ export class Globe {
   max_distance_to_ocean: number;
   insolation: Float32Array;
   mapModeColor: Float32Array;
+  sideTriangles: number[][][];
+  cellBorders: number[][];
 
   constructor(public options: IGlobeOptions, public mapMode: EMapMode) {
     console.log('options', options)
@@ -194,6 +196,27 @@ export class Globe {
       const [lat, long] = getLatLng([x, y, z]);
       this.r_lat_long[2 * r] = lat;
       this.r_lat_long[2 * r + 1] = long;
+    }
+
+  }
+
+  setup() {
+    const { t_xyz, r_xyz, mesh } = this;
+    this.sideTriangles = [];
+    for (let s = 0; s < mesh.numSides; s++) {
+      const inner_t = mesh.s_inner_t(s);
+      const outer_t = mesh.s_outer_t(s);
+      const begin_r = mesh.s_begin_r(s);
+      const p1 = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
+      const p2 = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
+      const p3 = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
+      
+      this.sideTriangles[s] = [p1, p2, p3];
+    }
+
+    this.cellBorders = [];
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      this.cellBorders[r] = this.getBorderForCell(r);
     }
   }
 
@@ -261,23 +284,25 @@ export class Globe {
   }
 
   getIntersectedCell(rayPoint, rayDir): CellPoints | null {
-    const { mesh, t_xyz, r_xyz } = this;
+    console.time('getIntersectedCell');
     let maxT = -1e10;
-    for (let s = 0; s < mesh.numSides; s++) {
-      const inner_t = mesh.s_inner_t(s);
-      const outer_t = mesh.s_outer_t(s);
-      const begin_r = mesh.s_begin_r(s);
-      const p1 = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
-      const p2 = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
-      const p3 = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
-      const t = intersectTriangle(rayPoint, rayDir, p1, p2, p3);
+    for (let s = 0; s < this.mesh.numSides; s++) {
+      const begin_r = this.mesh.s_begin_r(s);
+      const t = intersectTriangle(
+        rayPoint,
+        rayDir,
+        this.sideTriangles[s][0],
+        this.sideTriangles[s][1],
+        this.sideTriangles[s][2],
+      );
       if (t !== null) {
         if (t > maxT) {
           maxT = t;
 
+          console.timeEnd('getIntersectedCell');
           return {
             cell: begin_r,
-            points: this.getBorderForCell(begin_r),
+            points: this.cellBorders[begin_r],
           };
         }
       }

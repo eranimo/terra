@@ -109,7 +109,7 @@ export class ReactiveWorkerClient {
   workerEvents$: Observable<IWorkerMessage>;
   workerErrors$: Subject<string>;
 
-  constructor(public worker: Worker, debug: boolean = false) {
+  constructor(public worker: Worker, protected debug: boolean = false) {
     this.workerEvents$ = fromEvent<MessageEvent>(this.worker, 'message')
       .pipe(map(event => event.data as IWorkerMessage));
 
@@ -174,6 +174,9 @@ export class ReactiveWorkerClient {
       let msg: IWorkerMessage = { type, payload };
 
       if (!expectResults) {
+        if (this.debug) {
+          console.log('[worker client: out]', msg);
+        }
         return this.worker.postMessage(msg, transferList);
       }
 
@@ -199,6 +202,9 @@ export class ReactiveWorkerClient {
             }
           });
 
+        if (this.debug) {
+          console.log('[worker client: out]', msg);
+        }
         this.worker.postMessage(msg);
       });
     }

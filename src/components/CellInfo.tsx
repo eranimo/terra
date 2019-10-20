@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { MapManager } from '../MapManager';
 import { Box, Heading, Text, Spinner } from '@chakra-ui/core';
-import { useObservable } from 'react-use';
+import { useObservable, usePrevious } from 'react-use';
 import { round } from 'lodash';
 import { biomeTitles, CellGlobeData, CellWorldData } from '../types';
 import { MapManagerContainer } from './MapViewer';
@@ -18,13 +18,17 @@ export function CellInfo() {
   const manager = useContext(MapManagerContainer.Context);
   const selectedCell = useObservable(manager.selectedCell);
   const [cellData, setCellData] = useState<CellWorldData>(null);
+  const prevSelectedCell = usePrevious(selectedCell);
 
   if (selectedCell === null || selectedCell === undefined) return null;
 
-  manager.client.getCellData(selectedCell.cell)
-    .then(cellData => {
-      setCellData(cellData);
-    });
+  if (prevSelectedCell !== selectedCell) {
+    manager.client.getCellData(selectedCell.cell)
+      .then(cellData => {
+        console.log('cellData', cellData);
+        setCellData(cellData);
+      });
+  }
   
   if (cellData === null) {
     return <Spinner />;
