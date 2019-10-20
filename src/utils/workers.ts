@@ -163,6 +163,45 @@ export class ReactiveWorkerClient {
     }
   }
 
+  dispatch(type: string, expectResults: boolean, payload: any, transferList?: Transferable[]) {
+    let msg: IWorkerMessage = { type, payload };
+
+    if (!expectResults) {
+      if (this.debug) {
+        console.log('[worker client: out]', msg);
+      }
+      return this.worker.postMessage(msg, transferList);
+    }
+
+    msg.id = uuid();
+
+    return Observable.create(observer => {
+      this.workerEvents$
+        .pipe(filter(x => x.id === msg.id))
+        .subscribe(msg => {
+          if (msg.error) {
+            // error happened
+            observer.error(msg.reason);
+            this.workerErrors$.next(msg.reason);
+          } else if (msg.streaming && msg.complete) {
+            // stream ended
+            observer.complete();
+          } else if (msg.streaming && msg.complete) {
+            // stream continuing
+            observer.next(msg.payload);
+          } else {
+            observer.next(msg.payload);
+            observer.complete();
+          }
+        });
+
+      if (this.debug) {
+        console.log('[worker client: out]', msg);
+      }
+      this.worker.postMessage(msg);
+    });
+  }
+
   /**
    * Creates an action, which you can send to the worker and optionally observe its result
    * @param type event type
@@ -170,59 +209,20 @@ export class ReactiveWorkerClient {
   action(
     type: string
   ) {
-    const dispatch = (expectResults: boolean, payload: any, transferList?: Transferable[]) => {
-      let msg: IWorkerMessage = { type, payload };
-
-      if (!expectResults) {
-        if (this.debug) {
-          console.log('[worker client: out]', msg);
-        }
-        return this.worker.postMessage(msg, transferList);
-      }
-
-      msg.id = uuid();
-
-      return Observable.create(observer => {
-        this.workerEvents$
-          .pipe(filter(x => x.id === msg.id))
-          .subscribe(msg => {
-            if (msg.error) {
-              // error happened
-              observer.error(msg.reason);
-              this.workerErrors$.next(msg.reason);
-            } else if (msg.streaming && msg.complete) {
-              // stream ended
-              observer.complete();
-            } else if (msg.streaming && msg.complete) {
-              // stream continuing
-              observer.next(msg.payload);
-            } else {
-              observer.next(msg.payload);
-              observer.complete();
-            }
-          });
-
-        if (this.debug) {
-          console.log('[worker client: out]', msg);
-        }
-        this.worker.postMessage(msg);
-      });
-    }
-
     return {
       /**
        * Sends an event to a worker, ignoring its results
        * @param payload payload object
        */
-      send(payload?: any, transferList?: Transferable[]): void {
-        return dispatch(false, payload, transferList);
+      send: (payload?: any, transferList?: Transferable[]) => {
+        return this.dispatch(type, false, payload, transferList);
       },
       /**
        * Sends an event to a worker, observing its results
        * @param payload payload object
        */
-      observe(payload?): Observable<IWorkerMessage> {
-        return dispatch(true, payload);
+      observe: (payload?): Observable<IWorkerMessage> => {
+        return this.dispatch(type, true, payload);
       }
     };
   }

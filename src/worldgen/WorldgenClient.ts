@@ -6,14 +6,9 @@ import { GlobeData, CellPoints, CellGlobeData, WorldData, ICellGroupTooltipData,
 
 export class WorldgenClient {
   worker$: ReactiveWorkerClient;
-  actions;
 
   constructor() {
     this.worker$ = new ReactiveWorkerClient(new WorldgenWorker(), false);
-    this.actions = {
-      getIntersectedCell: this.worker$.action('getIntersectedCell'),
-      getCellData: this.worker$.action('getCellData'),
-    };
   }
 
   newWorld(options: IGlobeOptions, mapMode: EMapMode): Promise<WorldData> {
@@ -45,7 +40,7 @@ export class WorldgenClient {
   }
 
   async getIntersectedCell(point: number[], dir: number[]): Promise<CellPoints | null> {
-    return this.actions.getIntersectedCell
+    return this.worker$.action('getIntersectedCell')
       .observe({ point, dir })
       .toPromise() as Promise<CellPoints>;
   }
@@ -57,7 +52,7 @@ export class WorldgenClient {
   }
 
   async getCellData(r: number): Promise<CellWorldData> {
-    return this.actions.getCellData
+    return this.worker$.action('getCellData')
       .observe(r)
       .toPromise() as Promise<CellWorldData>;
   }
