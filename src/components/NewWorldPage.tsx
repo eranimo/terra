@@ -2,23 +2,14 @@ import React, { useState, useContext, useEffect } from 'react';
 import { MapViewer } from './MapViewer';
 import { WorkerContext } from './WorkerManager';
 import { GlobeManager } from '../GlobeManager';
-import { Box, Stack, Heading, Button, Modal, ModalContent, ModalOverlay, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Flex, Spinner, FormControl, FormLabel, Input, FormHelperText } from '@chakra-ui/core';
+import { Box, Stack, Heading, Button, Modal, ModalContent, ModalOverlay, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Flex, Spinner, FormControl, FormLabel, Input, FormHelperText, IconButton } from '@chakra-ui/core';
 import { Controls } from './Controls';
 import { Subscription } from 'rxjs';
 import { worldStore, IWorldRecord } from '../records';
+import { Link } from 'react-router-dom';
+import { mainPage } from '../routes';
+import { LoadingOverlay } from './LoadingOverlay';
 
-
-const LoadingOverlay = () => (
-  <Flex
-    justify="center"
-    align="center"
-    position="fixed"
-    zIndex={10000}
-    left={0} right={0} top={0} bottom={0}
-  >
-    <Spinner size="xl" />
-  </Flex>
-);
 
 let globeManager: GlobeManager;
 
@@ -70,7 +61,12 @@ export const NewWorldPage = () => {
         borderColor="gray.600"
         transform="translate(-1px, -1px)"
       >
-        <Heading mb="5">New World</Heading>
+        <Link to={mainPage()}>
+          Back
+        </Link>
+        <Heading mb="5">
+          New World
+        </Heading>
         <Stack align="center" isInline>
           <Button
             size="sm"

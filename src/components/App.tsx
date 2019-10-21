@@ -6,6 +6,7 @@ import { MapViewer } from './MapViewer';
 import { MainPage } from './MainPage';
 import { NewWorldPage } from './NewWorldPage';
 import { WorkerManager } from './WorkerManager';
+import { NewGamePage } from './NewGamePage';
 
 
 
@@ -18,7 +19,7 @@ export const App = () => (
 
       <WorkerManager>
         <Route path="/new-world" component={NewWorldPage} />
-        <Route path="/new-game" component={NewWorldPage} />
+        <Route path="/new-game" component={NewGamePage} />
         <Route path="/game" component={MapViewer} />
       </WorkerManager>
     </Switch>
