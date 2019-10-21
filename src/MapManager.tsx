@@ -6,6 +6,7 @@ import { CellPoints, defaultDrawOptions, EMapMode, GlobeData, IDrawOptions, IGlo
 import { ImageRef, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
+import { Cancellable } from 'regl';
 
 
 export const initialOptions: IGlobeOptions = {
@@ -42,15 +43,13 @@ const DEFAULT_MAP_MODE = EMapMode.BIOME;
  * Contains CellGroups
  */
 export class MapManager {
-  client: WorldgenClient;
-  globeOptions$: BehaviorSubject<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
   renderer: ReturnType<typeof Renderer>;
   camera: any;
   globe: GlobeData;
   cellGroups: Map<string, ICellGroupData>;
   cellGroupLines: Record<string, any>;
-  removeDrawLoop: any;
+  removeDrawLoop: Cancellable;
   selectedCell: BehaviorSubject<CellPoints>;
   minimapContext: CanvasRenderingContext2D;
   mapMode$: BehaviorSubject<EMapMode>;
@@ -62,14 +61,11 @@ export class MapManager {
   };
 
   constructor(
+    public client: WorldgenClient,
     protected screenCanvas: HTMLCanvasElement,
     protected minimapCanvas: HTMLCanvasElement,
     protected images: ImageRef[],
-    protected onBeforeGenerate: () => void,
-    protected onAfterGenerate: () => void,
   ) {
-    this.client = new WorldgenClient();
-    this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
     const startMapMode = localStorage.lastMapMode || DEFAULT_MAP_MODE;
     this.mapMode$ = new BehaviorSubject<EMapMode>(startMapMode);
     this.drawOptions$ = new ObservableDict({
@@ -80,12 +76,8 @@ export class MapManager {
     const renderer = Renderer(screenCanvas, minimapCanvas, this.onLoad(screenCanvas), images);
     this.renderer = renderer;
     this.cellGroupLines = {};
-    this.drawOptions$.subscribe(() => renderer.camera.setDirty());
-
-    (window as any).manager = this;
-    (window as any).renderer = renderer;
-    this.globeOptions$.subscribe(() => {
-      this.generate();
+    this.drawOptions$.subscribe(() => {
+      renderer.camera.setDirty();
     });
 
     // redraw minimap when draw option changes
@@ -145,6 +137,17 @@ export class MapManager {
     })
   }
 
+  setGlobe(globe: GlobeData) {
+    this.globe = globe;
+    console.log('WorldgenClient', this.client);
+    this.setupRendering();
+    this.endRenderLoop();
+    this.startRenderLoop();
+    this.generateCellGroupLines();
+    this.drawMinimap();
+    this.renderer.camera.setDirty();
+  }
+
   startRenderLoop() {
     this.removeDrawLoop = this.renderer.regl.frame(() => {
       this.renderer.camera.run((state) => {
@@ -153,6 +156,12 @@ export class MapManager {
         this.draw();
       });
     });
+  }
+
+  endRenderLoop() {
+    if (this.removeDrawLoop) {
+      this.removeDrawLoop.cancel();
+    }
   }
 
   getCellAtPosition(x: number, y: number) {
@@ -211,16 +220,8 @@ export class MapManager {
     });
   };
 
-  destroy() {
-    this.removeDrawLoop();
-  }
-
-  resetCamera() {
-    this.destroy();
-  }
-
   @logGroupTime('calculate cell groups')
-  generateCellGroupLines() {
+  private generateCellGroupLines() {
     for (const groupData of this.cellGroups.values()) {
       const line = createLine(this.renderer.regl, {
         color: [0.0, 0.0, 0.0, 0.5],
@@ -231,21 +232,7 @@ export class MapManager {
     }
   }
 
-  @logGroupTime('generate')
-  async generate() {
-    this.onBeforeGenerate();
-    const result = await this.client.newWorld(this.globeOptions$.value, this.mapMode$.value);
-    this.globe = result.globe;
-    console.log('worldgen', this.client);
-    this.setupRendering();
-    this.startRenderLoop();
-
-    this.generateCellGroupLines();
-    this.drawMinimap();
-    this.onAfterGenerate();
-  }
-
-  setupRendering() {
+  private setupRendering() {
     this.renderState = {
       rivers: createLine(this.renderer.regl, {
         color: [0.0, 0.0, 1.0, 1.0],
@@ -267,7 +254,7 @@ export class MapManager {
     }
   }
 
-  draw() {
+  private draw() {
     const { mapModeColor, triangleGeometry } = this.globe;
     if (this.drawOptions$.get('rivers')) {
       this.renderState.rivers.draw({

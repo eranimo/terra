@@ -1,5 +1,5 @@
 import { Box, Flex, Spinner } from '@chakra-ui/core';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useContext } from 'react';
 import { useWindowSize } from 'react-use';
 import { MapManager } from '../MapManager';
 import { loadImages } from '../utils';
@@ -8,19 +8,8 @@ import { Controls } from './Controls';
 import { ViewControl } from './ViewControl';
 import createContainer from 'constate';
 import { TimeControls } from './TimeControls';
-
-
-const LoadingOverlay = () => (
-  <Flex
-    justify="center"
-    align="center"
-    position="fixed"
-    zIndex={10000}
-    left={0} right={0} top={0} bottom={0}
-  >
-    <Spinner size="xl" />
-  </Flex>
-);
+import { WorkerContext } from './WorkerManager';
+import { GlobeManager } from '../GlobeManager';
 
 export const MapManagerContainer = createContainer(({ manager }: { manager: MapManager }) => {
   return useState(manager)[0];
@@ -34,21 +23,29 @@ const IMAGES = {
 
 let manager: MapManager;
 
-export function MapViewer() {
+export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
+  const client = useContext(WorkerContext);
+  const [isLoading, setLoading] = useState(true);
   const screenRef = useRef();
   const minimapRef = useRef();
-  const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
     loadImages(IMAGES).then(images => {
       manager = new MapManager(
+        client,
         screenRef.current,
         minimapRef.current,
         images,
-        () => setLoading(true),
-        () => setLoading(false),
       );
+
+      const globeSubscription = globeManager.globe$.subscribe(globe => manager.setGlobe(globe));
+
+      setLoading(false);
       console.log('manager', manager);
+
+      return () => {
+        globeSubscription.unsubscribe();
+      }
     });
   }, []);
 
@@ -56,7 +53,6 @@ export function MapViewer() {
   const { width, height } = useWindowSize();
   return (
     <div>
-      {isLoading && <LoadingOverlay />}
       <canvas
         ref={screenRef}
         width={width}
@@ -71,9 +67,6 @@ export function MapViewer() {
         bottom={0}
         width={360}
         height={180}
-        style={{
-          visibility: isLoading ? 'hidden' : 'visible'
-        }}
       >
         <canvas
           ref={minimapRef}
@@ -86,14 +79,11 @@ export function MapViewer() {
           }}
           />
       </Box>
-      {!isLoading && (
-        <MapManagerContainer.Provider manager={manager}>
-          <TimeControls />
-          <ViewControl />
-          <Controls />
-          <CellInfo />
-        </MapManagerContainer.Provider>
-      )}
+      {!isLoading && <MapManagerContainer.Provider manager={manager}>
+        <TimeControls />
+        <ViewControl />
+        <CellInfo />
+      </MapManagerContainer.Provider>}
     </div>
   );
 }

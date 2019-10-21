@@ -284,7 +284,6 @@ export class Globe {
   }
 
   getIntersectedCell(rayPoint, rayDir): CellPoints | null {
-    console.time('getIntersectedCell');
     let maxT = -1e10;
     for (let s = 0; s < this.mesh.numSides; s++) {
       const begin_r = this.mesh.s_begin_r(s);
@@ -298,8 +297,6 @@ export class Globe {
       if (t !== null) {
         if (t > maxT) {
           maxT = t;
-
-          console.timeEnd('getIntersectedCell');
           return {
             cell: begin_r,
             points: this.cellBorders[begin_r],

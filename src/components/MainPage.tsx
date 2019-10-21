@@ -1,6 +1,8 @@
 import React from 'react';
 import { Box, Heading, List, ListItem, Flex, Text, PseudoBox, Stack, Link as HyperLink } from '@chakra-ui/core';
 import { Link } from 'react-router-dom';
+import * as ROUTE from '../routes';
+import { newWorldPage } from '../routes';
 
 const stars = require('../images/stars.png');
 
@@ -27,7 +29,7 @@ const MenuListItem = ({ to, children }) => (
     {children}
   </PseudoBox$>
 )
-export const MainMenu = () => (
+export const MainPage = () => (
   <Flex
     height="100vh"
     justify="center"
@@ -45,12 +47,12 @@ export const MainMenu = () => (
       <Heading fontSize="6xl">Terra</Heading>
 
       <Text color="gray.500" mt={5} mb={8} fontSize="md">
-        A World and History simulation by <HyperLink color="blue.500" href="http://kaelan.org/">Kaelan Cooter</HyperLink>.
+        A strategy game with a procedurally generated world and society.
       </Text>
 
       <Stack spacing={5}>
-        <Box><MenuListItem to="/new">Create New World</MenuListItem></Box>
-        <Box><MenuListItem to="/load">Load World</MenuListItem></Box>
+        <Box><MenuListItem to={ROUTE.newWorldPage()}>New World</MenuListItem></Box>
+        <Box><MenuListItem to={ROUTE.loadGamePage()}>Load Game</MenuListItem></Box>
       </Stack>
     </Box>
   </Flex>
