@@ -232,6 +232,12 @@ export class Globe {
     this.mapModeColor.set(array);
   }
 
+  public getCellTooltip(cell: number) {
+    const def = mapModeDefs.get(this.mapMode);
+    const value = def.getter(this, cell);
+    return def.tooltip(value);
+  }
+
   public setMapMode(mapMode: EMapMode) {
     this.mapMode = mapMode;
     this.setupMapMode();

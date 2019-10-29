@@ -39,13 +39,14 @@ export const NewWorldPage = () => {
   const [isSaveOpen, setSaveOpen] = useState(false);
   const [worldName, setWorldName] = useState("");
 
-  const saveWorld = () => {
+  const saveWorld = async () => {
     setSaveOpen(false);
     const worldRecord: IWorldRecord = {
       options: globeManager.globeOptions$.value,
       data: {}
     };
-    worldStore.save(worldRecord, worldName);
+    await worldStore.save(worldRecord, worldName);
+    window.alert('World Saved');
   };
 
   return (

@@ -51,6 +51,12 @@ export class WorldgenClient {
       .toPromise() as Promise<ICellGroupTooltipData>;
   }
 
+  async getCellTooltip(cell: number): Promise<string> {
+    return this.worker$.action('getCellTooltip')
+      .observe(cell)
+      .toPromise() as Promise<string>;
+  }
+
   async getCellData(r: number): Promise<CellWorldData> {
     return this.worker$.action('getCellData')
       .observe(r)

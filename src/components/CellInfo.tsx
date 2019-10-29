@@ -16,7 +16,7 @@ function formatLatLong(lat: number, long: number): string {
 
 export function CellInfo() {
   const manager = useContext(MapManagerContainer.Context);
-  const selectedCell = useObservable(manager.selectedCell);
+  const selectedCell = useObservable(manager.selectedCell$);
   const [cellData, setCellData] = useState<CellWorldData>(null);
   const prevSelectedCell = usePrevious(selectedCell);
 

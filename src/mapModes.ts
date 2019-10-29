@@ -1,13 +1,14 @@
 import colormap from 'colormap';
 import { clamp } from 'lodash';
 import { Globe } from './worldgen/Globe';
-import { EMapMode, biomeColors } from './types';
+import { EMapMode, biomeColors, biomeTitles } from './types';
 import { arrayStats } from './utils';
 
 
 export interface IMapModeColorMap {
   colors?: Record<string, any>;
   getter: (globe: Globe, r: number) => number,
+  tooltip: (value: number) => string;
   color: (
     value: number,
     colors: Record<string, { [index: number]: number[] }>,
@@ -39,6 +40,7 @@ export function createMapModeColor(globe: Globe, definition: IMapModeColorMap) {
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   [EMapMode.TECTONICS, {
     getter: (globe, r) => globe.r_elevation[r],
+    tooltip: (value) => `Elevation: ${value.toLocaleString()}`,
     colors: {
       ocean: colormap({
         colormap: 'velocity-blue',
@@ -65,6 +67,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.ELEVATION, {
     getter: (globe, r) => globe.r_elevation[r],
+    tooltip: (value) => `Elevation: ${value.toLocaleString()}`,
     colors: {
       water: colormap({
         colormap: 'bathymetry',
@@ -97,6 +100,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.MOISTURE, {
     getter: (globe, r) => globe.r_moisture[r],
+    tooltip: (value) => `Moisture: ${value.toLocaleString()}`,
     colors: {
       main: colormap({
         colormap: 'winter',
@@ -116,6 +120,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.DESIRABILITY, {
     getter: (globe, r) => globe.r_desirability[r],
+    tooltip: (value) => `Desirability: ${value.toLocaleString()}`,
     colors: {
       main: colormap({
         colormap: 'warm',
@@ -134,6 +139,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.TEMPERATURE, {
     getter: (globe, r) => globe.r_temperature[r],
+    tooltip: (value) => `Temperature: ${value.toLocaleString()}`,
     colors: {
       main: colormap({
         colormap: 'jet',
@@ -152,6 +158,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.INSOLATION, {
     getter: (globe, r) => globe.insolation[r],
+    tooltip: (value) => `Insolation: ${value.toLocaleString()}`,
     colors: {
       main: colormap({
         colormap: 'jet',
@@ -170,6 +177,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.ROUGHNESS, {
     getter: (globe, r) => globe.r_roughness[r],
+    tooltip: (value) => `Terrain Roughness: ${value.toLocaleString()}`,
     colors: {
       main: colormap({
         colormap: 'bluered',
@@ -188,6 +196,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
   }],
   [EMapMode.BIOME, {
     getter: (globe, r) => globe.r_biome[r],
+    tooltip: (value) => `Biome: ${biomeTitles[value] || 'None'}`,
     color: (value) => {
       return biomeColors[value] || [0, 0, 0, 1];
     },
@@ -201,6 +210,7 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
         alpha: 1,
       }),
     },
+    tooltip: (value) => `Flow: ${value.toLocaleString()}`,
     getter: (globe, r) => {
       const triangles = globe.mesh.r_circulate_t([], r);
       let r_flow = 0;

@@ -14,7 +14,7 @@ export const MenuContainer = ({ children }) => {
       <Box width="500px" mt="10rem">
         <Heading fontSize="6xl">Terra</Heading>
         <Text color="gray.500" mt={5} mb={8} fontSize="md">
-          A strategy game with a procedurally generated world and history.
+          A grand strategy game with a procedurally generated world.
         </Text>
       </Box>
       <Box

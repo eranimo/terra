@@ -50,9 +50,11 @@ export class MapManager {
   cellGroups: Map<string, ICellGroupData>;
   cellGroupLines: Record<string, any>;
   removeDrawLoop: Cancellable;
-  selectedCell: BehaviorSubject<CellPoints>;
+  selectedCell$: BehaviorSubject<CellPoints>;
+  hoverCell$: BehaviorSubject<CellPoints>;
   minimapContext: CanvasRenderingContext2D;
   mapMode$: BehaviorSubject<EMapMode>;
+  tooltipTextCache: Map<number, string>;
 
   renderState: {
     rivers: any,
@@ -72,7 +74,8 @@ export class MapManager {
       ...defaultDrawOptions,
       ...mapModeDrawOptions[startMapMode],
     });
-    this.selectedCell = new BehaviorSubject(null);
+    this.selectedCell$ = new BehaviorSubject(null);
+    this.hoverCell$ = new BehaviorSubject(null);
     const renderer = Renderer(screenCanvas, minimapCanvas, this.onLoad(screenCanvas), images);
     this.renderer = renderer;
     this.cellGroupLines = {};
@@ -83,6 +86,7 @@ export class MapManager {
     // redraw minimap when draw option changes
     this.mapMode$.subscribe(mapMode => {
       localStorage.lastMapMode = mapMode;
+      this.tooltipTextCache = new Map();
       if (this.globe) {
         this.drawOptions$.replace({
           ...defaultDrawOptions,
@@ -134,7 +138,7 @@ export class MapManager {
       renderer.camera.setDirty();
       this.cellGroups.set(data.name, data);
       this.generateCellGroupLines();
-    })
+    });
   }
 
   setGlobe(globe: GlobeData) {
@@ -146,6 +150,7 @@ export class MapManager {
     this.generateCellGroupLines();
     this.drawMinimap();
     this.renderer.camera.setDirty();
+    this.tooltipTextCache = new Map();
   }
 
   startRenderLoop() {
@@ -186,39 +191,37 @@ export class MapManager {
   }
 
   onLoad = (canvas: HTMLCanvasElement) => () => {
-    let downX = 0;
-    let downY = 0;
-    canvas.addEventListener('mousedown', event => {
-      downX = event.clientX;
-      downY = event.clientY;
-    });
-
-    canvas.addEventListener('mouseup', event => {
-      const distance = Math.sqrt(
-        Math.pow(downX - event.clientX, 2) +
-        Math.pow(downY - event.clientY, 2)
-      );
-
-      if (distance > 10) return;
-      
-      const { left, top } = canvas.getBoundingClientRect();
-      const { clientX, clientY } = event;
-      const mouseX = clientX - left;
-      const mouseY = clientY - top;
-      console.time('getCellAtPosition');
-      this.getCellAtPosition(mouseX, mouseY)
-        .then(cellPoints => {
-          console.timeEnd('getCellAtPosition');
-          if (this.selectedCell.value && cellPoints.cell === this.selectedCell.value.cell) {
-            this.selectedCell.next(null);
-          } else {
-            this.selectedCell.next(cellPoints);
-          }
-
-          this.renderer.camera.setDirty();
-        });
-    });
+    console.time('Regl loaded');
   };
+
+  async handleMapClick(cursorX: number, cursorY: number) {
+    const cellPoints = await this.getCellAtPosition(cursorX, cursorY)
+    if (this.selectedCell$.value && cellPoints.cell === this.selectedCell$.value.cell) {
+      this.selectedCell$.next(null);
+    } else {
+      this.selectedCell$.next(cellPoints);
+    }
+
+    this.renderer.camera.setDirty();
+  }
+
+  async handleMapHover(cursorX: number, cursorY: number) {
+    const cellPoints = await this.getCellAtPosition(cursorX, cursorY)
+    if (cellPoints === null) {
+      this.hoverCell$.next(null);
+      return;
+    } else {
+      this.hoverCell$.next(cellPoints);
+    }
+
+    if (this.tooltipTextCache.has(cellPoints.cell)) {
+      return this.tooltipTextCache.get(cellPoints.cell);
+    }
+
+    const tooltipString = await this.client.getCellTooltip(cellPoints.cell);
+    this.tooltipTextCache.set(cellPoints.cell, tooltipString);
+    return tooltipString;
+  }
 
   @logGroupTime('calculate cell groups')
   private generateCellGroupLines() {
@@ -287,8 +290,8 @@ export class MapManager {
         count: this.globe.r_xyz.length / 3,
       });
     }
-    if (this.selectedCell.value) {
-      this.renderer.drawCellBorder(this.selectedCell.value.points);
+    if (this.selectedCell$.value) {
+      this.renderer.drawCellBorder(this.selectedCell$.value.points);
     }
     if (this.drawOptions$.get('regions')) {
       for (const cellGroup of this.cellGroups.values()) {

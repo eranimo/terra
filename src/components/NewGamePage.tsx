@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { worldStore } from '../records';
 import { useAsync, useAsyncRetry } from 'react-use';
-import { Box, List, ListItem, Button, Stack, Spinner, Text, Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@chakra-ui/core';
+import { Box, Link as ChakraLink, ListItem, Button, Stack, Spinner, Text, Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@chakra-ui/core';
 import { LoadingOverlay } from './LoadingOverlay';
 import dayjs from 'dayjs';
 import { MenuContainer } from './MenuContainer';
@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { FaTrash } from 'react-icons/fa';
 
 
+const ChakraLink$ = ChakraLink as any;
 const BreadcrumbLink$ = BreadcrumbLink as any;
 const Button$ = Button as any;
 
@@ -28,12 +29,12 @@ export const NewGamePage = ({}) => {
           </BreadcrumbItem>
 
           <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink>Load World</BreadcrumbLink>
+            <BreadcrumbLink>New Game</BreadcrumbLink>
           </BreadcrumbItem>        
         </Breadcrumb>
       </Box>
       <Text fontSize="md">
-        Load a saved world
+        Load a saved world to begin playing, or <ChakraLink$ color="blue.200" as={Link} to="/new-world">create one</ChakraLink$>.
       </Text>
       {worldSavesState.loading && <Spinner />}
       {worldSavesState.value && worldSavesState.value.length === 0 && (
