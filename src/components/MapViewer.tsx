@@ -108,6 +108,17 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
     manager.handleMapClick(cursorX, cursorY);
   };
 
+  const handleMouseLeave = () => {
+    setTooltip(null);
+  }
+
+  useEffect(() => {
+    document.addEventListener('mouseleave', event => {
+      if (event.toElement === null && event.relatedTarget === null) {
+        setTooltip(null);
+      }
+    }, false);
+  }, []);
 
   const { width, height } = useWindowSize();
   const cursor = isDragging ? 'move' : 'default';
@@ -121,6 +132,8 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onMouseOut={handleMouseLeave}
         style={{ cursor }}
       />
       {tooltip && <Box
