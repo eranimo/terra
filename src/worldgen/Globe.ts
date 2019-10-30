@@ -1,7 +1,7 @@
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
-import { createMapModeColor, mapModeDefs } from '../mapModes';
+import { createMapMode, mapModeDefs, MapModeData } from '../mapModes';
 import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '../types';
 import { getLatLng, intersectTriangle, distance3D } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
@@ -150,9 +150,12 @@ export class Globe {
   r_coast: number[];
   max_distance_to_ocean: number;
   insolation: Float32Array;
-  mapModeColor: Float32Array;
   sideTriangles: number[][][];
   cellBorders: number[][];
+
+  mapModeColor: Float32Array;
+  mapModeValue: Float32Array;
+  mapModeCache: Map<EMapMode, MapModeData>;
 
   constructor(public options: IGlobeOptions, public mapMode: EMapMode) {
     console.log('options', options)
@@ -163,6 +166,7 @@ export class Globe {
     console.log('mesh', mesh)
     
     this.mapModeColor = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numSides * 4 * 3));
+    this.mapModeValue = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numRegions));
     this.r_xyz = r_xyz;
     this.latlong = latlong;
 
@@ -198,6 +202,7 @@ export class Globe {
       this.r_lat_long[2 * r + 1] = long;
     }
 
+    this.mapModeCache = new Map();
   }
 
   setup() {
@@ -228,8 +233,23 @@ export class Globe {
 
   public setupMapMode() {
     const def = mapModeDefs.get(this.mapMode);
-    const array = createMapModeColor(this, def);
-    this.mapModeColor.set(array);
+    let data: MapModeData;
+    if (this.mapModeCache.has(this.mapMode)) {
+      data = this.mapModeCache.get(this.mapMode);
+    } else {
+      data = createMapMode(this, def);
+    }
+    this.mapModeCache.set(this.mapMode, data);
+    this.mapModeColor.set(data.rgba);
+    this.mapModeValue.set(data.values);
+  }
+
+  resetMapMode(mapMode: EMapMode) {
+    const def = mapModeDefs.get(mapMode);
+    const data = createMapMode(this, def);
+    this.mapModeCache.set(mapMode, data);
+    this.mapModeColor.set(data.rgba);
+    this.mapModeValue.set(data.values);
   }
 
   public getCellTooltip(cell: number) {
@@ -250,6 +270,7 @@ export class Globe {
     
     return {
       mapModeColor: this.mapModeColor,
+      mapModeValue: this.mapModeValue,
       t_xyz: this.t_xyz,
       r_xyz: new Float32Array(this.r_xyz),
       triangleGeometry: this.triangleGeometry,

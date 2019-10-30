@@ -7,6 +7,7 @@ import { ImageRef, logGroupTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
+import { mapModeDefs } from './mapModes';
 
 
 export const initialOptions: IGlobeOptions = {
@@ -82,21 +83,15 @@ export class MapManager {
     this.drawOptions$.subscribe(() => {
       renderer.camera.setDirty();
     });
-
+    
+    this.client.setMapMode(startMapMode).then(() => {
+      renderer.camera.setDirty();
+      this.drawMinimap();
+    });
+    
     // redraw minimap when draw option changes
     this.mapMode$.subscribe(mapMode => {
-      localStorage.lastMapMode = mapMode;
-      this.tooltipTextCache = new Map();
-      if (this.globe) {
-        this.drawOptions$.replace({
-          ...defaultDrawOptions,
-          ...mapModeDrawOptions[mapMode],
-        });
-        this.client.setMapMode(mapMode).then(() => {
-          renderer.camera.setDirty();
-          this.drawMinimap();
-        });
-      }
+      this.onChangeMapMode(mapMode);
     });
 
     window.addEventListener('resize', () => {
@@ -139,6 +134,23 @@ export class MapManager {
       this.cellGroups.set(data.name, data);
       this.generateCellGroupLines();
     });
+  }
+
+  onChangeMapMode(mapMode: EMapMode) {
+    localStorage.lastMapMode = mapMode;
+    this.tooltipTextCache = new Map();
+    if (this.globe) {
+      this.drawOptions$.replace({
+        ...defaultDrawOptions,
+        ...mapModeDrawOptions[mapMode],
+      });
+
+      this.client.setMapMode(mapMode)
+        .then(() => {
+          this.renderer.camera.setDirty();
+          this.drawMinimap();
+        });
+    }
   }
 
   setGlobe(globe: GlobeData) {
@@ -218,8 +230,9 @@ export class MapManager {
       return this.tooltipTextCache.get(cellPoints.cell);
     }
 
-    const tooltipString = await this.client.getCellTooltip(cellPoints.cell);
-    this.tooltipTextCache.set(cellPoints.cell, tooltipString);
+
+    const value = this.globe.mapModeValue[cellPoints.cell];
+    const tooltipString = mapModeDefs.get(this.mapMode$.value).tooltip(value);
     return tooltipString;
   }
 

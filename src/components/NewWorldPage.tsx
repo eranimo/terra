@@ -77,6 +77,7 @@ export const NewWorldPage = () => {
           </Button>
           <Button
             size="sm"
+            variantColor="blue"
             onClick={() => setSaveOpen(true)}
           >
             Save World
@@ -109,12 +110,19 @@ export const NewWorldPage = () => {
               </FormControl>
             </ModalBody>
             <ModalFooter>
-              <Button
-                variantColor="blue"
-                onClick={saveWorld}
-              >
-                Save World
-              </Button>
+              <Stack isInline spacing={5}>
+                <Button
+                  onClick={() => setSaveOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  variantColor="blue"
+                  onClick={saveWorld}
+                >
+                  Play World
+                </Button>
+              </Stack>
             </ModalFooter>
           </ModalContent>
         </Modal>

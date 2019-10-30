@@ -1,6 +1,7 @@
 import { ReactiveWorker } from '../utils/workers';
 import { GameLoop } from './GameLoop';
 import { IWorldOptions, World, CellGroup } from './World';
+import { EMapMode } from '../types';
 
 const game = new GameLoop(error => {
   console.error(error);
@@ -43,7 +44,7 @@ worker.on('init', ({ options, mapMode }) => {
       const yearRatio = (game.state.ticks.value % 360) / 360.;
       console.log(yearRatio);
       world.updateGlobe(yearRatio);
-      world.globe.setupMapMode();
+      world.globe.resetMapMode(EMapMode.INSOLATION);
       worker.send('draw');
     }
   });

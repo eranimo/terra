@@ -18,7 +18,12 @@ export interface IMapModeColorMap {
   ) => number[];
 }
 
-export function createMapModeColor(globe: Globe, definition: IMapModeColorMap) {
+export type MapModeData = {
+  rgba: Float32Array;
+  values: Float32Array;
+}
+
+export function createMapMode(globe: Globe, definition: IMapModeColorMap): MapModeData {
   const rgba_array = [];
   let r_value = [];
   for (let s = 0; s < globe.mesh.numSides; s++) {
@@ -34,7 +39,15 @@ export function createMapModeColor(globe: Globe, definition: IMapModeColorMap) {
     const color = definition.color(value, definition.colors, globe, r, percent);
     rgba_array.push(...color, ...color, ...color);
   }
-  return rgba_array;
+  const rgba_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * rgba_array.length));
+  rgba_buffer.set(rgba_array);
+  const values_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numRegions));
+  values_buffer.set(r_value);
+
+  return {
+    rgba: rgba_buffer,
+    values: values_buffer
+  };
 }
 
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([

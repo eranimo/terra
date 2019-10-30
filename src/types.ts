@@ -326,6 +326,7 @@ export type GlobeData = {
   triangleGeometry: Float32Array,
   minimapGeometry: Float32Array,
   mapModeColor: Float32Array;
+  mapModeValue: Float32Array;
   coastline: {
     points: number[],
     widths: number[],
