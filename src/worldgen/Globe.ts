@@ -248,14 +248,10 @@ export class Globe {
     const def = mapModeDefs.get(mapMode);
     const data = createMapMode(this, def);
     this.mapModeCache.set(mapMode, data);
-    this.mapModeColor.set(data.rgba);
-    this.mapModeValue.set(data.values);
-  }
-
-  public getCellTooltip(cell: number) {
-    const def = mapModeDefs.get(this.mapMode);
-    const value = def.getter(this, cell);
-    return def.tooltip(value);
+    if (this.mapMode === mapMode) {
+      this.mapModeColor.set(data.rgba);
+      this.mapModeValue.set(data.values);
+    }
   }
 
   public setMapMode(mapMode: EMapMode) {
