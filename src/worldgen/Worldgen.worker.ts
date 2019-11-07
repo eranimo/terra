@@ -71,10 +71,6 @@ worker.on('getCellData', async (r) => {
   return world.getCellData(r);
 }, true);
 
-worker.on('getCellTooltip', async (cell) => {
-  return world.globe.getCellTooltip(cell);
-}, true);
-
 worker.on('setMapMode', async (mapMode) => {
   world.globe.setMapMode(mapMode);
 }, true);

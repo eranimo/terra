@@ -7,6 +7,7 @@ import { MainPage } from './MainPage';
 import { NewWorldPage } from './NewWorldPage';
 import { WorkerManager } from './WorkerManager';
 import { NewGamePage } from './NewGamePage';
+import { StartGamePage } from './StartGamePage';
 
 
 
@@ -20,6 +21,8 @@ export const App = () => (
       <WorkerManager>
         <Route path="/new-world" component={NewWorldPage} />
         <Route path="/new-game" component={NewGamePage} />
+        <Route path="/start-game/:worldName" component={StartGamePage} />
+        <Route path="/load-game/:game" component={StartGamePage} />
         <Route path="/game" component={MapViewer} />
       </WorkerManager>
     </Switch>

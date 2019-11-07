@@ -40,6 +40,7 @@
     "@types/react-router-dom": "^5.1.0",
     "@types/seedrandom": "^2.4.28",
     "@types/shortid": "0.0.29",
+    "@types/yup": "^0.26.24",
     "classnames": "^2.2.6",
     "colormap": "^2.3.1",
     "constate": "^1.2.0",
@@ -48,6 +49,7 @@
     "emotion-reset": "^2.0.2",
     "emotion-theming": "^10.0.18",
     "flatqueue": "*",
+    "formik": "^2.0.3",
     "gl-matrix": "*",
     "hash-int": "*",
     "localforage": "^1.7.3",
@@ -68,6 +70,7 @@
     "seedrandom": "^3.0.1",
     "shortid": "^2.2.15",
     "simplex-noise": "*",
-    "ts-jest": "^24.1.0"
+    "ts-jest": "^24.1.0",
+    "yup": "^0.27.0"
   }
 }

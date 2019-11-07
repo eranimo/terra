@@ -7,6 +7,46 @@ import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
 import { MapManagerContainer } from './MapViewer';
 import { GlobeManager } from '../GlobeManager';
+import * as yup from 'yup';
+import { IWorldOptions } from '../worldgen/World';
+
+
+export const worldOptionsSchema = yup.object<IWorldOptions>().shape({
+  core: yup.object().label('Core').shape({
+    seed: yup.number().integer().label('Random Seed'),
+  }),
+  sphere: yup.object().label('Sphere').shape({
+    numberCells: yup.number().required().integer()
+      .label('Number of cells'),
+    jitter: yup.number().required().min(0).max(1)
+      .label('Cell jitter').meta({ component: 'slider', step: 0.1 }),
+    protrudeHeight: yup.number().required().min(0).max(1)
+      .label('Protrude height').meta({ component: 'slider', step: 0.1 }),
+  }),
+  hydrology: yup.object().label('Hydrology').shape({
+    flowModifier: yup.number().required().min(0).max(1)
+      .label('Flow modifier').meta({ component: 'slider', step: 0.1 }),
+    moistureModifier: yup.number().required().min(-1).max(1)
+      .label('Moisture modifier').meta({ component: 'slider', step: 0.1 }),
+  }),
+  geology: yup.object().label('Geology').shape({
+    numberPlates: yup.number().required().min(0).max(100)
+      .label('Number of plates').meta({ component: 'slider', step: 0.1 }),
+    oceanPlatePercent: yup.number().required().min(0).max(1)
+      .label('Ocean plate percent').meta({ component: 'slider', step: 0.1 }),
+    plateCollisionThreshold: yup.number().required().min(0).max(1)
+      .label('Plate collision threshold').meta({ component: 'slider', step: 0.1 }),
+    terrainRoughness: yup.number().required().min(0).max(1)
+      .label('Terrain roughness').meta({ component: 'slider', step: 0.1 }),
+    heightModifier: yup.number().required().min(-1).max(1)
+      .label('Height modifier').meta({ component: 'slider', step: 0.1 }),
+  }),
+  climate: yup.object().label('Climate').shape({
+    temperatureModifier: yup.number().required().min(-1).max(1)
+      .label('Temperature modifier').meta({ component: 'slider', step: 0.1 }),
+  })
+});
+
 
 
 interface IControlOptions {

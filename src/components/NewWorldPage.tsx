@@ -43,7 +43,6 @@ export const NewWorldPage = () => {
     setSaveOpen(false);
     const worldRecord: IWorldRecord = {
       options: globeManager.globeOptions$.value,
-      data: {}
     };
     await worldStore.save(worldRecord, worldName);
     window.alert('World Saved');

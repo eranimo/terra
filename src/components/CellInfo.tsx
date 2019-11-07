@@ -40,8 +40,8 @@ export function CellInfo() {
       p={5}
       width={360}
       position="fixed"
-      right="0"
-      bottom="180px"
+      left={0}
+      bottom={0}
       bg="rgba(23, 25, 35, 0.95)"
       borderWidth="1px"
       borderColor="gray.600"

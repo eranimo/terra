@@ -1,12 +1,10 @@
-import React, { useEffect } from 'react';
-import { worldStore } from '../records';
-import { useAsync, useAsyncRetry } from 'react-use';
-import { Box, Link as ChakraLink, ListItem, Button, Stack, Spinner, Text, Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@chakra-ui/core';
-import { LoadingOverlay } from './LoadingOverlay';
-import dayjs from 'dayjs';
-import { MenuContainer } from './MenuContainer';
-import { Link } from 'react-router-dom';
+import { Box, Breadcrumb, BreadcrumbItem, BreadcrumbLink, Button, Link as ChakraLink, Spinner, Stack, Text } from '@chakra-ui/core';
+import React from 'react';
 import { FaTrash } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { useAsyncRetry } from 'react-use';
+import { worldStore } from '../records';
+import { MenuContainer } from './MenuContainer';
 
 
 const ChakraLink$ = ChakraLink as any;
@@ -21,18 +19,7 @@ export const NewGamePage = ({}) => {
 
 
   return (
-    <MenuContainer>
-      <Box pb="2" mb="5" borderBottom="1px" borderBottomColor="gray.600">
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <BreadcrumbLink$ color="blue.200" as={Link} to="/">Main Menu</BreadcrumbLink$>
-          </BreadcrumbItem>
-
-          <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink>New Game</BreadcrumbLink>
-          </BreadcrumbItem>        
-        </Breadcrumb>
-      </Box>
+    <MenuContainer page="New Game">
       <Text fontSize="md">
         Load a saved world to begin playing, or <ChakraLink$ color="blue.200" as={Link} to="/new-world">create one</ChakraLink$>.
       </Text>
@@ -73,9 +60,15 @@ export const NewGamePage = ({}) => {
                   </td>
                   <td>
                     <Stack isInline spacing="2">
-                      <Button size="sm" variant="ghost" variantColor="blue">
+                      <Button$
+                        as={Link}
+                        to={`/start-game/${item.name}`}
+                        size="sm"
+                        variant="ghost"
+                        variantColor="blue"
+                      >
                         Load
-                      </Button>
+                      </Button$>
                       <Button
                         size="sm"
                         variant="ghost"

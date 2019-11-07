@@ -30,6 +30,16 @@ export interface IGlobeOptions {
   },
 }
 
+
+export interface IGameOptions {
+  core: {
+    enableDevMode: boolean,
+  },
+  sim: {
+    numStartingCivs: number,
+  },
+}
+
 export const categoryTitles = {
   core: 'Core',
   sphere: 'Sphere',

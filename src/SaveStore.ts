@@ -1,13 +1,13 @@
 import localforage from 'localforage';
 
 
-export interface ISaveStoreEntry {
+export interface ISaveStoreEntry<T = any> {
   name: string;
   createdAt: number;
   data: any;
 }
 
-export interface ISaveStoreRecord {
+export interface ISaveStoreRecord<T = any> {
   name: string;
   modifiedAt: number;
   data: any;
