@@ -151,7 +151,7 @@ export const FormControls: React.FC<{
                 return (
                   <Box key={key}>
                     <Heading size="sm" mb={3}>
-                      {schema.label}
+                      {desc.label}
                     </Heading>
                     <Grid templateColumns="repeat(2, 1fr)" gap={6}>
                       {Object.entries(desc.fields).map(([subkey, subdesc]: [string, yup.SchemaDescription]) => {

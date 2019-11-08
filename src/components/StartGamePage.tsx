@@ -48,11 +48,6 @@ const GameOptionsPage: React.FC<{
       <Box mb="5">
         <Heading size="md" as="h3" mb={3}>World Options</Heading>
         Saved world: {worldName}
-        <FormControls
-          schema={worldOptionsSchema}
-          onSubmit={startGame}
-          initialValues={world.data.options}
-        />
       </Box>
       <Box>
         <Heading size="md" as="h3" mb={3}>Game Options</Heading>
