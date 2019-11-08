@@ -33,6 +33,7 @@ export interface IGlobeOptions {
 
 export interface IGameOptions {
   core: {
+    name: string,
     enableDevMode: boolean,
   },
   sim: {

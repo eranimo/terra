@@ -13,7 +13,7 @@ import { IWorldOptions } from '../worldgen/World';
 
 export const worldOptionsSchema = yup.object<IWorldOptions>().shape({
   core: yup.object().label('Core').shape({
-    seed: yup.number().integer().label('Random Seed'),
+    seed: yup.number().required().integer().label('Random Seed'),
   }),
   sphere: yup.object().label('Sphere').shape({
     numberCells: yup.number().required().integer()

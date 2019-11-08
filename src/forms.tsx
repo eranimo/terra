@@ -1,16 +1,15 @@
-import { Grid, Box, Button, Checkbox, FormControl, FormLabel, Input, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Stack, Text, Heading } from '@chakra-ui/core';
-import styled from '@emotion/styled';
-import { Field, FieldInputProps, FieldProps, Formik, FormikProps, FormikHelpers } from 'formik';
+import { Box, Button, Checkbox, FormControl, FormLabel, Grid, Heading, Input, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Stack, Text } from '@chakra-ui/core';
+import { keyBy } from 'lodash';
 import React from 'react';
 import { FaMinus, FaPlus } from 'react-icons/fa';
 import * as yup from 'yup';
-import { keyBy } from 'lodash';
+import { Form, Field, FormRenderProps, FieldProps, FieldInputProps } from 'react-final-form';
 
 
 type ControlComponent = React.FC<{
   schema: yup.SchemaDescription,
-  field: FieldInputProps<any>,
-  form: FormikProps<unknown>
+  field: FieldInputProps<any, any>,
+  form: FormRenderProps,
 }>;
 const controlComponents: Record<string, ControlComponent> = {
   input: ({ field, form }) => (
@@ -32,10 +31,10 @@ const controlComponents: Record<string, ControlComponent> = {
             value={field.value}
             onBlur={() => {
               if (field.value === "") {
-                (form.setFieldValue as any)(field.name as any, 0);
+                field.onChange(0);
               }
             }}
-            onChange={(event) => (form.setFieldValue as any)(field.name, event.target.value)}
+            onChange={(event) => field.onChange(event.target.value)}
           />
         </Box>
         <Button
@@ -44,7 +43,7 @@ const controlComponents: Record<string, ControlComponent> = {
           variant="ghost"
           onClick={(event) => {
             const amount = event.shiftKey ? (event.metaKey ? 100 : 10) : 1;
-            (form.setFieldValue as any)(field.name, field.value - amount);
+            field.onChange(field.value - amount);
           }}
         >
           <Box as={FaMinus} />
@@ -57,7 +56,7 @@ const controlComponents: Record<string, ControlComponent> = {
           min={(tests.min && tests.min.params as any).min}
           max={(tests.max && tests.max.params as any).max}
           step={(schema.meta as any).step}
-          onChange={(value) => (form.setFieldValue as any)(field.name, value)}
+          onChange={(value) => field.onChange(value)}
         >
           <SliderTrack />
           <SliderFilledTrack />
@@ -70,7 +69,7 @@ const controlComponents: Record<string, ControlComponent> = {
           ml={1}
           onClick={(event) => {
             const amount = event.shiftKey ? (event.metaKey ? 100 : 10) : 1;
-            (form.setFieldValue as any)(field.name, field.value + amount);
+            field.onChange(field.value + amount);
           }}
         >
           <Box as={FaPlus} />
@@ -85,7 +84,7 @@ const controlComponents: Record<string, ControlComponent> = {
         size="lg"
         isChecked={field.value}
         onChange={event => {
-          (form.setFieldValue as any)(field.name, event.target.checked);
+          field.onChange(event.target.checked);
         }}
       />
     </Box>
@@ -94,22 +93,32 @@ const controlComponents: Record<string, ControlComponent> = {
 
 const FormControlField: React.FC<{
   fieldKey: string,
-  schema: yup.SchemaDescription,
-  props: FormikProps<any>,
-}> = ({ fieldKey, schema, props }) => {
+  schema: yup.Schema<any>,
+  desc: yup.SchemaDescription,
+  props: FormRenderProps,
+}> = ({ fieldKey, desc, schema, props }) => {
   return (
-    <Field name={fieldKey}>
-      {({ field, form, meta }: FieldProps) => {
-        const fieldMeta = schema.meta as any || {};
+    <Field
+      name={fieldKey}
+      validate={async value => {
+        try {
+          await schema.validate(value);
+        } catch (err) {
+          return err.errors[0];
+        }
+      }}
+    >
+      {({ input, meta }) => {
+        const fieldMeta = desc.meta as any || {};
         const ControlComponent = controlComponents[fieldMeta.component || 'input'];
         return (
           <FormControl key={fieldKey}>
             <FormLabel htmlFor={fieldKey} color="gray.300">
-              {schema.label}
+              {desc.label}
             </FormLabel>
-            <ControlComponent schema={schema} field={field} form={props} />
+            <ControlComponent schema={desc} field={input} form={props} />
             <Text color="red.300" mt={2}>
-              {meta.error}
+              {meta.touched && meta.error}
             </Text>
           </FormControl>
         );
@@ -121,40 +130,43 @@ const FormControlField: React.FC<{
 export const FormControls: React.FC<{
   schema: yup.ObjectSchema,
   initialValues: unknown,
-  onSubmit: (values: unknown, actions: FormikHelpers<unknown>) => void,
+  onSubmit: (values: any) => void,
 }> = ({
   schema,
   initialValues,
   onSubmit
 }) => {
-  console.log(schema.describe());
+  console.log(schema, schema.describe());
 
   return (
-    <Formik
+    <Form
       initialValues={initialValues}
       onSubmit={onSubmit}
-      validationSchema={schema}
     >
       {props => (
         <form onSubmit={props.handleSubmit}>
           <Stack spacing={6} mt={6}>
-            {Object.entries(schema.describe().fields).map(([key, schema ]) => {
-              if (schema.type === 'object') {
+            {Object.entries(schema.describe().fields).map(([key, desc ]: [string, yup.SchemaDescription]) => {
+              if (desc.type === 'object') {
                 return (
                   <Box key={key}>
                     <Heading size="sm" mb={3}>
                       {schema.label}
                     </Heading>
                     <Grid templateColumns="repeat(2, 1fr)" gap={6}>
-                      {Object.entries(schema.fields).map(([subkey, subschema]) => (
-                        <Box w="100%" key={subkey}>
-                          <FormControlField
-                            fieldKey={`${key}.${subkey}`}
-                            schema={subschema as any}
-                            props={props}
-                          />
-                        </Box>
-                      ))}
+                      {Object.entries(desc.fields).map(([subkey, subdesc]: [string, yup.SchemaDescription]) => {
+                        const fieldSchema = (schema as any).fields[key].fields[subkey];
+                        return (
+                          <Box w="100%" key={subkey}>
+                            <FormControlField
+                              fieldKey={`${key}.${subkey}`}
+                              schema={fieldSchema}
+                              desc={subdesc}
+                              props={props}
+                            />
+                          </Box>
+                        );
+                      })}
                     </Grid>
                   </Box>
                 );
@@ -163,7 +175,8 @@ export const FormControls: React.FC<{
                 <Box w="100%" key={key}>
                   <FormControlField
                     fieldKey={key}
-                    schema={schema as any}
+                    schema={schema}
+                    desc={desc}
                     props={props}
                   />
                 </Box>
@@ -173,13 +186,12 @@ export const FormControls: React.FC<{
           <Button
             mt={4}
             variantColor="blue"
-            isLoading={props.isSubmitting}
             type="submit"
           >
             Start Game
           </Button>
         </form>
       )}
-    </Formik>
+    </Form>
   )
 }

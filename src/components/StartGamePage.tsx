@@ -1,23 +1,18 @@
-import React, { useContext, useEffect } from 'react';
-import { Redirect, RouteComponentProps } from 'react-router';
-import { WorkerContext } from './WorkerManager';
-import { usePromise, useAsync } from 'react-use';
-import { worldStore, IWorldRecord } from '../records';
-import { MenuContainer } from './MenuContainer';
-import { Button, Spinner, FormControl, FormLabel, FormHelperText, Input, FormErrorMessage, Text, Heading, Box, Slider, Stack, SliderTrack, SliderFilledTrack, SliderThumb, Checkbox, Flex, Icon } from '@chakra-ui/core';
-import { Formik, FormikHelpers, Field, FieldProps, FieldInputProps, FormikProps } from 'formik';
-import { IGameOptions } from '../types';
+import { Box, Heading, Spinner } from '@chakra-ui/core';
+import React, { useContext } from 'react';
+import { RouteComponentProps } from 'react-router';
+import { useAsync } from 'react-use';
 import * as yup from 'yup';
-import { Divider } from './Divider';
-import styled from '@emotion/styled';
-import { FaMinus, FaPlus } from 'react-icons/fa';
 import { FormControls } from '../forms';
-import { IWorldOptions } from '../worldgen/World';
+import { worldStore } from '../records';
+import { IGameOptions } from '../types';
 import { worldOptionsSchema } from './Controls';
-
+import { MenuContainer } from './MenuContainer';
+import { WorkerContext } from './WorkerManager';
 
 const gameOptionsSchema = yup.object<IGameOptions>().shape({
   core: yup.object().label('Core').shape({
+    name: yup.string().required().label('Game name'),
     enableDevMode: yup.boolean().meta({ component: 'checkbox' })
       .label('Enable Developer Mode'),
   }),
@@ -35,6 +30,7 @@ const GameOptionsPage: React.FC<{
 
   const initialValues: IGameOptions = {
     core: {
+      name: '',
       enableDevMode: false,
     },
     sim: {
@@ -42,7 +38,7 @@ const GameOptionsPage: React.FC<{
     },
   };
 
-  const startGame = (values: IGameOptions, actions: FormikHelpers<IGameOptions>) => {
+  const startGame = (values: IGameOptions) => {
     const valuesCast = gameOptionsSchema.cast(values);
     console.log(valuesCast);
   };
@@ -52,11 +48,6 @@ const GameOptionsPage: React.FC<{
       <Box mb="5">
         <Heading size="md" as="h3" mb={3}>World Options</Heading>
         Saved world: {worldName}
-        <FormControls
-          schema={worldOptionsSchema}
-          onSubmit={(values) => console.log(values)}
-          initialValues={world.data.options}
-        />
       </Box>
       <Box>
         <Heading size="md" as="h3" mb={3}>Game Options</Heading>
