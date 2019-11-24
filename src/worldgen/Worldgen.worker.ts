@@ -59,6 +59,10 @@ worker.on('init', ({ options, mapMode }) => {
   worker.send('generate', world.export());
 }, true);
 
+worker.on('startGame', ({  }) => {
+
+});
+
 worker.on('getIntersectedCell', async ({ point, dir }) => {
   return world.globe.getIntersectedCell(point, dir);
 }, true);

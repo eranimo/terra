@@ -4,13 +4,13 @@ import localforage from 'localforage';
 export interface ISaveStoreEntry<T = any> {
   name: string;
   createdAt: number;
-  data: any;
+  data: T;
 }
 
 export interface ISaveStoreRecord<T = any> {
   name: string;
   modifiedAt: number;
-  data: any;
+  data: T;
 }
 
 interface ISaveStoreOptions<T> {
@@ -35,12 +35,12 @@ export class SaveStore<T> {
     });
   }
 
-  async load(name: string): Promise<T> {
+  async load(name: string): Promise<ISaveStoreRecord<T>> {
     const data = await this.records.getItem(name) as ISaveStoreRecord;
     if (data === null) {
       throw new Error(`Save '${name}' not found`);
     }
-    return this.options.load(data);
+    return this.options.load(data) as unknown as ISaveStoreRecord<T>;
   }
 
   async save(entity: T, name: string) {

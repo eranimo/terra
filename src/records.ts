@@ -21,7 +21,7 @@ export interface IGameRecord {
     },
     ticks: number,
   },
-  gameState: any[],
+  gameState: any,
 };
 
 export const gameStore = new SaveStore<IGameRecord>({

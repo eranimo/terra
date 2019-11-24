@@ -1,4 +1,5 @@
-export const mainPage = () => `/`;
-export const newWorldPage = () => `/new-world`;
-export const newGamePage = () => `/new-game`;
-export const gamePage = (gameID: string) => `/game/${gameID}`;
+export const mainPageRoute = () => `/`;
+export const newWorldPageRoute = () => `/new`;
+export const worldListPageRoute = () => `/worlds/`;
+export const loadWorldPageRoute = (worldName) => `/world/${worldName}`;
+export const loadGameRoute = (gameID: string) => `/game/${gameID}`;

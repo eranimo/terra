@@ -2,8 +2,7 @@ import React from 'react';
 import { Box, Heading, List, ListItem, Flex, Text, PseudoBox, Stack, Link as HyperLink } from '@chakra-ui/core';
 import { Link } from 'react-router-dom';
 import * as ROUTE from '../routes';
-import { newWorldPage } from '../routes';
-import { NewGamePage } from './NewGamePage';
+import { newWorldPageRoute } from '../routes';
 import { MenuContainer } from './MenuContainer';
 
 
@@ -33,8 +32,8 @@ const MenuListItem = ({ to, children }) => (
 export const MainPage = () => (
   <MenuContainer>
     <Stack spacing={5}>
-      <Box><MenuListItem to={ROUTE.newWorldPage()}>New World</MenuListItem></Box>
-      <Box><MenuListItem to={ROUTE.newGamePage()}>New Game</MenuListItem></Box>
+      <Box><MenuListItem to={ROUTE.newWorldPageRoute()}>New World</MenuListItem></Box>
+      <Box><MenuListItem to={ROUTE.worldListPageRoute()}>Load World</MenuListItem></Box>
     </Stack>
   </MenuContainer>
 )

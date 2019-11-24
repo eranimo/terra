@@ -25,6 +25,7 @@
     "worker-loader": "^2.0.0"
   },
   "dependencies": {
+    "@ash.ts/ash": "^1.0.2",
     "@chakra-ui/core": "^0.3.2",
     "@emotion/core": "^10.0.17",
     "@emotion/styled": "^10.0.17",

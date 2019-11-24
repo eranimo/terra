@@ -5,13 +5,14 @@ import { Link } from 'react-router-dom';
 import { useAsyncRetry } from 'react-use';
 import { worldStore } from '../records';
 import { MenuContainer } from './MenuContainer';
+import { loadWorldPageRoute } from '../routes';
 
 
 const ChakraLink$ = ChakraLink as any;
 const BreadcrumbLink$ = BreadcrumbLink as any;
 const Button$ = Button as any;
 
-export const NewGamePage = ({}) => {
+export const WorldListPage = ({}) => {
   const worldSavesState = useAsyncRetry(async () => {
     return worldStore.getSaves()
   });
@@ -19,7 +20,7 @@ export const NewGamePage = ({}) => {
 
 
   return (
-    <MenuContainer page="New Game">
+    <MenuContainer page="New World">
       <Text fontSize="md">
         Load a saved world to begin playing, or <ChakraLink$ color="blue.200" as={Link} to="/new-world">create one</ChakraLink$>.
       </Text>
@@ -62,7 +63,7 @@ export const NewGamePage = ({}) => {
                     <Stack isInline spacing="2">
                       <Button$
                         as={Link}
-                        to={`/start-game/${item.name}`}
+                        to={loadWorldPageRoute(item.name)}
                         size="sm"
                         variant="ghost"
                         variantColor="blue"

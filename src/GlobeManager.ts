@@ -2,6 +2,7 @@ import { IGlobeOptions, EMapMode, GlobeData } from './types';
 import { BehaviorSubject } from 'rxjs';
 import { logGroupTime } from './utils';
 import { WorldgenClient } from './worldgen/WorldgenClient';
+import { IWorldOptions } from './worldgen/World';
 
 
 export const initialOptions: IGlobeOptions = {
@@ -39,8 +40,9 @@ export class GlobeManager {
 
   constructor(
     protected client: WorldgenClient,
+    options: IGlobeOptions = initialOptions,
   ) {
-    this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
+    this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, options));
     this.globe$ = new BehaviorSubject<GlobeData>(null);
     this.loading$ = new BehaviorSubject(false);
     this.mapMode = DEFAULT_MAP_MODE;
