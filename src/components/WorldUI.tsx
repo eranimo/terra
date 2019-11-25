@@ -16,14 +16,16 @@ export const WorldUI: React.FC<{
 
   // save modal
   const [isSaveOpen, setSaveOpen] = useState(false);
-  const [worldName, setWorldName] = useState(loadedWorldName);
+  const [worldName, setWorldName] = useState("");
+  const [savedWorldName, setSavedWorldName] = useState(loadedWorldName);
 
   const saveWorld = async () => {
+    setSavedWorldName(worldName);
     setSaveOpen(false);
     const worldRecord: IWorldRecord = {
       options: globeManager.globeOptions$.value,
     };
-    if (loadedWorldName) {
+    if (savedWorldName) {
       await worldStore.removeSave(loadedWorldName);
     }
     await worldStore.save(worldRecord, worldName);
@@ -48,7 +50,7 @@ export const WorldUI: React.FC<{
         Back
       </Link>
       <Heading mb="5">
-        {worldName ? `World "${worldName}"` : 'New World'}
+        {savedWorldName ? `World "${savedWorldName}"` : 'New World'}
       </Heading>
       <Stack align="center" isInline>
         <Button
