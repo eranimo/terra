@@ -145,6 +145,8 @@ export class Globe {
   plate_is_ocean: Set<unknown>;
   r_lat_long: Float32Array;
   r_temperature: number[];
+  min_temperature: number;
+  max_temperature: number;
 
   r_distance_to_ocean: number[];
   r_coast: number[];

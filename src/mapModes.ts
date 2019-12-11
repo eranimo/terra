@@ -161,8 +161,9 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
         alpha: 1,
       }),
     },
-    color: (value, colors) => {
-      const index = clamp(Math.round(value * 100), 0, 99);
+    color: (value, colors, globe) => {
+      const t = (value - globe.min_temperature) / (globe.max_temperature - globe.min_temperature);
+      const index = clamp(Math.round(t * 100), 0, 99);
       if (colors.main[index]) {
         return colors.main[index];
       }

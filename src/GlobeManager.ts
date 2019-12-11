@@ -19,7 +19,9 @@ export const initialOptions: IGlobeOptions = {
     moistureModifier: 0,
   },
   climate: {
-    temperatureModifier: 0,
+    temperatureModifier: 1,
+    minTemperature: -40,
+    maxTemperature: 30,
   },
   geology: {
     numberPlates: 25,

@@ -52,6 +52,13 @@ export const LoadWorldPage: React.FC<StartGamePageProps> = ({ match }) => {
       </MenuContainer>
     );
   }
+  if (worldLoadState.value === undefined) {
+    return (
+      <MenuContainer page="Load World">
+        World not found
+      </MenuContainer>
+    )
+  }
   console.log('WORLD', worldName, worldLoadState.value);
 
   return <LoadedWorldUI record={worldLoadState.value} />;  

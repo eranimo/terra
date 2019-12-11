@@ -29,7 +29,6 @@ export const WorldUI: React.FC<{
       await worldStore.removeSave(loadedWorldName);
     }
     await worldStore.save(worldRecord, worldName);
-    window.alert('World Saved');
 
     history.push(`/world/${worldName}`);
   };
@@ -104,7 +103,7 @@ export const WorldUI: React.FC<{
                 variantColor="blue"
                 onClick={saveWorld}
               >
-                Play World
+                Save World
               </Button>
             </Stack>
           </ModalFooter>

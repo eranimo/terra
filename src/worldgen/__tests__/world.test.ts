@@ -17,6 +17,8 @@ const globeOptions: IGlobeOptions = {
   },
   climate: {
     temperatureModifier: 0,
+    minTemperature: -40,
+    maxTemperature: 30,
   },
   geology: {
     numberPlates: 25,

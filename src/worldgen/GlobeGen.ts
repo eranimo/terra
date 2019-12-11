@@ -9,7 +9,6 @@ import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
 import { generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
 
-
 export class GlobeGen {
   globe: Globe;
 
@@ -70,8 +69,8 @@ export class GlobeGen {
         // shallow seas are warmer than deep oceans
         globe.insolation[r] = (
           (0.05 * random1) +
-          (0.20 * altitude) +
-          (0.75 * latRatioSeasonal)
+          (0.10 * altitude) +
+          (0.85 * latRatioSeasonal)
         );
       } else { // land
         const altitude = 1 - Math.max(0, globe.r_elevation[r]);
@@ -79,8 +78,8 @@ export class GlobeGen {
         // lower is warmer
         globe.insolation[r] = (
           (0.05 * random1) +
-          (0.20 * altitude) +
-          (0.75 * latRatioSeasonal)
+          (0.10 * altitude) +
+          (0.85 * latRatioSeasonal)
         );
       }
     }
@@ -220,6 +219,8 @@ export class GlobeGen {
   @logGroupTime('temperature', true)
   private generateTemperature() {
     let randomNoise = new SimplexNoise(makeRandFloat(this.globe.options.core.seed));
+    const { temperatureModifier, minTemperature, maxTemperature } = this.globe.options.climate;
+    const temperatureRange = maxTemperature + Math.abs(minTemperature);
     // temperature
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
       const x = this.globe.r_xyz[3 * r];
@@ -248,16 +249,17 @@ export class GlobeGen {
         );
       }
 
-      this.globe.r_temperature[r] += this.globe.r_temperature[r] * this.globe.options.climate.temperatureModifier;
+      this.globe.r_temperature[r] *= temperatureModifier;
       this.globe.r_temperature[r] = clamp(this.globe.r_temperature[r], 0, 1);
+      const temp = this.globe.r_temperature[r];
+      this.globe.r_temperature[r] = (temp * temperatureRange) + minTemperature;
     }
-
 
     const { min, max } = arrayStats(this.globe.r_temperature);
+    this.globe.min_temperature = min;
+    this.globe.max_temperature = max;
 
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      this.globe.r_temperature[r] = (this.globe.r_temperature[r] - min) / (max - min);
-    }
+    console.log(arrayStats(this.globe.r_temperature));
   }
 
   @logGroupTime('generate pops', true)
@@ -345,9 +347,11 @@ export class GlobeGen {
     // biomes
     this.globe.r_moisture_zone = [];
     this.globe.r_temperature_zone = [];
+    const { minTemperature, maxTemperature } = this.globe.options.climate;
+
     
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      if (this.globe.r_elevation[r] < 0 && this.globe.r_temperature[r] < 0.15) {
+      if (this.globe.r_elevation[r] < 0 && this.globe.r_temperature[r] < -15) {
         this.globe.r_biome[r] = EBiome.GLACIAL;
         continue;
       }
@@ -358,7 +362,7 @@ export class GlobeGen {
         this.globe.r_biome[r] = EBiome.COAST;
       } else {
         const moisture = clamp(this.globe.r_moisture[r], 0, 1);
-        const temperature = clamp(this.globe.r_temperature[r], 0, 1);
+        const temperature = (this.globe.r_temperature[r] - minTemperature) / (maxTemperature - minTemperature);
         let moistureZone = null;
         for (const [zone, { start, end }] of Object.entries(moistureZoneRanges)) {
           if (moisture >= start && moisture <= end) {

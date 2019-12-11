@@ -20,6 +20,8 @@ export interface IGlobeOptions {
   },
   climate: {
     temperatureModifier: number,
+    minTemperature: number,
+    maxTemperature: number,
   },
   geology: {
     numberPlates: number,

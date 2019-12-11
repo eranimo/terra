@@ -42,7 +42,7 @@ export const worldOptionsSchema = yup.object<IWorldOptions>().shape({
       .label('Height modifier').meta({ component: 'slider', step: 0.1 }),
   }),
   climate: yup.object().label('Climate').shape({
-    temperatureModifier: yup.number().required().min(-1).max(1)
+    temperatureModifier: yup.number().required().min(0).max(1)
       .label('Temperature modifier').meta({ component: 'slider', step: 0.1 }),
   })
 });
