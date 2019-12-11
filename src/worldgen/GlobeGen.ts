@@ -264,6 +264,7 @@ export class GlobeGen {
 
   @logGroupTime('generate pops', true)
   private generatePops() {
+    const { minTemperature, maxTemperature } = this.globe.options.climate;
 
     // calculate land desirability
     this.globe.r_desirability = new Float32Array(this.globe.mesh.numRegions);
@@ -289,7 +290,8 @@ export class GlobeGen {
       // 0 at 0 and 1 temperature (extremes)
       // 1 at 0.5 temperature (temperate)
       // shape: sine
-      const temperature_value = Math.sin((this.globe.r_temperature[r] ** 2) * Math.PI);
+      const temperature_ratio = (this.globe.r_temperature[r] - minTemperature) / (maxTemperature - minTemperature);
+      const temperature_value = Math.sin((temperature_ratio ** 2) * Math.PI);
 
       // Moisture:
       // 0 at 0 moisture
