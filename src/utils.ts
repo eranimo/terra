@@ -79,32 +79,48 @@ export function measure(label: string, thresholdMS: number = 0) {
 // It does intersection between ray and triangle.
 // With the original version, we had no way of accessing 't'
 // But we really needed that value.
-export function intersectTriangle (out, pt, dir, tri) {
-  var EPSILON = 0.000001
-  var edge1 = [0, 0, 0]
-  var edge2 = [0, 0, 0]
-  var tvec = [0, 0, 0]
-  var pvec = [0, 0, 0]
-  var qvec = [0, 0, 0]
+export function intersectTriangle (pt, dir, p1, p2, p3) {
+  let EPSILON = 0.000001;
+  let edge1 = [
+    p2[0] - p1[0],
+    p2[1] - p1[1],
+    p2[2] - p1[2],
+  ];
+  let edge2 = [
+    p3[0] - p1[0],
+    p3[1] - p1[1],
+    p3[2] - p1[2],
+  ];
 
-  vec3.subtract(edge1 as any, tri[1], tri[0])
-  vec3.subtract(edge2 as any, tri[2], tri[0])
+  // cross product of dir and edge2
+  let pvec = [
+    dir[1] * edge2[2] - dir[2] * edge2[1],
+    dir[2] * edge2[0] - dir[0] * edge2[2],
+    dir[0] * edge2[1] - dir[1] * edge2[0],
+  ];
 
-  vec3.cross(pvec as any, dir, edge2)
-  var det = vec3.dot(edge1, pvec)
+  // dot product
+  let det = edge1[0] * pvec[0] + edge1[1] * pvec[1] + edge1[2] * pvec[2];
 
-  if (det < EPSILON) return null
-  vec3.subtract(tvec as any, pt, tri[0])
-  var u = vec3.dot(tvec, pvec)
-  if (u < 0 || u > det) return null
-  vec3.cross(qvec as any, tvec, edge1)
-  var v = vec3.dot(dir, qvec)
-  if (v < 0 || u + v > det) return null
+  if (det < EPSILON) return null;
+  let tvec = [
+    pt[0] - p1[0],
+    pt[1] - p1[1],
+    pt[2] - p1[2],
+  ];
+  const u = tvec[0] * pvec[0] + tvec[1] * pvec[1] + tvec[2] * pvec[2];
+  if (u < 0 || u > det) return null;
+  
+  // cross product of tvec and edge1
+  let qvec = [
+    tvec[1] * edge1[2] - tvec[2] * edge1[1],
+    tvec[2] * edge1[0] - tvec[0] * edge1[2],
+    tvec[0] * edge1[1] - tvec[1] * edge1[0],
+  ];
+  const v = dir[0] * qvec[0] + dir[1] * qvec[1] + dir[2] * qvec[2];
+  if (v < 0 || u + v > det) return null;
 
-  var t = vec3.dot(edge2, qvec) / det
-  out[0] = pt[0] + t * dir[0]
-  out[1] = pt[1] + t * dir[1]
-  out[2] = pt[2] + t * dir[2]
+  const t = (edge2[0] * qvec[0] + edge2[1] * qvec[1] + edge2[2] * qvec[2]) / det;
   return t;
 }
 
@@ -182,4 +198,16 @@ export function toFloat32SAB(array: number[]) {
   const float_array = new Float32Array(buffer);
   float_array.set(array);
   return float_array;
+}
+
+export function distance3D(v1: number[], v2: number[]): number {
+  const dx = v1[0] - v2[0];
+  const dy = v1[1] - v2[1];
+  const dz = v1[2] - v2[2];
+
+  return Math.sqrt( dx * dx + dy * dy + dz * dz );
+}
+
+export function degreesToRadians(degrees): number {
+  return degrees * (Math.PI / 180);
 }

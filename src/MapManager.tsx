@@ -1,15 +1,13 @@
 import { mat4, vec3 } from 'gl-matrix';
-import { times } from 'lodash';
 import createLine from 'regl-line';
-import { Globe } from './worldgen/Globe';
-import { mapModeDefs } from './mapModes';
-import Renderer from './Renderer';
-import { EMapMode, IDrawOptions, IGlobeOptions, biomeTitles, defaultDrawOptions, mapModeDrawOptions, monthTitles, GlobeData, CellPoints } from './types';
-import { getLatLng, ImageRef, intersectTriangle, logGroupTime } from './utils';
-import { ObservableDict } from './utils/ObservableDict';
-import { CellGroup } from "./CellGroup";
 import { BehaviorSubject } from 'rxjs';
+import Renderer from './Renderer';
+import { CellPoints, defaultDrawOptions, EMapMode, GlobeData, IDrawOptions, IGlobeOptions, mapModeDrawOptions, ICellGroupData } from './types';
+import { ImageRef, logGroupTime } from './utils';
+import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
+import { Cancellable } from 'regl';
+import { mapModeDefs } from './mapModes';
 
 
 export const initialOptions: IGlobeOptions = {
@@ -18,7 +16,7 @@ export const initialOptions: IGlobeOptions = {
   },
   sphere: {
     numberCells: 35_000,
-    jitter: 0.6,
+    jitter: 0.4,
     protrudeHeight: 0.25,
   },
   hydrology: {
@@ -46,21 +44,18 @@ const DEFAULT_MAP_MODE = EMapMode.BIOME;
  * Contains CellGroups
  */
 export class MapManager {
-  client: WorldgenClient;
-  globeOptions$: BehaviorSubject<IGlobeOptions>;
   drawOptions$: ObservableDict<IDrawOptions>;
   renderer: ReturnType<typeof Renderer>;
   camera: any;
   globe: GlobeData;
-  removeDrawLoop: any;
-  selectedCell: BehaviorSubject<CellPoints>;
+  cellGroups: Map<string, ICellGroupData>;
+  cellGroupLines: Record<string, any>;
+  removeDrawLoop: Cancellable;
+  selectedCell$: BehaviorSubject<CellPoints>;
+  hoverCell$: BehaviorSubject<CellPoints>;
   minimapContext: CanvasRenderingContext2D;
-  cellGroups: Set<CellGroup>;
-  cell_group_xyz: number[];
-  cell_group_rgba: number[];
-  cell_group_lines: any[];
-  cell_cell_group: Record<number, CellGroup>;
   mapMode$: BehaviorSubject<EMapMode>;
+  tooltipTextCache: Map<number, string>;
 
   renderState: {
     rivers: any,
@@ -69,49 +64,38 @@ export class MapManager {
   };
 
   constructor(
+    public client: WorldgenClient,
     protected screenCanvas: HTMLCanvasElement,
     protected minimapCanvas: HTMLCanvasElement,
     protected images: ImageRef[],
-    protected onBeforeGenerate: () => void,
-    protected onAfterGenerate: () => void,
   ) {
-    this.client = new WorldgenClient();
-    this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, initialOptions));
     const startMapMode = localStorage.lastMapMode || DEFAULT_MAP_MODE;
     this.mapMode$ = new BehaviorSubject<EMapMode>(startMapMode);
     this.drawOptions$ = new ObservableDict({
       ...defaultDrawOptions,
       ...mapModeDrawOptions[startMapMode],
     });
-
-    this.selectedCell = new BehaviorSubject(null);
-    this.cellGroups = new Set();
-    this.cell_cell_group = {};
-    this.cell_group_lines = [];
-    this.cellGroups.add(new CellGroup('foo', [0.5, 0.5, 0.5, 1], [15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]));
+    this.selectedCell$ = new BehaviorSubject(null);
+    this.hoverCell$ = new BehaviorSubject(null);
     const renderer = Renderer(screenCanvas, minimapCanvas, this.onLoad(screenCanvas), images);
     this.renderer = renderer;
-    this.drawOptions$.subscribe(() => renderer.camera.setDirty());
-
-    (window as any).manager = this;
-    (window as any).renderer = renderer;
-    this.globeOptions$.subscribe(() => {
-      this.generate();
+    this.cellGroupLines = {};
+    this.drawOptions$.subscribe(() => {
+      renderer.camera.setDirty();
     });
-
+    
+    this.client.setMapMode(startMapMode).then(() => {
+      renderer.camera.setDirty();
+      this.drawMinimap();
+    });
+    
     // redraw minimap when draw option changes
     this.mapMode$.subscribe(mapMode => {
-      localStorage.lastMapMode = mapMode;
-      if (this.globe) {
-        this.drawOptions$.replace({
-          ...defaultDrawOptions,
-          ...mapModeDrawOptions[mapMode],
-        });
-        this.client.setMapMode(mapMode).then(() => {
-          renderer.camera.setDirty();
-          this.drawMinimap();
-        });
-      }
+      this.onChangeMapMode(mapMode);
+    });
+
+    window.addEventListener('resize', () => {
+      renderer.camera.setDirty();
     });
 
     // minimap events
@@ -143,6 +127,42 @@ export class MapManager {
         this.drawMinimap();
       }
     });
+
+    this.cellGroups = new Map();
+    this.client.worker$.on('cellGroupUpdate').subscribe((data: ICellGroupData) => {
+      renderer.camera.setDirty();
+      this.cellGroups.set(data.name, data);
+      this.generateCellGroupLines();
+    });
+  }
+
+  onChangeMapMode(mapMode: EMapMode) {
+    localStorage.lastMapMode = mapMode;
+    this.tooltipTextCache = new Map();
+    if (this.globe) {
+      this.drawOptions$.replace({
+        ...defaultDrawOptions,
+        ...mapModeDrawOptions[mapMode],
+      });
+
+      this.client.setMapMode(mapMode)
+        .then(() => {
+          this.renderer.camera.setDirty();
+          this.drawMinimap();
+        });
+    }
+  }
+
+  setGlobe(globe: GlobeData) {
+    this.globe = globe;
+    console.log('WorldgenClient', this.client);
+    this.setupRendering();
+    this.endRenderLoop();
+    this.startRenderLoop();
+    this.generateCellGroupLines();
+    this.drawMinimap();
+    this.renderer.camera.setDirty();
+    this.tooltipTextCache = new Map();
   }
 
   startRenderLoop() {
@@ -155,123 +175,80 @@ export class MapManager {
     });
   }
 
-  onLoad = (canvas) => () => {
-    let downX = 0;
-    let downY = 0;
-    canvas.addEventListener('mousedown', event => {
-      downX = event.clientX;
-      downY = event.clientY;
-    });
-    canvas.addEventListener('mouseup', event => {
-      const distance = Math.sqrt(
-        Math.pow(downX - event.clientX, 2) +
-        Math.pow(downY - event.clientY, 2)
-      );
-
-      if (distance > 10) return;
-      
-      const { left, top } = canvas.getBoundingClientRect();
-      const { clientX, clientY } = event;
-      const mouseX = clientX - left;
-      const mouseY = clientY - top;
-      const { projection, view } = this.renderer.camera.state;
-      const vp = mat4.multiply([] as any, projection, view);
-      let invVp = mat4.invert([] as any, vp);
-      // get a single point on the camera ray.
-      const rayPoint = vec3.transformMat4([] as any, [
-        2.0 * mouseX / canvas.width - 1.0,
-        -2.0 * mouseY / canvas.height + 1.0,
-        0.0
-      ], invVp);
-      // get the position of the camera.
-      const rayOrigin = vec3.transformMat4([] as any, [0, 0, 0], mat4.invert([] as any, view));
-      const rayDir = vec3.negate([] as any, vec3.normalize([] as any, vec3.subtract([] as any, rayPoint, rayOrigin)));
-      this.client.getIntersectedCell(
-        [rayPoint[0], rayPoint[1], rayPoint[2]],
-        [rayDir[0], rayDir[1], rayDir[2]],
-      ).then(cellPoints => {
-        console.log(this.selectedCell.value, cellPoints.cell);
-        if (this.selectedCell.value && cellPoints.cell === this.selectedCell.value.cell) {
-          this.selectedCell.next(null);
-        } else {
-          this.selectedCell.next(cellPoints);
-        }
-        this.renderer.camera.setDirty();
-      });
-    });
-  };
-
-  destroy() {
-    this.removeDrawLoop();
+  endRenderLoop() {
+    if (this.removeDrawLoop) {
+      this.removeDrawLoop.cancel();
+    }
   }
 
-  resetCamera() {
-    this.destroy();
+  getCellAtPosition(x: number, y: number) {
+    const { projection, view } = this.renderer.camera.state;
+    const vp = mat4.multiply([] as any, projection, view);
+    let invVp = mat4.invert([] as any, vp);
+    // get a single point on the camera ray.
+    const rayPoint = vec3.transformMat4([] as any, [
+      2.0 * x / this.screenCanvas.width - 1.0,
+      -2.0 * y / this.screenCanvas.height + 1.0,
+      0.0
+    ], invVp);
+
+    // get the position of the camera.
+    const rayOrigin = vec3.transformMat4([] as any, [0, 0, 0], mat4.invert([] as any, view));
+    const rayDir = vec3.negate([] as any, vec3.normalize([] as any, vec3.subtract([] as any, rayPoint, rayOrigin)));
+
+    return this.client.getIntersectedCell(
+      [rayPoint[0], rayPoint[1], rayPoint[2]],
+      [rayDir[0], rayDir[1], rayDir[2]],
+    );
+  }
+
+  onLoad = (canvas: HTMLCanvasElement) => () => {
+    console.time('Regl loaded');
+  };
+
+  async handleMapClick(cursorX: number, cursorY: number) {
+    const cellPoints = await this.getCellAtPosition(cursorX, cursorY)
+    if (this.selectedCell$.value && cellPoints.cell === this.selectedCell$.value.cell) {
+      this.selectedCell$.next(null);
+    } else {
+      this.selectedCell$.next(cellPoints);
+    }
+
+    this.renderer.camera.setDirty();
+  }
+
+  async handleMapHover(cursorX: number, cursorY: number) {
+    const cellPoints = await this.getCellAtPosition(cursorX, cursorY)
+    if (cellPoints === null) {
+      this.hoverCell$.next(null);
+      return;
+    } else {
+      this.hoverCell$.next(cellPoints);
+    }
+
+    if (this.tooltipTextCache.has(cellPoints.cell)) {
+      return this.tooltipTextCache.get(cellPoints.cell);
+    }
+
+
+    const value = this.globe.mapModeValue[cellPoints.cell];
+    const tooltipString = mapModeDefs.get(this.mapMode$.value).tooltip(value);
+    return tooltipString;
   }
 
   @logGroupTime('calculate cell groups')
-  calculateCellGroups() {
-    // this.cell_group_xyz = [];
-    // this.cell_group_rgba = [];
-    // for (const region of this.cellGroups) {
-    //   for (const cell of region.cells) {
-    //     const xyz = this.globe.coordinatesForCell(cell);
-    //     this.cell_cell_group[cell] = region;
-    //     this.cell_group_xyz.push(...xyz);
-    //     this.cell_group_rgba.push(...times(xyz.length / 3).map(() => region.color) as any);
-    //   }
-    //   // find all points for sides not facing this region
-    //   let points = [];
-    //   let widths = [];
-    //   for (const cell of region.cells) {
-    //     let sides = [];
-    //     this.globe.mesh.r_circulate_s(sides, cell);
-    //     for (const s of sides) {
-    //       const begin_r = this.globe.mesh.s_begin_r(s);
-    //       const end_r = this.globe.mesh.s_end_r(s);
-    //       const inner_t = this.globe.mesh.s_inner_t(s);
-    //       const outer_t = this.globe.mesh.s_outer_t(s);
-    //       const p1 = this.globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
-    //       const p2 = this.globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-    //       if (this.cell_cell_group[end_r] != region) {
-    //         points.push(...p1, ...p1, ...p2, ...p2);
-    //         widths.push(0, 2, 2, 0);
-    //       }
-    //     }
-    //   }
-    //   const line = createLine(this.renderer.regl, {
-    //     color: [0.0, 0.0, 0.0, 0.5],
-    //     widths,
-    //     points,
-    //   });
-    //   this.cell_group_lines.push(line);
-    // }
+  private generateCellGroupLines() {
+    for (const groupData of this.cellGroups.values()) {
+      const line = createLine(this.renderer.regl, {
+        color: [0.0, 0.0, 0.0, 0.5],
+        widths: groupData.border_widths,
+        points: groupData.border_points,
+      });
+      this.cellGroupLines[groupData.name] = line;
+    }
   }
 
-  @logGroupTime('generate')
-  async generate() {
-    this.onBeforeGenerate();
-    const result = await this.client.newWorld(this.globeOptions$.value, this.mapMode$.value);
-    this.globe = result;
-    console.log('worldgen', this.client);
-    this.setupRendering();
-    this.startRenderLoop();
-
-    // this.calculateCellGroups();
-    this.drawMinimap();
-    this.onAfterGenerate();
-
-
-    // setInterval(() => {
-    //   this.globe.currentMonth = ((this.globe.currentMonth + 1) % 12);
-    //   console.log(monthTitles[this.globe.currentMonth]);
-    //   this.mapModes[EMapMode.TEMPERATURE].generate();
-    //   this.renderer.camera.setDirty();
-    //   this.drawMinimap();
-    // }, 1000);
-  }
-
-  setupRendering() {
+  private setupRendering() {
     this.renderState = {
       rivers: createLine(this.renderer.regl, {
         color: [0.0, 0.0, 1.0, 1.0],
@@ -293,7 +270,7 @@ export class MapManager {
     }
   }
 
-  draw() {
+  private draw() {
     const { mapModeColor, triangleGeometry } = this.globe;
     if (this.drawOptions$.get('rivers')) {
       this.renderState.rivers.draw({
@@ -326,22 +303,26 @@ export class MapManager {
         count: this.globe.r_xyz.length / 3,
       });
     }
-    if (this.selectedCell.value) {
-      this.renderer.drawCellBorder(this.selectedCell.value.points);
+    if (this.selectedCell$.value) {
+      this.renderer.drawCellBorder(this.selectedCell$.value.points);
     }
-    // if (this.drawOptions$.get('regions')) {
-    //   this.renderer.renderCellColor({
-    //     scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-    //     a_xyz: this.cell_group_xyz,
-    //     a_rgba: this.cell_group_rgba,
-    //     count: this.cell_group_xyz.length / 3,
-    //   } as any);
-    //   for (const line of this.cell_group_lines) {
-    //     line.draw({
-    //       model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
-    //     });
-    //   }
-    // }
+    if (this.drawOptions$.get('regions')) {
+      for (const cellGroup of this.cellGroups.values()) {
+        this.renderer.renderCellColor({
+          scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+          a_xyz: cellGroup.cells_xyz,
+          a_rgba: cellGroup.cells_rgba,
+          count: cellGroup.cells_xyz.length / 3,
+        } as any);
+
+        const line = this.cellGroupLines[cellGroup.name];
+        if (line) {
+          line.draw({
+            model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
+          });
+        }
+      }
+    }
 
     if (this.drawOptions$.get('surface') && this.mapMode$.value) {
       this.renderer.renderCellColor({

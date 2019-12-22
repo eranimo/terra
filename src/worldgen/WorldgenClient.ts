@@ -1,7 +1,7 @@
 import { ReactiveWorkerClient } from '../utils/workers';
 import WorldgenWorker from 'worker-loader!./Worldgen.worker';
 import { IGlobeOptions, EMapMode } from 'src/types';
-import { GlobeData, CellPoints, CellData } from '../types';
+import { GlobeData, CellPoints, CellGlobeData, WorldData, ICellGroupTooltipData, CellWorldData } from '../types';
 
 
 export class WorldgenClient {
@@ -11,7 +11,7 @@ export class WorldgenClient {
     this.worker$ = new ReactiveWorkerClient(new WorldgenWorker(), false);
   }
 
-  newWorld(options: IGlobeOptions, mapMode: EMapMode): Promise<GlobeData> {
+  newWorld(options: IGlobeOptions, mapMode: EMapMode): Promise<WorldData> {
     console.time('worldgen worker');
     return new Promise((resolve) => {
       this.worker$.action('init').send({ options, mapMode });
@@ -40,19 +40,27 @@ export class WorldgenClient {
   }
 
   async getIntersectedCell(point: number[], dir: number[]): Promise<CellPoints | null> {
-    return new Promise((resolve) => {
-      this.worker$.action('getIntersectedCell')
-        .observe({ point, dir })
-        .subscribe(result => resolve(result as CellPoints));
-    });
+    return this.worker$.action('getIntersectedCell')
+      .observe({ point, dir })
+      .toPromise() as Promise<CellPoints>;
   }
 
-  async getCellData(r: number) {
-    return new Promise((resolve) => {
-      this.worker$.action('getCellData')
-        .observe(r)
-        .subscribe(result => resolve(result as CellData));
-    })
+  async getCellGroupForCell(cell: number): Promise<ICellGroupTooltipData | null> {
+    return this.worker$.action('getCellGroupForCell')
+      .observe(cell)
+      .toPromise() as Promise<ICellGroupTooltipData>;
+  }
+
+  async getCellTooltip(cell: number): Promise<string> {
+    return this.worker$.action('getCellTooltip')
+      .observe(cell)
+      .toPromise() as Promise<string>;
+  }
+
+  async getCellData(r: number): Promise<CellWorldData> {
+    return this.worker$.action('getCellData')
+      .observe(r)
+      .toPromise() as Promise<CellWorldData>;
   }
 
   async setMapMode(mapMode: EMapMode) {

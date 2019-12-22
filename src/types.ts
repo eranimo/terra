@@ -1,4 +1,5 @@
 import { hexToRgb } from './utils/color';
+
 export type Size = {
   width: number,
   height: number,
@@ -26,6 +27,17 @@ export interface IGlobeOptions {
     terrainRoughness: number,
     plateCollisionThreshold: number,
     heightModifier: number,
+  },
+}
+
+
+export interface IGameOptions {
+  core: {
+    name: string,
+    enableDevMode: boolean,
+  },
+  sim: {
+    numStartingCivs: number,
   },
 }
 
@@ -67,7 +79,7 @@ export const defaultDrawOptions: IDrawOptions = {
   rivers: true,
   cellCenters: false,
   surface: true,
-  regions: false,
+  regions: true,
   coastline: false,
 };
 
@@ -325,6 +337,7 @@ export type GlobeData = {
   triangleGeometry: Float32Array,
   minimapGeometry: Float32Array,
   mapModeColor: Float32Array;
+  mapModeValue: Float32Array;
   coastline: {
     points: number[],
     widths: number[],
@@ -347,16 +360,44 @@ export type GlobeData = {
   };
 }
 
+export type WorldData = {
+  globe: GlobeData,
+}
+
 export type CellPoints = {
   cell: number; // r value
   points: number[]
 };
 
-export type CellData = {
+export type CellGlobeData = {
   lat_long: [number, number],
   temperature: number,
+  insolation: number,
   moisture: number,
   elevation: number,
   distance_to_ocean: number,
+  desirability: number,
   biome: number,
+}
+
+export type CellWorldData = {
+  globe: CellGlobeData;
+  cellGroup: string;
+}
+
+export interface ICellGroupOptions {
+  name: string;
+  color: number[];
+}
+
+export interface ICellGroupData {
+  name: string;
+  cells_xyz: number[];
+  cells_rgba: number[];
+  border_points: number[];
+  border_widths: number[];
+}
+
+export interface ICellGroupTooltipData {
+  name: string;
 }

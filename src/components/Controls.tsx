@@ -6,6 +6,47 @@ import { categoryTitles, IDrawOptions } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
 import { MapManagerContainer } from './MapViewer';
+import { GlobeManager } from '../GlobeManager';
+import * as yup from 'yup';
+import { IWorldOptions } from '../worldgen/World';
+
+
+export const worldOptionsSchema = yup.object<IWorldOptions>().shape({
+  core: yup.object().label('Core').shape({
+    seed: yup.number().required().integer().label('Random Seed'),
+  }),
+  sphere: yup.object().label('Sphere').shape({
+    numberCells: yup.number().required().integer()
+      .label('Number of cells'),
+    jitter: yup.number().required().min(0).max(1)
+      .label('Cell jitter').meta({ component: 'slider', step: 0.1 }),
+    protrudeHeight: yup.number().required().min(0).max(1)
+      .label('Protrude height').meta({ component: 'slider', step: 0.1 }),
+  }),
+  hydrology: yup.object().label('Hydrology').shape({
+    flowModifier: yup.number().required().min(0).max(1)
+      .label('Flow modifier').meta({ component: 'slider', step: 0.1 }),
+    moistureModifier: yup.number().required().min(-1).max(1)
+      .label('Moisture modifier').meta({ component: 'slider', step: 0.1 }),
+  }),
+  geology: yup.object().label('Geology').shape({
+    numberPlates: yup.number().required().min(0).max(100)
+      .label('Number of plates').meta({ component: 'slider', step: 0.1 }),
+    oceanPlatePercent: yup.number().required().min(0).max(1)
+      .label('Ocean plate percent').meta({ component: 'slider', step: 0.1 }),
+    plateCollisionThreshold: yup.number().required().min(0).max(1)
+      .label('Plate collision threshold').meta({ component: 'slider', step: 0.1 }),
+    terrainRoughness: yup.number().required().min(0).max(1)
+      .label('Terrain roughness').meta({ component: 'slider', step: 0.1 }),
+    heightModifier: yup.number().required().min(-1).max(1)
+      .label('Height modifier').meta({ component: 'slider', step: 0.1 }),
+  }),
+  climate: yup.object().label('Climate').shape({
+    temperatureModifier: yup.number().required().min(-1).max(1)
+      .label('Temperature modifier').meta({ component: 'slider', step: 0.1 }),
+  })
+});
+
 
 
 interface IControlOptions {
@@ -248,8 +289,7 @@ const DRAW_OPTIONS: ControlDef[] = [
   }
 ]
 
-const GlobeOptionsTab = () => {
-  const manager = useContext(MapManagerContainer.Context);
+export const Controls = ({ manager }: { manager: GlobeManager }) => {
   const globeOptions = useObservable(manager.globeOptions$, manager.globeOptions$.value);
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
@@ -327,41 +367,6 @@ export const DrawOptionsTab = () => {
           </Field>
         );
       })}
-    </Box>
-  );
-}
-
-export function Controls() {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <Box
-      p="5"
-      position="fixed"
-      left="0"
-      top="0"
-      width="400px"
-      bg="rgba(23, 25, 35, 0.95)"
-      borderWidth="1px"
-      borderColor="gray.600"
-      transform="translate(-1px, -1px)"
-    >
-      <Stack justify="space-between" align="center" isInline>
-        <Box><Heading>Terra</Heading></Box>
-        <Box>
-          <Button
-            variant="ghost"
-            size="sm"
-            rightIcon={isOpen ? 'chevron-up' : 'chevron-down'}
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            Toggle Config
-          </Button>
-        </Box>
-      </Stack>
-
-      <Collapse isOpen={isOpen}>
-        <GlobeOptionsTab />
-      </Collapse>
     </Box>
   );
 }

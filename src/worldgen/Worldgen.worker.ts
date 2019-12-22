@@ -1,6 +1,7 @@
 import { ReactiveWorker } from '../utils/workers';
 import { GameLoop } from './GameLoop';
-import { IWorldOptions, World } from './World';
+import { IWorldOptions, World, CellGroup } from './World';
+import { EMapMode } from '../types';
 
 const game = new GameLoop(error => {
   console.error(error);
@@ -19,7 +20,22 @@ worker.on('init', ({ options, mapMode }) => {
 
   world = new World(options, worldOptions);
 
+  world.cellGroupUpdates$.subscribe(data => {
+    worker.send('cellGroupUpdate', data);
+  });
+
+  const group1 = world.createCellGroup({
+    name: 'Foo',
+    color: [0.5, 0.5, 0.5, 0.1],
+  });
+  group1.addCell(...[15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]);
+
   console.log('!globe', world.globe);
+
+  setTimeout(() => {
+    group1.addCell(16957);
+  }, 4000);
+
 
   game.addTimer({
     ticksLength: 30,
@@ -28,7 +44,7 @@ worker.on('init', ({ options, mapMode }) => {
       const yearRatio = (game.state.ticks.value % 360) / 360.;
       console.log(yearRatio);
       world.updateGlobe(yearRatio);
-      world.globe.setupMapMode();
+      world.globe.resetMapMode(EMapMode.INSOLATION);
       worker.send('draw');
     }
   });
@@ -40,15 +56,23 @@ worker.on('init', ({ options, mapMode }) => {
     worker.send('date', date);
   });
 
-  worker.send('generate', world.globe.export());
+  worker.send('generate', world.export());
 }, true);
+
+worker.on('startGame', ({  }) => {
+
+});
 
 worker.on('getIntersectedCell', async ({ point, dir }) => {
   return world.globe.getIntersectedCell(point, dir);
 }, true);
 
+worker.on('getCellGroupForCell', async (cell) => {
+  return world.getCellGroupForCell(cell);
+}, true);
+
 worker.on('getCellData', async (r) => {
-  return world.globe.getCellData(r);
+  return world.getCellData(r);
 }, true);
 
 worker.on('setMapMode', async (mapMode) => {

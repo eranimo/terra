@@ -1,9 +1,9 @@
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
-import { createMapModeColor, mapModeDefs } from '../mapModes';
-import { CellPoints, EMapMode, GlobeData, IGlobeOptions } from '../types';
-import { getLatLng, intersectTriangle } from '../utils';
+import { createMapMode, mapModeDefs, MapModeData } from '../mapModes';
+import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '../types';
+import { getLatLng, intersectTriangle, distance3D } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
 
@@ -143,14 +143,19 @@ export class Globe {
   r_plate: Int32Array;
   plate_vec: any[];
   plate_is_ocean: Set<unknown>;
-  r_lat_long: number[][];
+  r_lat_long: Float32Array;
   r_temperature: number[];
 
   r_distance_to_ocean: number[];
   r_coast: number[];
   max_distance_to_ocean: number;
   insolation: Float32Array;
+  sideTriangles: number[][][];
+  cellBorders: number[][];
+
   mapModeColor: Float32Array;
+  mapModeValue: Float32Array;
+  mapModeCache: Map<EMapMode, MapModeData>;
 
   constructor(public options: IGlobeOptions, public mapMode: EMapMode) {
     console.log('options', options)
@@ -161,6 +166,7 @@ export class Globe {
     console.log('mesh', mesh)
     
     this.mapModeColor = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numSides * 4 * 3));
+    this.mapModeValue = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numRegions));
     this.r_xyz = r_xyz;
     this.latlong = latlong;
 
@@ -186,19 +192,66 @@ export class Globe {
     this.r_temperature = [];
     this.max_roughness = 0;
 
-    this.r_lat_long = [];
+    this.r_lat_long = new Float32Array(mesh.numRegions * 2);
     for (let r = 0; r < this.mesh.numRegions; r++) {
       const x = this.r_xyz[3 * r];
       const y = this.r_xyz[3 * r + 1];
       const z = this.r_xyz[3 * r + 2];
-      this.r_lat_long[r] = getLatLng([x, y, z]);
+      const [lat, long] = getLatLng([x, y, z]);
+      this.r_lat_long[2 * r] = lat;
+      this.r_lat_long[2 * r + 1] = long;
     }
+
+    this.mapModeCache = new Map();
+  }
+
+  setup() {
+    const { t_xyz, r_xyz, mesh } = this;
+    this.sideTriangles = [];
+    for (let s = 0; s < mesh.numSides; s++) {
+      const inner_t = mesh.s_inner_t(s);
+      const outer_t = mesh.s_outer_t(s);
+      const begin_r = mesh.s_begin_r(s);
+      const p1 = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
+      const p2 = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
+      const p3 = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
+      
+      this.sideTriangles[s] = [p1, p2, p3];
+    }
+
+    this.cellBorders = [];
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      this.cellBorders[r] = this.getBorderForCell(r);
+    }
+  }
+
+  getLatLongForCell(cell: number): [number, number] {
+    const lat = this.r_lat_long[2 * cell];
+    const long = this.r_lat_long[2 * cell + 1];
+    return [lat, long];
   }
 
   public setupMapMode() {
     const def = mapModeDefs.get(this.mapMode);
-    const array = createMapModeColor(this, def);
-    this.mapModeColor.set(array);
+    let data: MapModeData;
+    if (this.mapModeCache.has(this.mapMode)) {
+      data = this.mapModeCache.get(this.mapMode);
+    } else {
+      data = createMapMode(this, def);
+    }
+    this.mapModeCache.set(this.mapMode, data);
+    this.mapModeColor.set(data.rgba);
+    this.mapModeValue.set(data.values);
+  }
+
+  resetMapMode(mapMode: EMapMode) {
+    const def = mapModeDefs.get(mapMode);
+    const data = createMapMode(this, def);
+    this.mapModeCache.set(mapMode, data);
+    if (this.mapMode === mapMode) {
+      this.mapModeColor.set(data.rgba);
+      this.mapModeValue.set(data.values);
+    }
   }
 
   public setMapMode(mapMode: EMapMode) {
@@ -213,6 +266,7 @@ export class Globe {
     
     return {
       mapModeColor: this.mapModeColor,
+      mapModeValue: this.mapModeValue,
       t_xyz: this.t_xyz,
       r_xyz: new Float32Array(this.r_xyz),
       triangleGeometry: this.triangleGeometry,
@@ -239,39 +293,36 @@ export class Globe {
     return points;
   }
 
-  getCellData(r: number) {
+  getCellData(r: number): CellGlobeData {
     return {
-      lat_long: this.r_lat_long[r],
+      lat_long: this.getLatLongForCell(r),
       temperature: this.r_temperature[r],
       moisture: this.r_moisture[r],
       elevation: this.r_elevation[r],
       distance_to_ocean: this.r_distance_to_ocean[r],
       biome: this.r_biome[r],
+      desirability: this.r_desirability[r],
       insolation: this.insolation[r],
     };
   }
 
   getIntersectedCell(rayPoint, rayDir): CellPoints | null {
-    const { mesh, t_xyz, r_xyz } = this;
     let maxT = -1e10;
-    for (let s = 0; s < mesh.numSides; s++) {
-      const inner_t = mesh.s_inner_t(s);
-      const outer_t = mesh.s_outer_t(s);
-      const begin_r = mesh.s_begin_r(s);
-      const x = [t_xyz[3 * inner_t], t_xyz[3 * inner_t + 1], t_xyz[3 * inner_t + 2]];
-      const y = [t_xyz[3 * outer_t], t_xyz[3 * outer_t + 1], t_xyz[3 * outer_t + 2]];
-      const z = [r_xyz[3 * begin_r], r_xyz[3 * begin_r + 1], r_xyz[3 * begin_r + 2]];
-      const tri = [x, y, z];
-      let out = [];
-      const t = intersectTriangle(out, rayPoint, rayDir, tri);
+    for (let s = 0; s < this.mesh.numSides; s++) {
+      const begin_r = this.mesh.s_begin_r(s);
+      const t = intersectTriangle(
+        rayPoint,
+        rayDir,
+        this.sideTriangles[s][0],
+        this.sideTriangles[s][1],
+        this.sideTriangles[s][2],
+      );
       if (t !== null) {
-        // console.log(s, t, out);
         if (t > maxT) {
           maxT = t;
-          const r = mesh.s_begin_r(s);
           return {
-            cell: r,
-            points: this.getBorderForCell(r),
+            cell: begin_r,
+            points: this.cellBorders[begin_r],
           };
         }
       }
@@ -296,7 +347,7 @@ export class Globe {
     }
   }
 
-  public coordinatesForCell(cell: number) {
+  public coordinatesForCell(cell: number): number[] {
     const sides = [];
     this.mesh.r_circulate_s(sides, cell);
     const xyz = [];

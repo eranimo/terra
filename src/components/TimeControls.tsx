@@ -47,8 +47,8 @@ export const TimeControls = () => {
       borderWidth="1px"
       borderColor="gray.600"
       position="fixed"
-      left={0}
-      bottom={0}
+      right={0}
+      top={0}
     >
       <Stack isInline spacing={5}>
         <Box>

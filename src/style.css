@@ -1,6 +1,6 @@
 body, html {
   font-size: 12px;
-  overflow: hidden;
+  /* overflow: hidden; */
   margin: 0;
   padding: 0;
 }

@@ -40,7 +40,7 @@ export const ViewControl = () => {
       borderColor="gray.600"
       position="fixed"
       right={0}
-      top={0}
+      bottom={180}
     >
       <Stack isInline spacing={3}>
         <Box>
