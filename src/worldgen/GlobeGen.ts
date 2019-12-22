@@ -10,13 +10,16 @@ import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
 import { generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
 
 
+const AXIAL_TILT : number = 22; // deg
 export class GlobeGen {
   globe: Globe;
 
   generate(options: IGlobeOptions, mapMode: EMapMode) {
+    const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * 0 * Math.PI);
     this.globe = new Globe(options, mapMode);
     this.generatePlates();
     this.generateCoastline();
+    this.generateInsolation(seasonalRatio);
     this.generateTemperature();
     this.generateMoisture();
     this.generateRivers();
@@ -29,7 +32,10 @@ export class GlobeGen {
   }
 
   update(year_ratio: number) {
-    this.generateInsolation(year_ratio);
+    const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * year_ratio * Math.PI);
+    this.generateInsolation(seasonalRatio);
+    this.generateTemperature();
+    this.generateMoisture();
   }
 
   @logGroupTime('setup geometry')
@@ -46,14 +52,10 @@ export class GlobeGen {
 
   // https://www.itacanet.org/the-sun-as-a-source-of-energy/part-2-solar-energy-reaching-the-earths-surface/
   @logGroupTime('insolation')
-  generateInsolation(year_ratio) {
+  generateInsolation(seasonal_ratio) {
     const globe = this.globe;
     globe.insolation = new Float32Array(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numRegions);
 
-    const AXIAL_TILT = 22; // deg
-    const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * year_ratio * Math.PI);
-    console.log(year_ratio);
-    console.log(seasonalRatio);
     let randomNoise = new SimplexNoise(makeRandFloat(globe.options.core.seed));
       
     for (let r = 0; r < globe.mesh.numRegions; r++) {
@@ -61,7 +63,7 @@ export class GlobeGen {
       const y = globe.r_xyz[3 * r + 1];
       const z = globe.r_xyz[3 * r + 2];
       const [lat, long] = globe.r_lat_long[r];
-      const latRatioSeasonal = Math.max(0, Math.cos((lat - seasonalRatio) * Math.PI / 180));
+      const latRatioSeasonal = Math.max(0, Math.cos((lat - seasonal_ratio) * Math.PI / 180));
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
 
       if (globe.r_elevation[r] < 0) { // ocean
@@ -187,15 +189,21 @@ export class GlobeGen {
       // const y = this.globe.r_xyz[3 * r + 1];
       // const z = this.globe.r_xyz[3 * r + 2];
       const [lat, long] = this.globe.r_lat_long[r];
-      const latRatio = 1 - (Math.abs(lat) / 90);
       const random1 = randomNoise.noise2D(lat / (1000 * VARIANCE), long / (1000 * VARIANCE))
       const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
       if (this.globe.r_elevation[r] >= 0) {
         const inlandRatio = 1 - (this.globe.r_distance_to_ocean[r] / this.globe.max_distance_to_ocean);
+        const heatRatio = 1 - Math.abs( inlandRatio - this.globe.r_temperature[r]);
         this.globe.r_moisture[r] = clamp(
-          (((latRatio + inlandRatio) / 3) +
-          (random1 / 2)) * altitude
+          (heatRatio * 2  / 3 +
+          (random1 / 4)) * Math.max(altitude, .1)
         , 0, 1);
+      } else if(this.globe.r_temperature[r] > .2) {
+        this.globe.r_moisture[r] = clamp(
+          Math.pow(this.globe.r_temperature[r], 3 / 4)
+        , 0, 1);
+      } else {
+        this.globe.r_moisture[r] = 0;
       }
     }
 
@@ -226,7 +234,6 @@ export class GlobeGen {
       const z = this.globe.r_xyz[3 * r + 2];
       const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
       const [lat, long] = this.globe.r_lat_long[r];
-      const latRatio = 1 - (Math.abs(lat) / 90);
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
       if (this.globe.r_elevation[r] < 0) { // ocean
         const altitude = 1 + this.globe.r_elevation[r];
@@ -234,7 +241,7 @@ export class GlobeGen {
         this.globe.r_temperature[r] = (
           (0.10 * random1) +
           (0.20 * altitude) +
-          (0.70 * latRatio)
+          (0.70 * this.globe.insolation[r])
         );
       } else { // land
         const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
@@ -243,7 +250,7 @@ export class GlobeGen {
         this.globe.r_temperature[r] = (
           (0.10 * random1) +
           (0.20 * altitude) +
-          (0.70 * latRatio)
+          (0.70 * this.globe.insolation[r])
         );
       }
 
