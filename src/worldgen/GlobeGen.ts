@@ -69,20 +69,12 @@ export class GlobeGen {
       if (globe.r_elevation[r] < 0) { // ocean
         const altitude = 1 + globe.r_elevation[r];
         // shallow seas are warmer than deep oceans
-        globe.insolation[r] = (
-          (0.05 * random1) +
-          (0.20 * altitude) +
-          (0.75 * latRatioSeasonal)
-        );
+        globe.insolation[r] = latRatioSeasonal;
       } else { // land
         const altitude = 1 - Math.max(0, globe.r_elevation[r]);
         // higher is colder
         // lower is warmer
-        globe.insolation[r] = (
-          (0.05 * random1) +
-          (0.20 * altitude) +
-          (0.75 * latRatioSeasonal)
-        );
+        globe.insolation[r] = latRatioSeasonal;
       }
     }
 
