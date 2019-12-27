@@ -52,6 +52,7 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
       console.log('manager', manager);
 
       return () => {
+        manager.stopRendering();
         globeSubscription.unsubscribe();
       }
     });
@@ -75,7 +76,7 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
     if (!isDragging) {
       const [cursorX, cursorY] = getCursorPosition(event, screenRef.current);
       setHoverPosition({ x: cursorX, y: cursorY });
-      manager.handleMapHover(cursorX, cursorY).then(setTooltip);
+      // manager.handleMapHover(cursorX, cursorY).then(setTooltip);
     } else {
       setTooltip(null);
     }
@@ -105,7 +106,7 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
     if (distance > 10) return;
     
     const [cursorX, cursorY] = getCursorPosition(event, screenRef.current);
-    manager.handleMapClick(cursorX, cursorY);
+    // manager.handleMapClick(cursorX, cursorY);
   };
 
   const handleMouseLeave = () => {

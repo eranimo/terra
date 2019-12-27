@@ -12,8 +12,11 @@ import { generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
 export class GlobeGen {
   globe: Globe;
 
+  @logGroupTime('globe generate')
   generate(options: IGlobeOptions, mapMode: EMapMode) {
+    console.time('globe geometry');
     this.globe = new Globe(options, mapMode);
+    console.timeEnd('globe geometry');
     this.generatePlates();
     this.generateCoastline();
     this.generateTemperature();

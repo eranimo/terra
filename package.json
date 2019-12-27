@@ -26,6 +26,10 @@
   },
   "dependencies": {
     "@ash.ts/ash": "^1.0.2",
+    "@babylonjs/core": "^4.0.3",
+    "@babylonjs/gui": "^4.0.3",
+    "@babylonjs/inspector": "^4.0.3",
+    "@babylonjs/serializers": "^4.0.3",
     "@chakra-ui/core": "^0.5.0",
     "@emotion/core": "^10.0.17",
     "@emotion/styled": "^10.0.17",

@@ -3,7 +3,7 @@ import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
 import { createMapMode, mapModeDefs, MapModeData } from '../mapModes';
 import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '../types';
-import { getLatLng, intersectTriangle, distance3D } from '../utils';
+import { getLatLng, intersectTriangle, distance3D, logGroupTime } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
 
@@ -261,6 +261,7 @@ export class Globe {
     this.setupMapMode();
   }
 
+  @logGroupTime('Globe export')
   public export(): GlobeData {
     console.time('map mode colors');
     this.setupMapMode();

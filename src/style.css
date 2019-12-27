@@ -4,3 +4,8 @@ body, html {
   margin: 0;
   padding: 0;
 }
+
+#inspector-host, #scene-explorer-host {
+  z-index: 999999;
+  position: fixed !important;
+}
