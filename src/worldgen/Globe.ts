@@ -34,27 +34,104 @@ function createCoastline(mesh: TriangleMesh, globe: Globe) {
 
 const MIN_RIVER_WIDTH = 1;
 const MAX_RIVER_WIDTH = 5;
+
 function createRivers(mesh: TriangleMesh, globe: Globe) {
-  let points = [];
-  let widths = [];
+  // map of river segment outer to inner IDs
+  const riverSegmentMap = new Map<number, number[]>();
   for (let s = 0; s < mesh.numSides; s++) {
     if (globe.s_flow[s] > 1) {
-      let flow = 0.1 * Math.sqrt(globe.s_flow[s]);
       const inner_t = mesh.s_inner_t(s);
       const outer_t = mesh.s_outer_t(s);
-      if (flow > 1) flow = 1;
-      const p1 = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
-      const p2 = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-      points.push(...p1, ...p1, ...p2, ...p2);
-      const width = Math.max(MIN_RIVER_WIDTH, flow * MAX_RIVER_WIDTH);
-      widths.push(0, width, width, 0);
+      const inner_t_height = globe.t_elevation[inner_t];
+      const outer_t_height = globe.t_elevation[outer_t];
+      let lowest_t: number;
+      let highest_t: number;
+      if (inner_t_height < outer_t_height) {
+        lowest_t = inner_t;
+        highest_t = outer_t;
+      } else {
+        lowest_t = outer_t;
+        highest_t = inner_t;
+      }
+      if (riverSegmentMap.has(lowest_t)) {
+        riverSegmentMap.get(lowest_t).push(highest_t);
+      } else {
+        riverSegmentMap.set(lowest_t, [highest_t]);
+      }
     }
   }
 
-  return {
-    widths,
-    points,
+  let riverCoastPoints: number[] = []; // array of triangle IDs of river points that start on the coast
+  for (let s = 0; s < mesh.numSides; s++) {
+    const t = mesh.s_outer_t(s);
+    const down_s = globe.t_downflow_s[t];
+    const down_r_begin = globe.mesh.s_begin_r(down_s);
+    const down_r_end = globe.mesh.s_end_r(down_s);
+
+    const isCoast = globe.r_elevation[down_r_begin] <= 0 || globe.r_elevation[down_r_end] <= 0;
+    if (globe.s_flow[s] > 1 && isCoast) {
+      riverCoastPoints.push(t);
+    }
+  }
+
+  const stepInner = (t: number) => {
+    const children = step(t);
+    const size = children.length === 0 ? 0 : Math.max(...children.map(c => c.size)) + 1;
+    return {
+      t,
+      xyz: globe.t_xyz.slice(3 * t, 3 * t + 3),
+      width: 0.005,
+      children,
+      size,
+    };
   };
+  const step = (t_river_point: number) => {
+    const nextPoints = riverSegmentMap.get(t_river_point);
+    if (nextPoints === undefined) return [];
+    return nextPoints.map(stepInner);
+  }
+
+  const riverSegments = riverCoastPoints.map(stepInner);
+
+  const riverMap = new Map<number, any[]>();
+  const getRiverSegment = segment => ({
+    t: segment.t,
+    xyz: Array.from(segment.xyz),
+    width: segment.width,
+  });
+  const stepRiver = (segment, rootID: number) => {
+    if (riverMap.has(rootID)) {
+      riverMap.get(rootID).push(getRiverSegment(segment));
+    } else {
+      riverMap.set(rootID, [getRiverSegment(segment)]);
+    }
+
+    const firstChild = segment.children[0];
+    const secondChild = segment.children[1];
+    if (firstChild) {
+      if (!secondChild) {
+        stepRiver(firstChild, rootID);
+      } else {
+        if (firstChild.size === secondChild.size) {
+          // if both children are equal, start new rivers
+          stepRiver(firstChild, firstChild.t);
+          stepRiver(secondChild, secondChild.t);
+        } else if (firstChild.size > secondChild.size) {
+          // if one child is more, continue river
+          stepRiver(firstChild, rootID);
+          stepRiver(secondChild, secondChild.t);
+        } else {
+          stepRiver(firstChild, firstChild.t);
+          stepRiver(secondChild, rootID);
+        }
+      }
+    }
+  }
+
+  riverSegments.forEach(segment => stepRiver(segment, segment.t));
+  const rivers = Array.from(riverMap.values());
+  console.log('rivers', rivers);
+  return rivers.filter(river => river.length > 1);
 }
 
 function createPlateVectors(mesh: TriangleMesh, globe: Globe) {

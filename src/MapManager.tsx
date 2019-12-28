@@ -11,6 +11,7 @@ import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, Ar
 
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
+import { line2D } from './utils/line2D';
 
 export const initialOptions: IGlobeOptions = {
   core: {
@@ -161,6 +162,18 @@ class GlobeRenderer {
 
     this.planet = createGlobeMesh(globe, this.scene);
     this.borders = createCellBorderMesh(globe, this.scene);
+
+    // globe.rivers.map((river, index) => {
+    //   const widths = river.map(r => r.width);
+    //   const path = river.map(r => new Vector3(r.xyz[0], r.xyz[1], r.xyz[2]));
+    //   const lineMesh = line2D(`river-${index}`, {
+    //     widths,
+    //     path,
+    //     closed: false,
+    //     standardUV: true,
+    //   }, this.scene);
+    //   lineMesh.scaling = new Vector3(20.001, 20.001, 20.001);
+    // });
   }
 }
 
