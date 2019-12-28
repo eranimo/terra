@@ -9,3 +9,8 @@ body, html {
   z-index: 999999;
   position: fixed !important;
 }
+
+#inspector-host select, #scene-explorer-host select,
+#inspector-host input, #scene-explorer-host input {
+  color: black !important;
+}

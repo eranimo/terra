@@ -94,22 +94,25 @@ function createPlateBorders(mesh: TriangleMesh, globe: Globe) {
 }
 
 function createCellBorders(mesh: TriangleMesh, globe: Globe) {
-  const points = [];
-  const rgba = [];
+  const points: number[][][][] = [];
 
   let sides = [];
   for (let r = 0; r < mesh.numRegions * 1; r++) {
     mesh.r_circulate_s(sides, r);
+    const regionPoints: number[][][] = [];
     for (let s of sides) {
       const inner_t = mesh.s_inner_t(s);
       const outer_t = mesh.s_outer_t(s);
       const p1 = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
       const p2 = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-      points.push(p2, p1);
-      rgba.push([0, 0, 0, 0], [0, 0, 0, 0]);
+      regionPoints.push([
+        [p2[0], p2[1], p2[2]],
+        [p1[0], p1[1], p1[2]],
+      ]);
     }
+    points.push(regionPoints);
   }
-  return { points, rgba };
+  return points;
 }
 
 

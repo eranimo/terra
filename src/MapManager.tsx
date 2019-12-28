@@ -7,7 +7,7 @@ import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
 import { mapModeDefs } from './mapModes';
-import { Engine, Scene, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4 } from '@babylonjs/core';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4 } from '@babylonjs/core';
 
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -80,7 +80,32 @@ function createGlobeMesh(globe: GlobeData, scene: Scene) {
 
   console.log('vertexData', vertexData);
   mesh.scaling = new Vector3(20, 20, 20);
+
+  // disable lighting
+  material.emissiveColor = new Color3(1, 1, 1);
+  material.disableLighting = true;
   return mesh;
+}
+
+function createCellBorderMesh(globe: GlobeData, scene: Scene) {
+  const points: Vector3[][] = [];
+
+  for (let r = 0; r < globe.cellBorders.length; r++) {
+    globe.cellBorders[r].forEach(side => {
+      const regionLines = [];
+      side.forEach(point => {
+        regionLines.push(new Vector3(point[0], point[1], point[2]));
+      });
+      points.push(regionLines);
+    });
+  }
+  const borders = MeshBuilder.CreateLineSystem('border', {
+    lines: points,
+  }, scene);
+  borders.color = new Color3(0, 0, 0);
+  borders.alpha = 0.5;
+  borders.scaling = new Vector3(20.001, 20.001, 20.001);
+  return borders;
 }
 
 class GlobeRenderer {
@@ -88,6 +113,7 @@ class GlobeRenderer {
   private scene: Scene;
   private sunLight: HemisphericLight;
   private planet: Mesh;
+  private borders: Mesh;
   private camera: ArcRotateCamera;
   public globe: GlobeData;
 
@@ -95,6 +121,7 @@ class GlobeRenderer {
     this.engine = new Engine(canvas);
     this.scene = new Scene(this.engine);
 
+    // enable debug layer
     this.scene.debugLayer.show();
     this.scene.clearColor = new Color4(0.5, 0.5, 0.5, 1.0);
 
@@ -110,6 +137,7 @@ class GlobeRenderer {
     camera.attachControl(canvas, true);
     this.camera = camera;
 
+    // debug lighting
     const sun = new HemisphericLight('sun', new Vector3(0, 0, 1), this.scene);
     sun.diffuse = new Color3(1, 1, 1);
     sun.specular = new Color3(1, 1, 1);
@@ -132,6 +160,7 @@ class GlobeRenderer {
     this.globe = globe;
 
     this.planet = createGlobeMesh(globe, this.scene);
+    this.borders = createCellBorderMesh(globe, this.scene);
   }
 }
 

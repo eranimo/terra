@@ -356,10 +356,7 @@ export type GlobeData = {
     points: number[],
     widths: number[],
   };
-  cellBorders: {
-    points: number[],
-    rgba: number[],
-  };
+  cellBorders: number[][][][]
 }
 
 export type WorldData = {
