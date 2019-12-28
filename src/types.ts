@@ -344,11 +344,7 @@ export type GlobeData = {
     points: number[],
     widths: number[],
   };
-  rivers: {
-    t: number,
-    xyz: number[],
-    width: number,
-  }[][],
+  rivers: number[],
   plateVectors: {
     line_xyz: number[],
     line_rgba: number[],

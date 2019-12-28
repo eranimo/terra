@@ -6,6 +6,7 @@ import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '.
 import { getLatLng, intersectTriangle, distance3D, logGroupTime } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
+import { Vector3 } from "@babylonjs/core/Maths/math";
 
 
 function createCoastline(mesh: TriangleMesh, globe: Globe) {
@@ -35,9 +36,16 @@ function createCoastline(mesh: TriangleMesh, globe: Globe) {
 const MIN_RIVER_WIDTH = 1;
 const MAX_RIVER_WIDTH = 5;
 
+
+type RiverNode = {
+  t: number;
+  size: number;
+  children: RiverNode[];
+}
 function createRivers(mesh: TriangleMesh, globe: Globe) {
   // map of river segment outer to inner IDs
   const riverSegmentMap = new Map<number, number[]>();
+  const riverSideMap = new Map<string, number>(); // high_t.low_t => side
   for (let s = 0; s < mesh.numSides; s++) {
     if (globe.s_flow[s] > 1) {
       const inner_t = mesh.s_inner_t(s);
@@ -53,6 +61,7 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
         lowest_t = outer_t;
         highest_t = inner_t;
       }
+      riverSideMap.set(`${highest_t}-${lowest_t}`, s);
       if (riverSegmentMap.has(lowest_t)) {
         riverSegmentMap.get(lowest_t).push(highest_t);
       } else {
@@ -74,13 +83,11 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
     }
   }
 
-  const stepInner = (t: number) => {
+  const stepInner = (t: number): RiverNode => {
     const children = step(t);
     const size = children.length === 0 ? 0 : Math.max(...children.map(c => c.size)) + 1;
     return {
       t,
-      xyz: Array.from(globe.t_xyz.slice(3 * t, 3 * t + 3)),
-      width: 0.005,
       children,
       size,
     };
@@ -92,32 +99,31 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   }
 
   const riverSegments = riverCoastPoints.map(stepInner);
+  console.log('riverSegments', riverSegments);
+  console.log('riverSideMap', riverSideMap);
 
-  let rivers: Set<Array<any>> = new Set();
-  const getRiverSegment = segment => ({
-    t: segment.t,
-    xyz: Array.from(segment.xyz),
-    width: segment.width,
-  });
-  const stepRiver = (segment, riverList: any[]) => {
-    riverList.push(getRiverSegment(segment));
-    rivers.add(riverList);
+  let riversSet: Set<Array<number>> = new Set();
+  const stepRiver = (segment: RiverNode, riverList: number[]) => {
+    riverList.push(segment.t);
+    riversSet.add(riverList);
     const firstChild = segment.children[0];
     const secondChild = segment.children[1];
     if (firstChild) {
       if (!secondChild) {
+        // if only one child, continue river
         stepRiver(firstChild, riverList);
       } else {
         if (firstChild.size === secondChild.size) {
           // if both children are equal, start new rivers
-          stepRiver(firstChild, [segment]);
-          stepRiver(secondChild, [segment]);
+          stepRiver(firstChild, [segment.t]);
+          stepRiver(secondChild, [segment.t]);
         } else if (firstChild.size > secondChild.size) {
-          // if one child is more, continue river
+          // if left child is more, continue river to the left
           stepRiver(firstChild, riverList);
-          stepRiver(secondChild, [segment]);
+          stepRiver(secondChild, [segment.t]);
         } else {
-          stepRiver(firstChild, [segment]);
+          // if right child is more, continue river to the right
+          stepRiver(firstChild, [segment.t]);
           stepRiver(secondChild, riverList);
         }
       }
@@ -125,8 +131,64 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   }
 
   riverSegments.forEach(segment => stepRiver(segment, []));
+  console.log('rivers', riversSet);
+  const river_t = Array.from(riversSet);
+
+  const rivers: number[] = [];
+  river_t.forEach(river => {
+    const riverReverse = river.reverse();
+    for (let t = 0; t < riverReverse.length; t++) {
+      const this_t = riverReverse[t];
+      const next_t = riverReverse[t + 1];
+      if (!next_t) continue;
+
+      const this_t_vec = globe.t_vec.get(this_t);
+      const next_t_vec = globe.t_vec.get(next_t);
+      const side1 = riverSideMap.get(`${this_t}-${next_t}`);
+      const side2 = globe.mesh.s_opposite_s(side1);
+      const s1_begin_r = globe.mesh.s_begin_r(side1);
+      const s1_end_r = globe.mesh.s_end_r(side1);
+      const s2_begin_r = globe.mesh.s_begin_r(side2);
+      const s2_end_r = globe.mesh.s_end_r(side2);
+
+      const p1 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_begin_r), 0.1).asArray();
+      const p2 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_end_r), 0.1).asArray()
+      const p3 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_begin_r), 0.1).asArray();
+      const p4 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_end_r), 0.1).asArray();
+
+      const center = Vector3.Lerp(this_t_vec, next_t_vec, 0.5).asArray()
+      rivers.push(
+        // cap
+        ...p1,
+        ...this_t_vec.asArray(),
+        ...p2,
+
+        ...p1,
+        ...p2,
+        ...center,
+
+        ...p3,
+        ...p4,
+        ...center,
+
+        ...p2,
+        ...p3,
+        ...center,
+        
+        ...p4,
+        ...p1,
+        ...center,
+
+        // cap
+        ...p3,
+        ...next_t_vec.asArray(),
+        ...p4,
+      );
+    }
+  });
   console.log('rivers', rivers);
-  return Array.from(rivers);
+
+  return rivers;
 }
 
 function createPlateVectors(mesh: TriangleMesh, globe: Globe) {
@@ -233,6 +295,8 @@ export class Globe {
   mapModeColor: Float32Array;
   mapModeValue: Float32Array;
   mapModeCache: Map<EMapMode, MapModeData>;
+  t_vec: Map<number, Vector3>;
+  r_vec: Map<number, Vector3>;
 
   constructor(public options: IGlobeOptions, public mapMode: EMapMode) {
     console.log('options', options)
@@ -295,6 +359,20 @@ export class Globe {
       
       this.sideTriangles[s] = [p1, p2, p3];
     }
+
+    const t_vec: Map<number, Vector3> = new Map();
+    for (let t = 0; t < this.mesh.numTriangles; t++) {
+      const xyz = [this.t_xyz[3 * t], this.t_xyz[3 * t + 1], this.t_xyz[3 * t + 2]];
+      t_vec.set(t, new Vector3(xyz[0], xyz[1], xyz[2]));
+    }
+
+    const r_vec: Map<number, Vector3> = new Map();
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      const xyz = [this.r_xyz[3 * r], this.r_xyz[3 * r + 1], this.r_xyz[3 * r + 2]];
+      r_vec.set(r, new Vector3(xyz[0], xyz[1], xyz[2]));
+    }
+    this.t_vec = t_vec;
+    this.r_vec = r_vec;
 
     this.cellBorders = [];
     for (let r = 0; r < this.mesh.numRegions; r++) {

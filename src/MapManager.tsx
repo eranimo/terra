@@ -13,34 +13,6 @@ import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import { line2D } from './utils/line2D';
 
-export const initialOptions: IGlobeOptions = {
-  core: {
-    seed: 123,
-  },
-  sphere: {
-    numberCells: 35_000,
-    jitter: 0.4,
-    protrudeHeight: 0.25,
-  },
-  hydrology: {
-    flowModifier: 0.2,
-    moistureModifier: 0,
-  },
-  climate: {
-    temperatureModifier: 1,
-    minTemperature: -40,
-    maxTemperature: 30,
-  },
-  geology: {
-    numberPlates: 25,
-    oceanPlatePercent: 0.75,
-    terrainRoughness: 0.5,
-    heightModifier: -0.25,
-    plateCollisionThreshold: 0.75,
-  },
-};
-Object.freeze(initialOptions);
-
 
 const DEFAULT_MAP_MODE = EMapMode.BIOME;
 
@@ -163,17 +135,24 @@ class GlobeRenderer {
     this.planet = createGlobeMesh(globe, this.scene);
     this.borders = createCellBorderMesh(globe, this.scene);
 
-    // globe.rivers.map((river, index) => {
-    //   const widths = river.map(r => r.width);
-    //   const path = river.map(r => new Vector3(r.xyz[0], r.xyz[1], r.xyz[2]));
-    //   const lineMesh = line2D(`river-${index}`, {
-    //     widths,
-    //     path,
-    //     closed: false,
-    //     standardUV: true,
-    //   }, this.scene);
-    //   lineMesh.scaling = new Vector3(20.001, 20.001, 20.001);
-    // });
+    const material = new StandardMaterial('rivers', this.scene);
+    const mesh = new Mesh('rivers', this.scene);
+    mesh.material = material;
+    mesh.scaling = new Vector3(20.001, 20.001, 20.001);
+    const vertexData = new VertexData();
+    const indices = [];
+    let colors = [];
+    for (let i = 0; i < globe.rivers.length / 3; i++) {
+      indices.push(i);
+      colors.push(0, 0, 1, 1);
+    }
+    vertexData.positions = globe.rivers;
+    vertexData.indices = indices;
+    vertexData.colors = colors;
+    var normals = [];
+    VertexData.ComputeNormals(vertexData.positions, indices, normals);
+    vertexData.normals = normals;
+    vertexData.applyToMesh(mesh);
   }
 }
 

@@ -12,7 +12,7 @@ export const initialOptions: IGlobeOptions = {
   sphere: {
     numberCells: 35_000,
     jitter: 0.4,
-    protrudeHeight: 0.25,
+    protrudeHeight: 0, //0.25,
   },
   hydrology: {
     flowModifier: 0.2,

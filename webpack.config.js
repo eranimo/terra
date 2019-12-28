@@ -14,11 +14,13 @@ module.exports = {
       {
         test: /\.css$/,
         include: /src/,
+        exclude: /node_modules/,
         use: ["style-loader", "css-loader"]
       },
       {
         test: /\.(png|svg|jpg|gif)$/,
         include: /src/,
+        exclude: /node_modules/,
         use: ["file-loader"]
       }
     ]
