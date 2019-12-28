@@ -7,6 +7,7 @@ import { getLatLng, intersectTriangle, distance3D, logGroupTime } from '../utils
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math";
+import { clamp } from 'lodash';
 
 
 function createCoastline(mesh: TriangleMesh, globe: Globe) {
@@ -41,6 +42,10 @@ type RiverNode = {
   t: number;
   size: number;
   children: RiverNode[];
+}
+type RiverPoint = {
+  t: number;
+  size: number
 }
 function createRivers(mesh: TriangleMesh, globe: Globe) {
   // map of river segment outer to inner IDs
@@ -102,9 +107,13 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   // console.log('riverSegments', riverSegments);
   // console.log('riverSideMap', riverSideMap);
 
-  let riversSet: Set<Array<number>> = new Set();
-  const stepRiver = (segment: RiverNode, riverList: number[]) => {
-    riverList.push(segment.t);
+  let riversSet: Set<Array<RiverPoint>> = new Set();
+  const stepRiver = (segment: RiverNode, riverList: RiverPoint[]) => {
+    const riverPoint = {
+      t: segment.t,
+      size: segment.size,
+    };
+    riverList.push(riverPoint);
     riversSet.add(riverList);
     const firstChild = segment.children[0];
     const secondChild = segment.children[1];
@@ -115,15 +124,15 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
       } else {
         if (firstChild.size === secondChild.size) {
           // if both children are equal, start new rivers
-          stepRiver(firstChild, [segment.t]);
-          stepRiver(secondChild, [segment.t]);
+          stepRiver(firstChild, [riverPoint]);
+          stepRiver(secondChild, [riverPoint]);
         } else if (firstChild.size > secondChild.size) {
           // if left child is more, continue river to the left
           stepRiver(firstChild, riverList);
-          stepRiver(secondChild, [segment.t]);
+          stepRiver(secondChild, [riverPoint]);
         } else {
           // if right child is more, continue river to the right
-          stepRiver(firstChild, [segment.t]);
+          stepRiver(firstChild, [riverPoint]);
           stepRiver(secondChild, riverList);
         }
       }
@@ -138,9 +147,10 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   river_t.forEach((river, index) => {
     const riverReverse = river.reverse();
     for (let t = 0; t < riverReverse.length; t++) {
-      const this_t = riverReverse[t];
-      const next_t = riverReverse[t + 1];
-      if (!next_t) continue;
+      const this_t = riverReverse[t].t;
+      let next = riverReverse[t + 1];
+      if (!next) continue;
+      const next_t = next.t;
 
       const this_t_vec = globe.t_vec.get(this_t);
       const next_t_vec = globe.t_vec.get(next_t);
@@ -151,10 +161,12 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
       const s2_begin_r = globe.mesh.s_begin_r(side2);
       const s2_end_r = globe.mesh.s_end_r(side2);
 
-      let p1 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_begin_r), 0.1);
-      let p2 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_end_r), 0.1);
-      let p3 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_begin_r), 0.1);
-      let p4 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_end_r), 0.1);
+      const this_width = clamp(riverReverse[t].size, MIN_RIVER_WIDTH, MAX_RIVER_WIDTH) * 0.01;
+      const next_width = clamp(riverReverse[t + 1].size, MIN_RIVER_WIDTH, MAX_RIVER_WIDTH) * 0.01
+      let p1 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_begin_r), this_width);
+      let p2 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_end_r), this_width);
+      let p3 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_begin_r), next_width);
+      let p4 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_end_r), next_width);
 
       const center = Vector3.Lerp(this_t_vec, next_t_vec, 0.5).asArray()
       rivers.push(
