@@ -84,6 +84,7 @@ function createCellBorderMesh(globe: GlobeData, scene: Scene) {
 function createRivers(globe: GlobeData, scene: Scene) {
   const material = new StandardMaterial('rivers', scene);
   const mesh = new Mesh('rivers', scene);
+  material.specularColor = new Color3(1, 1, 1);
   mesh.material = material;
   mesh.scaling = new Vector3(20.001, 20.001, 20.001);
   const vertexData = new VertexData();
