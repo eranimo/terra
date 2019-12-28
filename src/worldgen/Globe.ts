@@ -79,7 +79,7 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
     const size = children.length === 0 ? 0 : Math.max(...children.map(c => c.size)) + 1;
     return {
       t,
-      xyz: globe.t_xyz.slice(3 * t, 3 * t + 3),
+      xyz: Array.from(globe.t_xyz.slice(3 * t, 3 * t + 3)),
       width: 0.005,
       children,
       size,
@@ -93,45 +93,40 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
 
   const riverSegments = riverCoastPoints.map(stepInner);
 
-  const riverMap = new Map<number, any[]>();
+  let rivers: Set<Array<any>> = new Set();
   const getRiverSegment = segment => ({
     t: segment.t,
     xyz: Array.from(segment.xyz),
     width: segment.width,
   });
-  const stepRiver = (segment, rootID: number) => {
-    if (riverMap.has(rootID)) {
-      riverMap.get(rootID).push(getRiverSegment(segment));
-    } else {
-      riverMap.set(rootID, [getRiverSegment(segment)]);
-    }
-
+  const stepRiver = (segment, riverList: any[]) => {
+    riverList.push(getRiverSegment(segment));
+    rivers.add(riverList);
     const firstChild = segment.children[0];
     const secondChild = segment.children[1];
     if (firstChild) {
       if (!secondChild) {
-        stepRiver(firstChild, rootID);
+        stepRiver(firstChild, riverList);
       } else {
         if (firstChild.size === secondChild.size) {
           // if both children are equal, start new rivers
-          stepRiver(firstChild, firstChild.t);
-          stepRiver(secondChild, secondChild.t);
+          stepRiver(firstChild, [segment]);
+          stepRiver(secondChild, [segment]);
         } else if (firstChild.size > secondChild.size) {
           // if one child is more, continue river
-          stepRiver(firstChild, rootID);
-          stepRiver(secondChild, secondChild.t);
+          stepRiver(firstChild, riverList);
+          stepRiver(secondChild, [segment]);
         } else {
-          stepRiver(firstChild, firstChild.t);
-          stepRiver(secondChild, rootID);
+          stepRiver(firstChild, [segment]);
+          stepRiver(secondChild, riverList);
         }
       }
     }
   }
 
-  riverSegments.forEach(segment => stepRiver(segment, segment.t));
-  const rivers = Array.from(riverMap.values());
+  riverSegments.forEach(segment => stepRiver(segment, []));
   console.log('rivers', rivers);
-  return rivers.filter(river => river.length > 1);
+  return Array.from(rivers);
 }
 
 function createPlateVectors(mesh: TriangleMesh, globe: Globe) {
