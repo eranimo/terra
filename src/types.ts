@@ -51,17 +51,6 @@ export const categoryTitles = {
   geology: 'Geology',
 }
 
-export interface IDrawOptions {
-  grid: boolean,
-  plateBorders: boolean,
-  plateVectors: boolean,
-  cellCenters: boolean,
-  rivers: boolean,
-  surface: boolean,
-  regions: boolean,
-  coastline: boolean,
-}
-
 export enum EMapMode {
   ELEVATION = 'ELEVATION',
   TECTONICS = 'TECTONICS',
@@ -74,49 +63,60 @@ export enum EMapMode {
   FLOW = 'FLOW',
 }
 
+export interface IDrawOptions {
+  drawGrid: boolean,
+  drawPlateBorders: boolean,
+  drawPlateVectors: boolean,
+  drawCellCenters: boolean,
+  drawRivers: boolean,
+  renderPlanet: boolean,
+  renderCellRegions: boolean,
+  drawCoastlineBorder: boolean,
+}
+
 export const defaultDrawOptions: IDrawOptions = {
-  grid: false,
-  plateBorders: false,
-  plateVectors: false,
-  rivers: true,
-  cellCenters: false,
-  surface: true,
-  regions: true,
-  coastline: false,
+  drawGrid: false,
+  drawPlateBorders: false,
+  drawPlateVectors: false,
+  drawRivers: true,
+  drawCellCenters: false,
+  renderPlanet: true,
+  renderCellRegions: true,
+  drawCoastlineBorder: false,
 };
 
 export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
   [EMapMode.ELEVATION]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: true,
+    drawRivers: false,
   },
   [EMapMode.MOISTURE]: {
-    coastline: true,
+    drawCoastlineBorder: true,
   },
   [EMapMode.TEMPERATURE]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: true,
+    drawRivers: false,
   },
   [EMapMode.INSOLATION]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: true,
+    drawRivers: false,
   },
   [EMapMode.ROUGHNESS]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: true,
+    drawRivers: false,
   },
   [EMapMode.BIOME]: {},
   [EMapMode.FLOW]: {
-    coastline: true,
+    drawCoastlineBorder: true,
   },
   [EMapMode.TECTONICS]: {
-    rivers: false,
-    plateBorders: true,
-    plateVectors: true,
+    drawRivers: false,
+    drawPlateBorders: true,
+    drawPlateVectors: true,
   },
   [EMapMode.DESIRABILITY]: {
-    rivers: false,
-    coastline: true,
+    drawRivers: false,
+    drawCoastlineBorder: true,
   },
 }
 

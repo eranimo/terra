@@ -11,11 +11,11 @@ export const initialOptions: IGlobeOptions = {
   },
   sphere: {
     numberCells: 35_000,
-    jitter: 0.4,
+    jitter: 0.30,
     protrudeHeight: 0, //0.25,
   },
   hydrology: {
-    flowModifier: 0.2,
+    flowModifier: 0.4,
     moistureModifier: 0,
   },
   climate: {

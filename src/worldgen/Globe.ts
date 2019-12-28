@@ -6,7 +6,7 @@ import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '.
 import { getLatLng, intersectTriangle, distance3D, logGroupTime } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
-import { Vector3 } from "@babylonjs/core/Maths/math";
+import { Vector3, Quaternion } from "@babylonjs/core/Maths/math";
 
 
 function createCoastline(mesh: TriangleMesh, globe: Globe) {
@@ -99,8 +99,8 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   }
 
   const riverSegments = riverCoastPoints.map(stepInner);
-  console.log('riverSegments', riverSegments);
-  console.log('riverSideMap', riverSideMap);
+  // console.log('riverSegments', riverSegments);
+  // console.log('riverSideMap', riverSideMap);
 
   let riversSet: Set<Array<number>> = new Set();
   const stepRiver = (segment: RiverNode, riverList: number[]) => {
@@ -131,11 +131,11 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   }
 
   riverSegments.forEach(segment => stepRiver(segment, []));
-  console.log('rivers', riversSet);
+  // console.log('rivers', riversSet);
   const river_t = Array.from(riversSet);
 
   const rivers: number[] = [];
-  river_t.forEach(river => {
+  river_t.forEach((river, index) => {
     const riverReverse = river.reverse();
     for (let t = 0; t < riverReverse.length; t++) {
       const this_t = riverReverse[t];
@@ -151,42 +151,42 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
       const s2_begin_r = globe.mesh.s_begin_r(side2);
       const s2_end_r = globe.mesh.s_end_r(side2);
 
-      const p1 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_begin_r), 0.1).asArray();
-      const p2 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_end_r), 0.1).asArray()
-      const p3 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_begin_r), 0.1).asArray();
-      const p4 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_end_r), 0.1).asArray();
+      let p1 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_begin_r), 0.1);
+      let p2 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_end_r), 0.1);
+      let p3 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_begin_r), 0.1);
+      let p4 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_end_r), 0.1);
 
       const center = Vector3.Lerp(this_t_vec, next_t_vec, 0.5).asArray()
       rivers.push(
         // cap
-        ...p1,
+        ...p1.asArray(),
         ...this_t_vec.asArray(),
-        ...p2,
+        ...p2.asArray(),
 
-        ...p1,
-        ...p2,
+        ...p1.asArray(),
+        ...p2.asArray(),
         ...center,
 
-        ...p3,
-        ...p4,
+        ...p3.asArray(),
+        ...p4.asArray(),
         ...center,
 
-        ...p2,
-        ...p3,
+        ...p2.asArray(),
+        ...p3.asArray(),
         ...center,
         
-        ...p4,
-        ...p1,
+        ...p4.asArray(),
+        ...p1.asArray(),
         ...center,
 
         // cap
-        ...p3,
+        ...p3.asArray(),
         ...next_t_vec.asArray(),
-        ...p4,
+        ...p4.asArray(),
       );
     }
   });
-  console.log('rivers', rivers);
+  // console.log('rivers', rivers);
 
   return rivers;
 }

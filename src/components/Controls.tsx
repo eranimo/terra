@@ -240,49 +240,49 @@ const GLOBE_OPTIONS: ControlDef[] = [
 
 const DRAW_OPTIONS: ControlDef[] = [
   {
-    key: 'grid',
+    key: 'drawGrid',
     title: 'Draw grid',
     type: 'boolean',
     desc: 'Draws grids on cell edges',
   },
   {
-    key: 'plateVectors',
+    key: 'drawPlateVectors',
     title: 'Draw plate vectors',
     type: 'boolean',
     desc: 'Draws a vector line at each cell pointing in the direction of that cell\'s plate',
   },
   {
-    key: 'plateBorders',
+    key: 'drawPlateBorders',
     title: 'Draw plate borders',
     type: 'boolean',
     desc: 'Draws a plate border in white',
   },
   {
-    key: 'cellCenters',
+    key: 'drawCellCenters',
     title: 'Draw cell centers',
     type: 'boolean',
     desc: 'Draws a small dot in the center of each cell at it\'s cell centroid point',
   },
   {
-    key: 'rivers',
+    key: 'drawRivers',
     title: 'Draw rivers',
     type: 'boolean',
     desc: 'Draws blue rivers on cell edges where they exist',
   },
   {
-    key: 'surface',
-    title: 'Draw surface',
+    key: 'renderPlanet',
+    title: 'Draw planet',
     type: 'boolean',
     desc: 'Draws the planet surface',
   },
   {
-    key: 'regions',
+    key: 'renderCellRegions',
     title: 'Draw cell groups',
     type: 'boolean',
     desc: 'Draws cell groups',
   },
   {
-    key: 'coastline',
+    key: 'drawCoastlineBorder',
     title: 'Draw coastline',
     type: 'boolean',
     desc: 'Draws border on coastline',

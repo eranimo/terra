@@ -77,8 +77,30 @@ function createCellBorderMesh(globe: GlobeData, scene: Scene) {
   }, scene);
   borders.color = new Color3(0, 0, 0);
   borders.alpha = 0.5;
-  borders.scaling = new Vector3(20.001, 20.001, 20.001);
+  borders.scaling = new Vector3(20.002, 20.002, 20.002);
   return borders;
+}
+
+function createRivers(globe: GlobeData, scene: Scene) {
+  const material = new StandardMaterial('rivers', scene);
+  const mesh = new Mesh('rivers', scene);
+  mesh.material = material;
+  mesh.scaling = new Vector3(20.001, 20.001, 20.001);
+  const vertexData = new VertexData();
+  const indices = [];
+  let colors = [];
+  for (let i = 0; i < globe.rivers.length / 3; i++) {
+    indices.push(i);
+    colors.push(0, 0, 1, 1);
+  }
+  vertexData.positions = globe.rivers;
+  vertexData.indices = indices;
+  vertexData.colors = colors;
+  var normals = [];
+  VertexData.ComputeNormals(vertexData.positions, indices, normals);
+  vertexData.normals = normals;
+  vertexData.applyToMesh(mesh);
+  return mesh;
 }
 
 class GlobeRenderer {
@@ -88,11 +110,14 @@ class GlobeRenderer {
   private planet: Mesh;
   private borders: Mesh;
   private camera: ArcRotateCamera;
+  private rivers: Mesh;
   public globe: GlobeData;
+  private hasRendered: boolean;
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas);
     this.scene = new Scene(this.engine);
+    this.hasRendered = false;
 
     // enable debug layer
     this.scene.debugLayer.show();
@@ -134,25 +159,15 @@ class GlobeRenderer {
 
     this.planet = createGlobeMesh(globe, this.scene);
     this.borders = createCellBorderMesh(globe, this.scene);
+    this.rivers = createRivers(globe, this.scene);
+    this.hasRendered = true;
+  }
 
-    const material = new StandardMaterial('rivers', this.scene);
-    const mesh = new Mesh('rivers', this.scene);
-    mesh.material = material;
-    mesh.scaling = new Vector3(20.001, 20.001, 20.001);
-    const vertexData = new VertexData();
-    const indices = [];
-    let colors = [];
-    for (let i = 0; i < globe.rivers.length / 3; i++) {
-      indices.push(i);
-      colors.push(0, 0, 1, 1);
-    }
-    vertexData.positions = globe.rivers;
-    vertexData.indices = indices;
-    vertexData.colors = colors;
-    var normals = [];
-    VertexData.ComputeNormals(vertexData.positions, indices, normals);
-    vertexData.normals = normals;
-    vertexData.applyToMesh(mesh);
+  public onDrawOptionsChanged(options: IDrawOptions) {
+    if (!this.hasRendered) return;
+    this.planet.setEnabled(options.renderPlanet);
+    this.borders.setEnabled(options.drawGrid);
+    this.rivers.setEnabled(options.drawRivers);
   }
 }
 
@@ -179,12 +194,6 @@ export class MapManager {
   mapMode$: BehaviorSubject<EMapMode>;
   tooltipTextCache: Map<number, string>;
 
-  renderState: {
-    rivers: any,
-    coastline: any,
-    plateBorders: any,
-  };
-
   constructor(
     public client: WorldgenClient,
     protected screenCanvas: HTMLCanvasElement,
@@ -202,9 +211,6 @@ export class MapManager {
     const renderer = new GlobeRenderer(screenCanvas);
     this.renderer = renderer;
     this.cellGroupLines = {};
-    this.drawOptions$.subscribe(() => {
-      // TODO: re-render map and minimap
-    });
     
     this.client.setMapMode(startMapMode).then(() => {
       // TODO: re-render map and minimap
@@ -277,6 +283,8 @@ export class MapManager {
     console.log('WorldgenClient', this.client);
     this.renderer.renderGlobe(this.globe)
     this.renderer.start();
+    this.renderer.onDrawOptionsChanged(this.drawOptions$.value);
+    this.drawOptions$.subscribe(options => this.renderer.onDrawOptionsChanged(options));
     this.tooltipTextCache = new Map();
   }
 
