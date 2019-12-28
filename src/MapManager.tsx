@@ -7,7 +7,7 @@ import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
 import { mapModeDefs } from './mapModes';
-import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4 } from '@babylonjs/core';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture } from '@babylonjs/core';
 
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -104,6 +104,25 @@ function createRivers(globe: GlobeData, scene: Scene) {
   return mesh;
 }
 
+function createSkybox(scene: Scene) {
+  const skybox = MeshBuilder.CreateBox("skyBox", {size:1000.0}, scene);
+  const skyboxMaterial = new StandardMaterial("skyBox", scene);
+  skyboxMaterial.backFaceCulling = false;
+  skyboxMaterial.reflectionTexture = CubeTexture.CreateFromImages([
+    require('./images/skybox_px.png'),
+    require('./images/skybox_py.png'),
+    require('./images/skybox_pz.png'),
+    require('./images/skybox_nx.png'),
+    require('./images/skybox_ny.png'),
+    require('./images/skybox_nz.png'),
+  ], scene);
+  skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
+  skyboxMaterial.diffuseColor = new Color3(0, 0, 0);
+  skyboxMaterial.specularColor = new Color3(0, 0, 0);
+  skybox.material = skyboxMaterial;
+  return skybox;
+}
+
 class GlobeRenderer {
   private engine: Engine;
   private scene: Scene;
@@ -114,6 +133,7 @@ class GlobeRenderer {
   private rivers: Mesh;
   public globe: GlobeData;
   private hasRendered: boolean;
+  skybox: Mesh;
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas);
@@ -161,6 +181,7 @@ class GlobeRenderer {
     this.planet = createGlobeMesh(globe, this.scene);
     this.borders = createCellBorderMesh(globe, this.scene);
     this.rivers = createRivers(globe, this.scene);
+    this.skybox = createSkybox(this.scene);
     this.hasRendered = true;
   }
 
