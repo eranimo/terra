@@ -358,6 +358,7 @@ export class Globe {
     this.mapModeCache = new Map();
   }
 
+  // post GlobeGen setup
   setup() {
     const { t_xyz, r_xyz, mesh } = this;
     this.sideTriangles = [];
@@ -404,6 +405,7 @@ export class Globe {
     if (this.mapModeCache.has(this.mapMode)) {
       data = this.mapModeCache.get(this.mapMode);
     } else {
+      console.log(`Setting up map mode ${this.mapMode}`);
       data = createMapMode(this, def);
     }
     this.mapModeCache.set(this.mapMode, data);

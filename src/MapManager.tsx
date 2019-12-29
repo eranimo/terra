@@ -7,7 +7,7 @@ import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
 import { mapModeDefs } from './mapModes';
-import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, Material } from '@babylonjs/core';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, Material, VertexBuffer } from '@babylonjs/core';
 
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -49,6 +49,7 @@ function createGlobeMesh(globe: GlobeData, scene: Scene) {
   vertexData.normals = normals;
 
   vertexData.applyToMesh(mesh);
+  mesh.convertToFlatShadedMesh();
 
   console.log('vertexData', vertexData);
   mesh.scaling = new Vector3(20, 20, 20);
@@ -56,7 +57,7 @@ function createGlobeMesh(globe: GlobeData, scene: Scene) {
   // disable lighting
   material.emissiveColor = new Color3(1, 1, 1);
   material.disableLighting = true;
-  return { mesh, vertexData };
+  return mesh;
 }
 
 function createCellBorderMesh(globe: GlobeData, scene: Scene) {
@@ -123,6 +124,7 @@ function createSkybox(scene: Scene) {
 }
 
 class GlobeRenderer {
+  public globe: GlobeData;
   private engine: Engine;
   private scene: Scene;
   private sunLight: HemisphericLight;
@@ -130,10 +132,8 @@ class GlobeRenderer {
   private borders: Mesh;
   private camera: ArcRotateCamera;
   private rivers: Mesh;
-  public globe: GlobeData;
+  private skybox: Mesh;
   private hasRendered: boolean;
-  skybox: Mesh;
-  planetData: VertexData;
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas);
@@ -178,9 +178,7 @@ class GlobeRenderer {
   public renderGlobe(globe: GlobeData) {
     this.globe = globe;
 
-    const { mesh, vertexData } = createGlobeMesh(globe, this.scene);
-    this.planet = mesh;
-    this.planetData = vertexData;
+    this.planet = createGlobeMesh(globe, this.scene);
     this.borders = createCellBorderMesh(globe, this.scene);
     this.rivers = createRivers(globe, this.scene);
     this.skybox = createSkybox(this.scene);
@@ -195,6 +193,7 @@ class GlobeRenderer {
   }
 
   public updateColors(globe: GlobeData) {
+    console.log('update colors');
     const colors = [];
     for (let t = 0; t < globe.triangleGeometry.length / 3; t++) {
       colors.push(
@@ -204,8 +203,7 @@ class GlobeRenderer {
         globe.mapModeColor[(4 * t) + 3],
       );
     }
-    this.planetData.colors = colors;
-    this.planet.material.markAsDirty(Material.AllDirtyFlag);
+    this.planet.setVerticesData(VertexBuffer.ColorKind, colors);
   }
 }
 
@@ -251,6 +249,7 @@ export class MapManager {
     
     this.client.setMapMode(startMapMode).then(() => {
       // TODO: re-render map and minimap
+      this.renderer.updateColors(this.globe);
     });
     
     // redraw minimap when draw option changes
@@ -328,89 +327,4 @@ export class MapManager {
     this.drawOptions$.subscribe(options => this.renderer.onDrawOptionsChanged(options));
     this.tooltipTextCache = new Map();
   }
-
-  /*
-  private draw() {
-    const { mapModeColor, triangleGeometry } = this.globe;
-    if (this.drawOptions$.get('rivers')) {
-      this.renderState.rivers.draw({
-        model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
-      });
-    }
-    if (this.drawOptions$.get('plateVectors')) {
-      this.renderer.drawPlateVectors(this.globe.plateVectors.line_xyz, this.globe.plateVectors.line_rgba);
-    }
-    if (this.drawOptions$.get('plateBorders')) {
-      this.renderState.plateBorders.draw({
-        model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
-      });
-    }
-    if (this.drawOptions$.get('grid')) {
-      this.renderer.renderLines({
-        scale: mat4.fromScaling(mat4.create(), [1.002, 1.002, 1.002]),
-        u_multiply_rgba: [1, 1, 1, 0.5],
-        u_add_rgba: [0, 0, 0, 0],
-        a_xyz: this.globe.cellBorders.points,
-        a_rgba: this.globe.cellBorders.rgba,
-        count: this.globe.cellBorders.points.length,
-      });
-    }
-    if (this.drawOptions$.get('cellCenters')) {
-      let u_pointsize = 10.0;
-      this.renderer.renderPoints({
-        u_pointsize,
-        a_xyz: this.globe.r_xyz,
-        count: this.globe.r_xyz.length / 3,
-      });
-    }
-    if (this.selectedCell$.value) {
-      this.renderer.drawCellBorder(this.selectedCell$.value.points);
-    }
-    if (this.drawOptions$.get('regions')) {
-      for (const cellGroup of this.cellGroups.values()) {
-        this.renderer.renderCellColor({
-          scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-          a_xyz: cellGroup.cells_xyz,
-          a_rgba: cellGroup.cells_rgba,
-          count: cellGroup.cells_xyz.length / 3,
-        } as any);
-
-        const line = this.cellGroupLines[cellGroup.name];
-        if (line) {
-          line.draw({
-            model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
-          });
-        }
-      }
-    }
-
-    if (this.drawOptions$.get('surface') && this.mapMode$.value) {
-      this.renderer.renderCellColor({
-        scale: mat4.fromScaling(mat4.create(), [1, 1, 1]),
-        a_xyz: triangleGeometry,
-        a_rgba: mapModeColor,
-        count: triangleGeometry.length / 3,
-      } as any);
-    }
-    if (this.drawOptions$.get('coastline')) {
-      this.renderState.coastline.draw({
-        model: mat4.fromScaling(mat4.create(), [1.0011, 1.0011, 1.0011])
-      });
-    }
-    this.renderer.renderStarbox();
-  }
-
-  @logGroupTime('draw minimap')
-  private drawMinimap() {
-    const { minimapGeometry, mapModeColor } = this.globe;
-    // draw minimap
-    this.renderer.renderMinimapCellColor({
-      scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
-      a_xy: minimapGeometry,
-      a_rgba: mapModeColor,
-      count: minimapGeometry.length / 2,
-    });
-  }
-
-  */
 }
