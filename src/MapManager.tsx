@@ -7,11 +7,10 @@ import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
 import { mapModeDefs } from './mapModes';
-import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture } from '@babylonjs/core';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, Material } from '@babylonjs/core';
 
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
-import { line2D } from './utils/line2D';
 
 
 const DEFAULT_MAP_MODE = EMapMode.BIOME;
@@ -57,7 +56,7 @@ function createGlobeMesh(globe: GlobeData, scene: Scene) {
   // disable lighting
   material.emissiveColor = new Color3(1, 1, 1);
   material.disableLighting = true;
-  return mesh;
+  return { mesh, vertexData };
 }
 
 function createCellBorderMesh(globe: GlobeData, scene: Scene) {
@@ -134,6 +133,7 @@ class GlobeRenderer {
   public globe: GlobeData;
   private hasRendered: boolean;
   skybox: Mesh;
+  planetData: VertexData;
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas);
@@ -178,7 +178,9 @@ class GlobeRenderer {
   public renderGlobe(globe: GlobeData) {
     this.globe = globe;
 
-    this.planet = createGlobeMesh(globe, this.scene);
+    const { mesh, vertexData } = createGlobeMesh(globe, this.scene);
+    this.planet = mesh;
+    this.planetData = vertexData;
     this.borders = createCellBorderMesh(globe, this.scene);
     this.rivers = createRivers(globe, this.scene);
     this.skybox = createSkybox(this.scene);
@@ -190,6 +192,20 @@ class GlobeRenderer {
     this.planet.setEnabled(options.renderPlanet);
     this.borders.setEnabled(options.drawGrid);
     this.rivers.setEnabled(options.drawRivers);
+  }
+
+  public updateColors(globe: GlobeData) {
+    const colors = [];
+    for (let t = 0; t < globe.triangleGeometry.length / 3; t++) {
+      colors.push(
+        globe.mapModeColor[(4 * t) + 0],
+        globe.mapModeColor[(4 * t) + 1],
+        globe.mapModeColor[(4 * t) + 2],
+        globe.mapModeColor[(4 * t) + 3],
+      );
+    }
+    this.planetData.colors = colors;
+    this.planet.material.markAsDirty(Material.AllDirtyFlag);
   }
 }
 
@@ -220,7 +236,6 @@ export class MapManager {
     public client: WorldgenClient,
     protected screenCanvas: HTMLCanvasElement,
     protected minimapCanvas: HTMLCanvasElement,
-    protected images: ImageRef[],
   ) {
     const startMapMode = localStorage.lastMapMode || DEFAULT_MAP_MODE;
     this.mapMode$ = new BehaviorSubject<EMapMode>(startMapMode);
@@ -270,6 +285,8 @@ export class MapManager {
     this.client.worker$.on('draw').subscribe(() => {
       if (this.globe) {
         // TODO: re-render map and minimap
+        console.log('draw', this.globe);
+        this.renderer.updateColors(this.globe);
       }
     });
 
@@ -292,6 +309,8 @@ export class MapManager {
       this.client.setMapMode(mapMode)
         .then(() => {
           // TODO: re-render map and minimap
+          console.log('draw', this.globe);
+          this.renderer.updateColors(this.globe);
         });
     }
   }

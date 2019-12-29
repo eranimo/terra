@@ -17,10 +17,6 @@ export const MapManagerContainer = createContainer(({ manager }: { manager: MapM
 
 (window as any)._ = require('lodash');
 
-const IMAGES = {
-  stars: require('../images/stars2.png')
-};
-
 let manager: MapManager;
 
 function getCursorPosition(event: React.MouseEvent, element: HTMLElement) {
@@ -38,24 +34,21 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
   const minimapRef = useRef<HTMLCanvasElement>();
 
   useEffect(() => {
-    loadImages(IMAGES).then(images => {
-      manager = new MapManager(
-        client,
-        screenRef.current,
-        minimapRef.current,
-        images,
-      );
+    manager = new MapManager(
+      client,
+      screenRef.current,
+      minimapRef.current,
+    );
 
-      const globeSubscription = globeManager.globe$.subscribe(globe => manager.setGlobe(globe));
+    const globeSubscription = globeManager.globe$.subscribe(globe => manager.setGlobe(globe));
 
-      setLoading(false);
-      console.log('manager', manager);
+    setLoading(false);
+    console.log('manager', manager);
 
-      return () => {
-        manager.stopRendering();
-        globeSubscription.unsubscribe();
-      }
-    });
+    return () => {
+      manager.stopRendering();
+      globeSubscription.unsubscribe();
+    }
   }, []);
 
   const [downPosition, setDownPosition] = useState({ x: 0, y: 0 });
