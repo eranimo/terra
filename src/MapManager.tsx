@@ -2,12 +2,13 @@ import { mat4, vec3 } from 'gl-matrix';
 import createLine from 'regl-line';
 import { BehaviorSubject } from 'rxjs';
 import { CellPoints, defaultDrawOptions, EMapMode, GlobeData, IDrawOptions, IGlobeOptions, mapModeDrawOptions, ICellGroupData } from './types';
-import { ImageRef, logGroupTime } from './utils';
+import { ImageRef, logGroupTime, getUV } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
 import { mapModeDefs } from './mapModes';
 import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, Material, VertexBuffer } from '@babylonjs/core';
+import REGL = require('regl');
 
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -130,7 +131,7 @@ class GlobeRenderer {
   private sunLight: HemisphericLight;
   private planet: Mesh;
   private borders: Mesh;
-  private camera: ArcRotateCamera;
+  public camera: ArcRotateCamera;
   private rivers: Mesh;
   private skybox: Mesh;
   private hasRendered: boolean;
@@ -211,6 +212,63 @@ class GlobeRenderer {
   }
 }
 
+type MinimapCellColorUniforms = {
+  scale: REGL.Mat4,
+}
+
+type MinimapCellColorProps = {
+  scale: mat4,
+  count: number,
+  a_xy: Float32Array,
+  a_rgba?: Float32Array,
+}
+
+function setupMinimapRenderer(canvas) {
+  const reglMinimap = REGL({
+    canvas,
+    extensions: ['OES_element_index_uint', 'OES_standard_derivatives', 'ANGLE_instanced_arrays'],
+  });
+  return reglMinimap<MinimapCellColorUniforms, any, MinimapCellColorProps, any>({
+    frag: `
+  precision mediump float;
+  varying vec4 v_rgba;
+
+  void main() {
+    gl_FragColor = v_rgba;
+  }
+  `,
+
+    vert: `
+  precision mediump float;
+  attribute vec2 a_xy;
+  varying vec4 v_rgba;
+  attribute vec4 a_rgba;
+
+  void main() {
+    v_rgba = a_rgba;
+    gl_Position = vec4(a_xy, 0.5, 1) - 0.5;
+  }
+  `,
+
+    uniforms: {
+      scale: reglMinimap.prop<MinimapCellColorUniforms, 'scale'>('scale'),
+    },
+
+    count: reglMinimap.prop<MinimapCellColorProps, 'count'>('count'),
+    attributes: {
+      scale: reglMinimap.prop<MinimapCellColorProps, 'scale'>('scale'),
+      a_xy: reglMinimap.prop<MinimapCellColorProps, 'a_xy'>('a_xy'),
+      a_rgba: reglMinimap.prop<MinimapCellColorProps, 'a_rgba'>('a_rgba'),
+    },
+
+    cull: {
+      enable: true,
+      face: 'front'
+    },
+  });
+}
+
+
 /**
  * Renders a Globe instance
  * Contains map state:
@@ -233,6 +291,7 @@ export class MapManager {
   minimapContext: CanvasRenderingContext2D;
   mapMode$: BehaviorSubject<EMapMode>;
   tooltipTextCache: Map<number, string>;
+  minimapRenderer: REGL.DrawCommand<any, MinimapCellColorProps>;
 
   constructor(
     public client: WorldgenClient,
@@ -252,7 +311,7 @@ export class MapManager {
     this.cellGroupLines = {};
     
     this.client.setMapMode(startMapMode).then(() => {
-      // TODO: re-render map and minimap
+      this.drawMinimap();
       this.renderer.updateColors(this.globe);
     });
     
@@ -261,15 +320,15 @@ export class MapManager {
       this.onChangeMapMode(mapMode);
     });
 
+    this.minimapRenderer = setupMinimapRenderer(minimapCanvas);
+
     // minimap events
     const jumpToPosition = (x: number, y: number) => {
       const { width, height } = minimapCanvas.getBoundingClientRect();
-      const cx = (x / width) - 0.5;
-      const cy = (y / height) - 0.5;
-      const lat = cx * 360;
-      const long = cy * 180;
-      // TODO: implement jump to lat long
-      // this.renderer.camera.centerLatLong(lat, long);
+      const cx = (x / width);
+      const cy = 1 - (y / height);
+      this.renderer.camera.alpha = Math.PI + (Math.PI * 2 * cx);
+      this.renderer.camera.beta = Math.PI * cy;
     };
     let isPanningMinimap = false;
     minimapCanvas.addEventListener('mousedown', (event: MouseEvent) => {
@@ -287,15 +346,15 @@ export class MapManager {
 
     this.client.worker$.on('draw').subscribe(() => {
       if (this.globe) {
-        // TODO: re-render map and minimap
         console.log('draw', this.globe);
+        this.drawMinimap();
         this.renderer.updateColors(this.globe);
       }
     });
 
     this.cellGroups = new Map();
     this.client.worker$.on('cellGroupUpdate').subscribe((data: ICellGroupData) => {
-      // TODO: re-render map and minimap
+      this.drawMinimap();
       this.cellGroups.set(data.name, data);
     });
   }
@@ -314,6 +373,7 @@ export class MapManager {
           // TODO: re-render map and minimap
           console.log('draw', this.globe);
           this.renderer.updateColors(this.globe);
+          this.drawMinimap();
         });
     }
   }
@@ -328,7 +388,20 @@ export class MapManager {
     this.renderer.renderGlobe(this.globe)
     this.renderer.start();
     this.renderer.onDrawOptionsChanged(this.drawOptions$.value);
+    this.drawMinimap();
     this.drawOptions$.subscribe(options => this.renderer.onDrawOptionsChanged(options));
     this.tooltipTextCache = new Map();
+  }
+
+  @logGroupTime('draw minimap')
+  drawMinimap() {
+    const { minimapGeometry, mapModeColor } = this.globe;
+    // draw minimap
+    this.minimapRenderer({
+      scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
+      a_xy: minimapGeometry,
+      a_rgba: mapModeColor,
+      count: minimapGeometry.length / 2,
+    });
   }
 }

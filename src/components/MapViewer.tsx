@@ -156,7 +156,7 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
           width={360 * 5}
           height={180 * 5}
           style={{
-            transform: 'rotate(180deg)',
+            transform: 'rotate(180deg) scaleX(-1)',
             width: '360px',
             height: '180px',
           }}
