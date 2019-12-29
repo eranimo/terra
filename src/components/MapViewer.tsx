@@ -108,7 +108,7 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
 
   useEffect(() => {
     document.addEventListener('mouseleave', event => {
-      if (event.toElement === null && event.relatedTarget === null) {
+      if ((event as any).toElement === null && event.relatedTarget === null) {
         setTooltip(null);
       }
     }, false);
