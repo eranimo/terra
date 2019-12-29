@@ -24,25 +24,40 @@ export type MapModeData = {
 }
 
 export function createMapMode(globe: Globe, definition: IMapModeColorMap): MapModeData {
-  const rgba_array = [];
-  let r_value = [];
+  const values_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numRegions));
+  let min_v = Infinity;
+  let max_v = -Infinity;
   for (let s = 0; s < globe.mesh.numSides; s++) {
     const r = globe.mesh.s_begin_r(s);
     const value = definition.getter(globe, r);
-    r_value[r] = value;
+    if (value < min_v) {
+      min_v = value;
+    } else if (value > max_v) {
+      max_v = value;
+    }
+    values_buffer[r] = value;
   }
-  const { min, max } = arrayStats(r_value);
+  const rgba_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numSides * 12));
   for (let s = 0; s < globe.mesh.numSides; s++) {
     const r = globe.mesh.s_begin_r(s);
-    const value = r_value[r];
-    const percent = (r_value[r] - min) / (max - min);
+    const value = values_buffer[r];
+    const percent = (values_buffer[r] - min_v) / (max_v - min_v);
     const color = definition.color(value, definition.colors, globe, r, percent);
-    rgba_array.push(...color, ...color, ...color);
+    rgba_buffer[(12 * s) + 0] = color[0];
+    rgba_buffer[(12 * s) + 1] = color[1];
+    rgba_buffer[(12 * s) + 2] = color[2];
+    rgba_buffer[(12 * s) + 3] = color[3];
+
+    rgba_buffer[(12 * s) + 4] = color[0];
+    rgba_buffer[(12 * s) + 5] = color[1];
+    rgba_buffer[(12 * s) + 6] = color[2];
+    rgba_buffer[(12 * s) + 7] = color[3];
+
+    rgba_buffer[(12 * s) + 8] = color[0];
+    rgba_buffer[(12 * s) + 9] = color[1];
+    rgba_buffer[(12 * s) + 10] = color[2];
+    rgba_buffer[(12 * s) + 11] = color[3];
   }
-  const rgba_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * rgba_array.length));
-  rgba_buffer.set(rgba_array);
-  const values_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numRegions));
-  values_buffer.set(r_value);
 
   return {
     rgba: rgba_buffer,
