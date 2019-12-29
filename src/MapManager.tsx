@@ -152,8 +152,12 @@ class GlobeRenderer {
       new Vector3(0, 0, -0),
       this.scene,
     );
+    camera.inertia = 0.5;
+    camera.panningSensibility = 100;
     camera.setPosition(new Vector3(-60, 0, 0));
     camera.attachControl(canvas, true);
+    camera.lowerRadiusLimit = 22;
+    camera.upperRadiusLimit = 60;
     this.camera = camera;
 
     // debug lighting
