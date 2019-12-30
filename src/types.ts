@@ -65,6 +65,7 @@ export enum EMapMode {
   TECTONICS = 'TECTONICS',
   MOISTURE = 'MOISTURE',
   TEMPERATURE = 'TEMPERATURE',
+  AVGTEMPERATURE = 'AVGTEMPERATURE',
   INSOLATION = 'INSOLATION',
   ROUGHNESS = 'ROUGHNESS',
   DESIRABILITY = 'DESIRABILITY',
@@ -92,6 +93,10 @@ export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
     coastline: true,
   },
   [EMapMode.TEMPERATURE]: {
+    coastline: true,
+    rivers: false,
+  },
+  [EMapMode.AVGTEMPERATURE]: {
     coastline: true,
     rivers: false,
   },
@@ -123,6 +128,7 @@ export const mapModeTitles = {
   [EMapMode.TECTONICS]: 'Plate Tectonics',
   [EMapMode.MOISTURE]: 'Moisture',
   [EMapMode.TEMPERATURE]: 'Temperature',
+  [EMapMode.AVGTEMPERATURE]: 'Average Temperature',
   [EMapMode.INSOLATION]: 'Insolation',
   [EMapMode.ROUGHNESS]: 'Terrain Roughness',
   [EMapMode.DESIRABILITY]: 'Desirability',
@@ -378,6 +384,7 @@ export type CellGlobeData = {
   distance_to_ocean: number,
   desirability: number,
   biome: number,
+  average_temperature: number,
 }
 
 export type CellWorldData = {

@@ -1,5 +1,6 @@
 import { World } from "../World";
 import { IGlobeOptions, EMapMode } from '../../types';
+import { ReactiveThreadPool } from '../../utils/ReactiveThreadPool';
 
 
 const globeOptions: IGlobeOptions = {
@@ -32,7 +33,7 @@ const worldOptions = {
 };
 
 test('World', () => {
-  const world = new World(globeOptions, worldOptions);
+  const world = new World(globeOptions, worldOptions, new ReactiveThreadPool());
 
   expect(world.globe).toBeDefined();
 });

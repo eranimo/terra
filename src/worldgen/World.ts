@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { degreesToRadians } from '../utils';
 import createGraph, { Graph } from 'ngraph.graph';
 import path from 'ngraph.path';
+import { ReactiveThreadPool } from '../utils/ReactiveThreadPool';
 
 export class CellGroup {
   cells: Set<number>;
@@ -63,14 +64,18 @@ export class World {
   cellPopulationCount: Int32Array;
 
   graph: Graph<CellNodeData, CellLinkData>;
+  threadPool: ReactiveThreadPool;
   
   // TODO: factor out into static create and load methods
   constructor(
     globeOptions: IGlobeOptions,
     worldOptions: IWorldOptions,
+    threadPool: ReactiveThreadPool
   ) {
+    this.threadPool = threadPool;
     this.globeGen = new GlobeGen();
-    this.globe = this.globeGen.generate(globeOptions, worldOptions.initialMapMode);
+    this.globe = this.globeGen.generate(globeOptions, worldOptions.initialMapMode, threadPool);
+    this.globeGen.generateAverageTemperature();
     this.globeGen.update(0);
     this.cellGroups = new Set();
     this.cellCellGroup = new Map();

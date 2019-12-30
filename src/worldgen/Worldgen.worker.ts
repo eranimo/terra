@@ -2,6 +2,7 @@ import { ReactiveWorker } from '../utils/workers';
 import { GameLoop } from './GameLoop';
 import { IWorldOptions, World, CellGroup } from './World';
 import { EMapMode } from '../types';
+import { ReactiveThreadPool } from '../utils/ReactiveThreadPool';
 
 const game = new GameLoop(error => {
   console.error(error);
@@ -10,15 +11,19 @@ const game = new GameLoop(error => {
 const ctx: Worker = self as any;
 const worker = new ReactiveWorker(ctx, false);
 let world: World;
+const threadPool: ReactiveThreadPool = new ReactiveThreadPool();
 
-worker.on('init', ({ options, mapMode }) => {
+worker.on('init', async ({ options, mapMode }) => {
   console.log('worldgen init', options);
+  for(let r = 0; r < threadPool.cpus; r++) {
+    const worker = await threadPool.workerPromises[r];
+  }
 
   const worldOptions: IWorldOptions = {
     initialMapMode: mapMode
   };
 
-  world = new World(options, worldOptions);
+  world = new World(options, worldOptions, threadPool);
 
   world.cellGroupUpdates$.subscribe(data => {
     worker.send('cellGroupUpdate', data);
@@ -45,6 +50,8 @@ worker.on('init', ({ options, mapMode }) => {
       console.log(yearRatio);
       world.updateGlobe(yearRatio);
       world.globe.resetMapMode(EMapMode.INSOLATION);
+      world.globe.resetMapMode(EMapMode.TEMPERATURE);
+      world.globe.resetMapMode(EMapMode.MOISTURE);
       worker.send('draw');
     }
   });

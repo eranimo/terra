@@ -169,6 +169,25 @@ export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
       return [0, 0, 0, 1];
     },
   }],
+  [EMapMode.AVGTEMPERATURE, {
+    getter: (globe, r) => globe.r_average_temperature[r],
+    tooltip: (value) => `Average Temperature: ${value.toLocaleString()}`,
+    colors: {
+      main: colormap({
+        colormap: 'jet',
+        nshades: 100,
+        format: 'float',
+        alpha: 1,
+      }),
+    },
+    color: (value, colors) => {
+      const index = clamp(Math.round(value * 100), 0, 99);
+      if (colors.main[index]) {
+        return colors.main[index];
+      }
+      return [0, 0, 0, 1];
+    },
+  }],
   [EMapMode.INSOLATION, {
     getter: (globe, r) => globe.insolation[r],
     tooltip: (value) => `Insolation: ${value.toLocaleString()}`,
