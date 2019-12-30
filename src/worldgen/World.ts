@@ -71,6 +71,7 @@ export class World {
   ) {
     this.globeGen = new GlobeGen();
     this.globe = this.globeGen.generate(globeOptions, worldOptions.initialMapMode);
+    this.globeGen.generateAverageTemperature();
     this.globeGen.update(0);
     this.cellGroups = new Set();
     this.cellCellGroup = new Map();

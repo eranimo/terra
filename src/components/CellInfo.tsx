@@ -57,8 +57,12 @@ export function CellInfo() {
             <td>#{selectedCell.cell}</td>
           </tr>
           <tr>
-            <td><Text color="gray.400" mr={5}>Temperature</Text></td>
+            <td><Text color="gray.400" mr={5}>Current Temperature</Text></td>
             <td>{round(cellData.globe.temperature, 2)}</td>
+          </tr>
+          <tr>
+            <td><Text color="gray.400" mr={5}>Average Temperature</Text></td>
+            <td>{round(cellData.globe.average_temperature, 2)}</td>
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Moisture</Text></td>

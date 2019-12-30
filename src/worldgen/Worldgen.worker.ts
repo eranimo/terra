@@ -45,6 +45,8 @@ worker.on('init', ({ options, mapMode }) => {
       console.log(yearRatio);
       world.updateGlobe(yearRatio);
       world.globe.resetMapMode(EMapMode.INSOLATION);
+      world.globe.resetMapMode(EMapMode.TEMPERATURE);
+      world.globe.resetMapMode(EMapMode.MOISTURE);
       worker.send('draw');
     }
   });

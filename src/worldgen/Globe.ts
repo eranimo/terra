@@ -6,6 +6,8 @@ import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '.
 import { getLatLng, intersectTriangle, distance3D } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
+import GlobeGenWorker from 'worker-loader!./GlobeGen.worker';
+import { ReactiveWorkerClient } from '../utils/workers';
 
 
 function createCoastline(mesh: TriangleMesh, globe: Globe) {
@@ -145,6 +147,7 @@ export class Globe {
   plate_is_ocean: Set<unknown>;
   r_lat_long: Float32Array;
   r_temperature: number[];
+  r_average_temperature: number[];
 
   r_distance_to_ocean: number[];
   r_coast: number[];
@@ -190,6 +193,7 @@ export class Globe {
     this.s_flow = new Float32Array(mesh.numSides);
 
     this.r_temperature = [];
+    this.r_average_temperature = [];
     this.max_roughness = 0;
 
     this.r_lat_long = new Float32Array(mesh.numRegions * 2);
@@ -294,6 +298,7 @@ export class Globe {
   }
 
   getCellData(r: number): CellGlobeData {
+    console.log(this.r_temperature[r]);
     return {
       lat_long: this.getLatLongForCell(r),
       temperature: this.r_temperature[r],
@@ -303,6 +308,7 @@ export class Globe {
       biome: this.r_biome[r],
       desirability: this.r_desirability[r],
       insolation: this.insolation[r],
+      average_temperature: this.r_average_temperature[r],
     };
   }
 
