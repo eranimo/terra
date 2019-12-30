@@ -8,7 +8,7 @@ import { Globe } from './Globe';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
 import { generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
-import { ReactiveThreadPool } from '../utils/ReactiveThreadPool';
+import { ReactiveThreadPool, ThreadTask } from '../utils/ReactiveThreadPool';
 
 
 const AXIAL_TILT : number = 22; // deg
@@ -42,13 +42,13 @@ export class GlobeGen {
     this.generateMoisture();
   }
 
+  @logGroupTime('AverageTemperature', true)
   generateAverageTemperature() {
     for (let y = 0; y < 12; y++)
     {
       const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * y/12 * Math.PI);
       this.generateInsolation(seasonalRatio);
       this.updateAverageTemperature();
-      console.log(this.globe.r_average_temperature[0]);
     }
   }
 
@@ -232,46 +232,65 @@ export class GlobeGen {
   private generateTemperature() {
     // this.threadPool = this.threadPool || new ReactiveThreadPool();
     let randomNoise = new SimplexNoise(makeRandFloat(this.globe.options.core.seed));
-    let newTemps: number[] = [];
+    // let newTemps: number[] = [];
     // temperature
+    this.threadPool.init(this.globe.mesh.numRegions);
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
       // newTemps[r] = this.globe.workers[r].action('generateTemperature').observe({r, randomNoise}).toPromise() as Promise<number>;
       // console.log(r);
-      // this.threadPool.add(() => {
-        const x = this.globe.r_xyz[3 * r];
-        const y = this.globe.r_xyz[3 * r + 1];
-        const z = this.globe.r_xyz[3 * r + 2];
-        const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
-        const [lat, long] = this.globe.getLatLongForCell(r);
-        const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
-        if (this.globe.r_elevation[r] < 0) { // ocean
-          const altitude = 1 + this.globe.r_elevation[r];
-          // shallow seas are warmer than deep oceans
-          this.globe.r_temperature[r] = (
-            (0.10 * random1) +
-            (0.20 * altitude) +
-            (0.70 * this.globe.insolation[r])
-          );
-        } else { // land
-          const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
-          // higher is colder
-          // lower is warmer
-          this.globe.r_temperature[r] = (
-            (0.10 * random1) +
-            (0.20 * altitude) +
-            (0.70 * this.globe.insolation[r])
-          );
-        }
 
-        this.globe.r_temperature[r] += this.globe.r_temperature[r] * this.globe.options.climate.temperatureModifier;
-        this.globe.r_temperature[r] = clamp(this.globe.r_temperature[r], 0, 1);
-        newTemps.push(r);
+      const x = this.globe.r_xyz[3 * r];
+      const y = this.globe.r_xyz[3 * r + 1];
+      const z = this.globe.r_xyz[3 * r + 2];
+      const [lat, long] = this.globe.getLatLongForCell(r);
+      this.threadPool.add({
+        name: 'generateTemperature',
+        payload:
+        {
+          elevation:this.globe.r_elevation[r],
+          lat: lat,
+          long: long,
+          coord: {
+            x:x,
+            y:y,
+            z:z
+          },
+          insolation: this.globe.insolation[r],
+          modifier: this.globe.options.climate.temperatureModifier
+        }
+      })
+      // this.threadPool.add(() => {
+        // const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
+        // const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
+        // if (this.globe.r_elevation[r] < 0) { // ocean
+        //   const altitude = 1 + this.globe.r_elevation[r];
+        //   // shallow seas are warmer than deep oceans
+        //   this.globe.r_temperature[r] = (
+        //     (0.10 * random1) +
+        //     (0.20 * altitude) +
+        //     (0.70 * this.globe.insolation[r])
+        //   );
+        // } else { // land
+        //   const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
+        //   // higher is colder
+        //   // lower is warmer
+        //   this.globe.r_temperature[r] = (
+        //     (0.10 * random1) +
+        //     (0.20 * altitude) +
+        //     (0.70 * this.globe.insolation[r])
+        //   );
+        // }
+
+        // this.globe.r_temperature[r] += this.globe.r_temperature[r] * this.globe.options.climate.temperatureModifier;
+        // this.globe.r_temperature[r] = clamp(this.globe.r_temperature[r], 0, 1);
+        // newTemps.push(r);
       // })
     }
-    while(newTemps.length < this.globe.mesh.numRegions) {
-      console.log(newTemps.length);
-    }
+    // while(newTemps.length < this.globe.mesh.numRegions) {
+    //   console.log(newTemps.length);
+    // }
 
+    this.globe.r_temperature = this.threadPool.run();
     const { min, max } = arrayStats(this.globe.r_temperature);
 
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
@@ -281,7 +300,6 @@ export class GlobeGen {
     }
   }
 
-  @logGroupTime('temperature', true)
   private updateAverageTemperature() {
     // temperature
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {

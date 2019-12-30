@@ -33,7 +33,7 @@ const worldOptions = {
 };
 
 test('World', () => {
-  const world = new World(globeOptions, worldOptions, new ReactiveThreadPool());
+  const world = new World(globeOptions, worldOptions, new ReactiveThreadPool(globeOptions.core.seed));
 
   expect(world.globe).toBeDefined();
 });

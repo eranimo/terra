@@ -53,6 +53,7 @@ export class GlobeManager {
         this.loading$.next(false);
       });
     });
+    // this.threadPool = new ReactiveThreadPool();
   }
 
   public setMapMode(mapMode: EMapMode) {
@@ -61,6 +62,9 @@ export class GlobeManager {
 
   @logGroupTime('generate')
   public async generate() {
+    // for(let r = 0; r < this.threadPool.cpus; r++) {
+    //   // const worker = await this.threadPool.promises[r];
+    // }
     const result = await this.client.newWorld(this.globeOptions$.value, this.mapMode);
     this.globe$.next(result.globe);
     return result.globe;

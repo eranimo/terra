@@ -2,6 +2,8 @@ import { fromEvent, Observable, Subject, isObservable, BehaviorSubject, Subscrip
 import { map, filter } from "rxjs/operators";
 import { v4 as uuid } from 'uuid';
 import { useState, useEffect } from "react";
+import { clamp, isArray } from 'lodash';
+import SimplexNoise from 'simplex-noise';
 
 
 export class WorkerPool<T extends Worker> {
@@ -412,3 +414,48 @@ export class Channel<T> {
     })
   }
 }
+
+const methodDict = {
+  generateTemperature: (
+    payload:
+      {
+        elevation:number,
+        lat:number,
+        long:number,
+        coord: {x:number,y:number,z:number},
+        insolation: number,
+        modifier: number
+      },
+    randomNoise: SimplexNoise
+  ) => 
+  {
+    const altitude = 1 - Math.max(0, payload.elevation);
+    const random1 = (randomNoise.noise3D(payload.coord.x, payload.coord.y, payload.coord.z) + 1) / 2;
+    let localTemp = 0;
+    if (payload.elevation < 0) { // ocean
+      const altitude = 1 + payload.elevation;
+      // shallow seas are warmer than deep oceans
+      localTemp = (
+        (0.10 * random1) +
+        (0.20 * altitude) +
+        (0.70 * payload.insolation)
+      );
+    } else { // land
+      const altitude = 1 - payload.elevation;
+      // higher is colder
+      // lower is warmer
+      localTemp = (
+        (0.10 * random1) +
+        (0.20 * altitude) +
+        (0.70 * payload.insolation)
+      );
+    }
+
+    localTemp += localTemp * payload.modifier;
+    localTemp = clamp(localTemp, 0, 1);
+    return localTemp * 255;
+  }
+};
+export function WorkerMethods() {
+  return methodDict;
+};

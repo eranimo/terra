@@ -11,10 +11,11 @@ const game = new GameLoop(error => {
 const ctx: Worker = self as any;
 const worker = new ReactiveWorker(ctx, false);
 let world: World;
-const threadPool: ReactiveThreadPool = new ReactiveThreadPool();
+let threadPool: ReactiveThreadPool;
 
 worker.on('init', async ({ options, mapMode }) => {
   console.log('worldgen init', options);
+  threadPool = new ReactiveThreadPool(options.core.seed)
   for(let r = 0; r < threadPool.cpus; r++) {
     const worker = await threadPool.workerPromises[r];
   }
