@@ -3,7 +3,7 @@ import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
 import { createMapMode, mapModeDefs, MapModeData } from '../mapModes';
 import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '../types';
-import { getLatLng, intersectTriangle, distance3D, logGroupTime } from '../utils';
+import { getLatLng, intersectTriangle, distance3D, logGroupTime, logFuncTime } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
 import { Vector3, Quaternion } from "@babylonjs/core/Maths/math";
@@ -441,11 +441,11 @@ export class Globe {
       r_xyz: new Float32Array(this.r_xyz),
       triangleGeometry: this.triangleGeometry,
       minimapGeometry: this.minimapGeometry,
-      coastline: createCoastline(this.mesh, this),
-      rivers: createRivers(this.mesh, this),
-      plateVectors: createPlateVectors(this.mesh, this),
-      plateBorders: createPlateBorders(this.mesh, this),
-      cellBorders: createCellBorders(this.mesh, this),
+      coastline: logFuncTime('createCoastline', () => createCoastline(this.mesh, this)),
+      rivers: logFuncTime('createRivers', () => createRivers(this.mesh, this)),
+      plateVectors: logFuncTime('createPlateVectors', () => createPlateVectors(this.mesh, this)),
+      plateBorders: logFuncTime('createPlateBorders', () => createPlateBorders(this.mesh, this)),
+      cellBorders: logFuncTime('createCellBorders', () => createCellBorders(this.mesh, this)),
     };
   }
 
