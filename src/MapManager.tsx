@@ -95,7 +95,9 @@ function createRivers(globe: GlobeData, scene: Scene) {
       path: river.points.map(point => Vector3.FromArray(point)),
       radiusFunction: (i) => 0.0005 * river.widths[i],
       tessellation: 3,
+      cap: Mesh.CAP_ALL,
     }, scene);
+    mesh.freezeNormals();
     mesh.material = riverMaterial;
     mesh.scaling = new Vector3(20.002, 20.002, 20.002);
     riverMesh.addChild(mesh);
