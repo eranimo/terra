@@ -11,6 +11,8 @@ import { generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
 
 
 const AXIAL_TILT : number = 22; // deg
+const TEMP_RATIO : number = 57.143 // In game units to Celcius -12 to 40 degrees, anything beyond this is unlivable by humans
+const INITIAL_VAPOR_PRESSURE : number = .61121; // Equilibrium vapor pressure at freezing
 export class GlobeGen {
   globe: Globe;
 
@@ -20,14 +22,15 @@ export class GlobeGen {
     this.generatePlates();
     this.generateCoastline();
     this.generateInsolation(seasonalRatio);
-    this.generateTemperature();
     this.generateMoisture();
+    this.generateTemperature();
     this.generateRivers();
     this.generateBiomes();
     this.generatePops();
     this.protrudeHeight();
     this.globe.setup();
     this.setupGeometry();
+    this.generateAverageTemperature();
 
     return this.globe;
   }
@@ -35,8 +38,8 @@ export class GlobeGen {
   update(year_ratio: number) {
     const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * year_ratio * Math.PI);
     this.generateInsolation(seasonalRatio);
-    this.generateTemperature();
     this.generateMoisture();
+    this.generateTemperature();
   }
 
   generateAverageTemperature() {
@@ -44,6 +47,7 @@ export class GlobeGen {
     {
       const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * y/12 * Math.PI);
       this.generateInsolation(seasonalRatio);
+      this.generateMoisture();
       this.updateAverageTemperature();
       console.log(this.globe.r_average_temperature[0]);
     }
@@ -196,15 +200,13 @@ export class GlobeGen {
       const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
       if (this.globe.r_elevation[r] >= 0 && this.globe.r_distance_to_ocean[r] > 3) {
         const inlandRatio = 1 - (this.globe.r_distance_to_ocean[r] / this.globe.max_distance_to_ocean);
-        const heatRatio = 1 - Math.abs( inlandRatio - this.globe.r_temperature[r]);
+        const heatRatio = 1 - Math.abs( inlandRatio - this.globe.insolation[r]);
         this.globe.r_moisture[r] = clamp(
           (heatRatio * 2  / 3 +
           (random1 / 4)) * Math.max(altitude, .1)
         , 0, 1);
-      } else if(this.globe.r_temperature[r] > .2) {
-        this.globe.r_moisture[r] = 1
       } else {
-        this.globe.r_moisture[r] = 0;
+        this.globe.r_moisture[r] = 1
       }
     }
 
@@ -225,6 +227,14 @@ export class GlobeGen {
     randomNoise = new SimplexNoise(makeRandFloat(this.globe.options.core.seed * 2));
   }
 
+  private calcWetTemp(localTemp : number, r: number) {
+      const inCelsius = localTemp * TEMP_RATIO;
+      const vaporPressure = .61121 * Math.exp((18.678 - inCelsius / 234.5) * (inCelsius / (inCelsius + 257.14))) * this.globe.r_moisture[r] // Buck equation for vapor pressure in kPa
+      const weightRatio = (vaporPressure - INITIAL_VAPOR_PRESSURE) / 101.325;
+      const heatLoss = ((weightRatio * 22647.05) / 1003.5);
+      return inCelsius - heatLoss;
+  }
+
   @logGroupTime('temperature', true)
   private generateTemperature() {
     let randomNoise = new SimplexNoise(makeRandFloat(this.globe.options.core.seed));
@@ -237,10 +247,11 @@ export class GlobeGen {
       const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
       const [lat, long] = this.globe.getLatLongForCell(r);
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
+      let localTemp = 0;
       if (this.globe.r_elevation[r] < 0) { // ocean
         const altitude = 1 + this.globe.r_elevation[r];
         // shallow seas are warmer than deep oceans
-        this.globe.r_temperature[r] = (
+        localTemp = (
           (0.10 * random1) +
           (0.20 * altitude) +
           (0.70 * this.globe.insolation[r])
@@ -249,13 +260,13 @@ export class GlobeGen {
         const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
         // higher is colder
         // lower is warmer
-        this.globe.r_temperature[r] = (
+        localTemp = (
           (0.10 * random1) +
           (0.20 * altitude) +
           (0.70 * this.globe.insolation[r])
         );
       }
-
+      this.globe.r_temperature[r] = this.calcWetTemp(localTemp, r) / TEMP_RATIO;
       this.globe.r_temperature[r] += this.globe.r_temperature[r] * this.globe.options.climate.temperatureModifier;
       this.globe.r_temperature[r] = clamp(this.globe.r_temperature[r], 0, 1);
       newTemps.push(r);
@@ -282,11 +293,11 @@ export class GlobeGen {
       const z = this.globe.r_xyz[3 * r + 2];
       const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
       const [lat, long] = this.globe.getLatLongForCell(r);
-      let local_temp: number = 0;
+      let localTemp: number = 0;
       if (this.globe.r_elevation[r] < 0) { // ocean
         const altitude = 1 + this.globe.r_elevation[r];
         // shallow seas are warmer than deep oceans
-        local_temp = (
+        localTemp = (
           (0.05) +
           (0.20 * altitude) +
           (0.70 * this.globe.insolation[r])
@@ -295,16 +306,17 @@ export class GlobeGen {
         const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
         // higher is colder
         // lower is warmer
-        local_temp = (
+        localTemp = (
           (0.05) +
           (0.20 * altitude) +
           (0.70 * this.globe.insolation[r])
         );
       }
+      localTemp = this.calcWetTemp(localTemp, r) / TEMP_RATIO;
 
       this.globe.r_average_temperature[r] = this.globe.r_average_temperature[r] || 0;
-      local_temp += local_temp * this.globe.options.climate.temperatureModifier;
-      this.globe.r_average_temperature[r] += (local_temp) / 12;
+      localTemp += localTemp * this.globe.options.climate.temperatureModifier;
+      this.globe.r_average_temperature[r] += (localTemp) / 12;
       this.globe.r_average_temperature[r] = clamp(this.globe.r_average_temperature[r], 0, 1);
     }
   }
