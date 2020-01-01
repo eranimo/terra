@@ -2,7 +2,7 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
 import { createMapMode, mapModeDefs, MapModeData } from '../mapModes';
-import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData } from '../types';
+import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData, River } from '../types';
 import { getLatLng, intersectTriangle, distance3D, logGroupTime, logFuncTime } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
@@ -47,6 +47,7 @@ type RiverPoint = {
   t: number;
   size: number
 }
+
 function createRivers(mesh: TriangleMesh, globe: Globe) {
   // map of river segment outer to inner IDs
   const riverSegmentMap = new Map<number, number[]>();
@@ -104,8 +105,8 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   }
 
   const riverSegments = riverCoastPoints.map(stepInner);
-  // console.log('riverSegments', riverSegments);
-  // console.log('riverSideMap', riverSideMap);
+  console.log('riverSegments', riverSegments);
+  console.log('riverSideMap', riverSideMap);
 
   let riversSet: Set<Array<RiverPoint>> = new Set();
   const stepRiver = (segment: RiverNode, riverList: RiverPoint[]) => {
@@ -140,65 +141,25 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   }
 
   riverSegments.forEach(segment => stepRiver(segment, []));
-  // console.log('rivers', riversSet);
+  console.log('rivers', riversSet);
   const river_t = Array.from(riversSet);
 
-  const rivers: number[] = [];
-  river_t.forEach((river, index) => {
-    const riverReverse = river.reverse();
-    for (let t = 0; t < riverReverse.length; t++) {
-      const this_t = riverReverse[t].t;
-      let next = riverReverse[t + 1];
-      if (!next) continue;
-      const next_t = next.t;
-
-      const this_t_vec = globe.t_vec.get(this_t);
-      const next_t_vec = globe.t_vec.get(next_t);
-      const side1 = riverSideMap.get(`${this_t}-${next_t}`);
-      const side2 = globe.mesh.s_opposite_s(side1);
-      const s1_begin_r = globe.mesh.s_begin_r(side1);
-      const s1_end_r = globe.mesh.s_end_r(side1);
-      const s2_begin_r = globe.mesh.s_begin_r(side2);
-      const s2_end_r = globe.mesh.s_end_r(side2);
-
-      const this_width = clamp(riverReverse[t].size, MIN_RIVER_WIDTH, MAX_RIVER_WIDTH) * 0.01;
-      const next_width = clamp(riverReverse[t + 1].size, MIN_RIVER_WIDTH, MAX_RIVER_WIDTH) * 0.01
-      let p1 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_begin_r), this_width);
-      let p2 = Vector3.Lerp(this_t_vec, globe.r_vec.get(s1_end_r), this_width);
-      let p3 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_begin_r), next_width);
-      let p4 = Vector3.Lerp(next_t_vec, globe.r_vec.get(s2_end_r), next_width);
-
-      const center = Vector3.Lerp(this_t_vec, next_t_vec, 0.5).asArray()
-      rivers.push(
-        // cap
-        ...p1.asArray(),
-        ...this_t_vec.asArray(),
-        ...p2.asArray(),
-
-        ...p1.asArray(),
-        ...p2.asArray(),
-        ...center,
-
-        ...p3.asArray(),
-        ...p4.asArray(),
-        ...center,
-
-        ...p2.asArray(),
-        ...p3.asArray(),
-        ...center,
-        
-        ...p4.asArray(),
-        ...p1.asArray(),
-        ...center,
-
-        // cap
-        ...p3.asArray(),
-        ...next_t_vec.asArray(),
-        ...p4.asArray(),
-      );
+  const rivers: River[] = [];
+  for (const river of river_t) {
+    const points = [];
+    const widths = [];
+    for (const point of river) {
+      points.push(globe.t_vec.get(point.t).asArray());
+      let flow = 0.1 * Math.sqrt(globe.t_flow[point.t]);
+      widths.push(Math.max(MIN_RIVER_WIDTH, Math.min(1, flow) * MAX_RIVER_WIDTH));
     }
-  });
-  // console.log('rivers', rivers);
+
+    rivers.push({
+      length: river[0].size,
+      widths,
+      points,
+    });
+  }
 
   return rivers;
 }

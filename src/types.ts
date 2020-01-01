@@ -333,6 +333,12 @@ export type SharedArray<T> = {
   buffer: SharedArrayBuffer,
 };
 
+export type River = {
+  length: number;
+  points: number[][];
+  widths: number[];
+}
+
 export type GlobeData = {
   t_xyz: Float32Array;
   r_xyz: Float32Array;
@@ -344,7 +350,7 @@ export type GlobeData = {
     points: number[],
     widths: number[],
   };
-  rivers: number[],
+  rivers: River[],
   plateVectors: {
     line_xyz: number[],
     line_rgba: number[],

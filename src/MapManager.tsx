@@ -2,7 +2,7 @@ import { mat4, vec3 } from 'gl-matrix';
 import createLine from 'regl-line';
 import { BehaviorSubject } from 'rxjs';
 import { CellPoints, defaultDrawOptions, EMapMode, GlobeData, IDrawOptions, IGlobeOptions, mapModeDrawOptions, ICellGroupData } from './types';
-import { ImageRef, logGroupTime, getUV } from './utils';
+import { ImageRef, logGroupTime, getUV, logFuncTime } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
@@ -82,27 +82,25 @@ function createCellBorderMesh(globe: GlobeData, scene: Scene) {
   return borders;
 }
 
+const RIVER_COLOR = new Color3(0, 0, 1);
 function createRivers(globe: GlobeData, scene: Scene) {
-  const material = new StandardMaterial('rivers', scene);
-  const mesh = new Mesh('rivers', scene);
-  material.specularColor = new Color3(1, 1, 1);
-  mesh.material = material;
-  mesh.scaling = new Vector3(20.001, 20.001, 20.001);
-  const vertexData = new VertexData();
-  const indices = [];
-  let colors = [];
-  for (let i = 0; i < globe.rivers.length / 3; i++) {
-    indices.push(i);
-    colors.push(0, 0, 1, 1);
-  }
-  vertexData.positions = globe.rivers;
-  vertexData.indices = indices;
-  vertexData.colors = colors;
-  var normals = [];
-  VertexData.ComputeNormals(vertexData.positions, indices, normals);
-  vertexData.normals = normals;
-  vertexData.applyToMesh(mesh);
-  return mesh;
+  var riverMaterial = new StandardMaterial('river', scene);
+  riverMaterial.diffuseColor = RIVER_COLOR;
+  riverMaterial.emissiveColor = RIVER_COLOR;
+  riverMaterial.specularColor = RIVER_COLOR;
+
+  const riverMesh = new Mesh('rivers', scene);
+  globe.rivers.forEach((river, index) => {
+    const mesh = MeshBuilder.CreateTube(`river-${index}`, {
+      path: river.points.map(point => Vector3.FromArray(point)),
+      radiusFunction: (i) => 0.0005 * river.widths[i],
+      tessellation: 3,
+    }, scene);
+    mesh.material = riverMaterial;
+    mesh.scaling = new Vector3(20.002, 20.002, 20.002);
+    riverMesh.addChild(mesh);
+  });
+  return riverMesh;
 }
 
 function createSkybox(scene: Scene) {
@@ -185,7 +183,7 @@ class GlobeRenderer {
 
     this.planet = createGlobeMesh(globe, this.scene);
     this.borders = createCellBorderMesh(globe, this.scene);
-    this.rivers = createRivers(globe, this.scene);
+    this.rivers = logFuncTime('render rivers', () => createRivers(globe, this.scene));
     this.skybox = createSkybox(this.scene);
     this.hasRendered = true;
   }
