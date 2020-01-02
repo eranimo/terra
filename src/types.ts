@@ -339,6 +339,12 @@ export type River = {
   widths: number[];
 }
 
+export type Arrow = {
+  position: number[];
+  rotation: number[];
+  color: number[];
+}
+
 export type GlobeData = {
   t_xyz: Float32Array;
   r_xyz: Float32Array;
@@ -351,10 +357,7 @@ export type GlobeData = {
     widths: number[],
   };
   rivers: River[],
-  plateVectors: {
-    line_xyz: number[],
-    line_rgba: number[],
-  };
+  plateVectors: Arrow[];
   plateBorders: {
     points: number[],
     widths: number[],

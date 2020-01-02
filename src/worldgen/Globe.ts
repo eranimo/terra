@@ -2,7 +2,7 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
 import { createMapMode, mapModeDefs, MapModeData } from '../mapModes';
-import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData, River } from '../types';
+import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData, River, Arrow } from '../types';
 import { getLatLng, intersectTriangle, distance3D, logGroupTime, logFuncTime } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
@@ -105,8 +105,8 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   }
 
   const riverSegments = riverCoastPoints.map(stepInner);
-  console.log('riverSegments', riverSegments);
-  console.log('riverSideMap', riverSideMap);
+  // console.log('riverSegments', riverSegments);
+  // console.log('riverSideMap', riverSideMap);
 
   let riversSet: Set<Array<RiverPoint>> = new Set();
   const stepRiver = (segment: RiverNode, riverList: RiverPoint[]) => {
@@ -141,7 +141,7 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
   }
 
   riverSegments.forEach(segment => stepRiver(segment, []));
-  console.log('rivers', riversSet);
+  // console.log('rivers', riversSet);
   const river_t = Array.from(riversSet);
 
   const rivers: River[] = [];
@@ -165,19 +165,22 @@ function createRivers(mesh: TriangleMesh, globe: Globe) {
 }
 
 function createPlateVectors(mesh: TriangleMesh, globe: Globe) {
-  const line_xyz = [];
-  const line_rgba = [];
+  const arrows: Arrow[] = [];
 
   for (let r = 0; r < mesh.numRegions; r++) {
-    line_xyz.push(globe.r_xyz.slice(3 * r, 3 * r + 3));
-    line_rgba.push([1, 1, 1, 1]);
-    line_xyz.push(
-      vec3.add([] as any, globe.r_xyz.slice(3 * r, 3 * r + 3),
-      vec3.scale([] as any, globe.plate_vec[globe.r_plate[r]], 2 / Math.sqrt(globe.options.sphere.numberCells)))
-    );
-    line_rgba.push([1, 0, 0, 0]);
+    const positionList = globe.r_xyz.slice(3 * r, 3 * r + 3);
+    const position = vec3.fromValues(positionList[0], positionList[1], positionList[2]);
+    const destination = globe.plate_vec[globe.r_plate[r]];
+
+    const rotation = destination;
+    arrows.push({
+      color: [1, 1, 1, 1],
+      position: [position[0], position[1], position[2]],
+      rotation: [rotation[0], rotation[1], rotation[2]],
+    });
   }
-  return { line_xyz, line_rgba };
+
+  return arrows;
 }
 
 function createPlateBorders(mesh: TriangleMesh, globe: Globe) {

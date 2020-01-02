@@ -7,7 +7,7 @@ import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
 import { mapModeDefs } from './mapModes';
-import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, Material, VertexBuffer } from '@babylonjs/core';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, Material, VertexBuffer, AbstractMesh, TransformNode, SolidParticleSystem, Particle, SolidParticle, Quaternion, Ray } from '@babylonjs/core';
 import REGL = require('regl');
 
 import "@babylonjs/core/Debug/debugLayer";
@@ -97,7 +97,6 @@ function createRivers(globe: GlobeData, scene: Scene) {
       tessellation: 3,
       cap: Mesh.CAP_ALL,
     }, scene);
-    mesh.freezeNormals();
     mesh.material = riverMaterial;
     mesh.scaling = new Vector3(20.002, 20.002, 20.002);
     riverMesh.addChild(mesh);
@@ -124,6 +123,47 @@ function createSkybox(scene: Scene) {
   return skybox;
 }
 
+function createPlateVectors(globe: GlobeData, engine: Engine, scene: Scene) {
+  const arrowMesh = MeshBuilder.CreateCylinder('arrowMesh', {
+    diameterTop: 0,
+    height: 1.5,
+    tessellation: 4
+  }, scene);
+  // const bounds = arrowMesh.getBoundingInfo()
+  var arrowMaterial = new StandardMaterial('arrowMaterial', scene);
+  // arrowMaterial.specularColor.set(0, 0, 0);
+  arrowMesh.alwaysSelectAsActiveMesh = true;
+  arrowMesh.isVisible = false;
+  
+  const arrowSystem = new SolidParticleSystem('arrowSystem', scene, {
+    updatable: false,
+    isPickable: false,
+  });
+
+  
+  const arrows = globe.plateVectors;
+  arrowSystem.addShape(arrowMesh, arrows.length, {
+    positionFunction: (particle: SolidParticle, i, s) => {
+      const arrow = arrows[s];
+      particle.position.set(arrow.position[0] * 20.05, arrow.position[1] * 20.05, arrow.position[2] * 20.01);
+      const ray = Ray.CreateNewFromTo(Vector3.Zero(), particle.position);
+      const axis = Vector3.Cross(Vector3.Up(), ray.direction).normalize();
+      const axis2 = Vector3.Cross(axis, Vector3.FromArray(arrow.rotation)).normalize();
+      const angle = Math.acos(Vector3.Dot(axis2, ray.direction));
+      particle.rotationQuaternion = Quaternion.RotationAxis(axis2, angle);
+      particle.scaling.set(0.05, 0.05, 0.05);
+      particle.color = new Color4(arrow.color[0], arrow.color[1], arrow.color[2], arrow.color[3]);
+    }
+  });
+  arrowMesh.dispose();
+
+  const particleMesh = arrowSystem.buildMesh();
+  particleMesh.material = arrowMaterial;
+  particleMesh.hasVertexAlpha = true;
+
+  return particleMesh;
+}
+
 class GlobeRenderer {
   public globe: GlobeData;
   private engine: Engine;
@@ -135,6 +175,7 @@ class GlobeRenderer {
   private rivers: Mesh;
   private skybox: Mesh;
   private hasRendered: boolean;
+  plateVectors: Mesh;
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas);
@@ -187,6 +228,7 @@ class GlobeRenderer {
     this.borders = createCellBorderMesh(globe, this.scene);
     this.rivers = logFuncTime('render rivers', () => createRivers(globe, this.scene));
     this.skybox = createSkybox(this.scene);
+    this.plateVectors = logFuncTime('render plate arrows', () => createPlateVectors(globe, this.engine, this.scene));
     this.hasRendered = true;
   }
 
@@ -195,6 +237,7 @@ class GlobeRenderer {
     this.planet.setEnabled(options.renderPlanet);
     this.borders.setEnabled(options.drawGrid);
     this.rivers.setEnabled(options.drawRivers);
+    this.plateVectors.setEnabled(options.drawPlateVectors);
   }
 
   public updateColors(globe: GlobeData) {
@@ -298,7 +341,8 @@ export class MapManager {
     protected screenCanvas: HTMLCanvasElement,
     protected minimapCanvas: HTMLCanvasElement,
   ) {
-    const startMapMode = localStorage.lastMapMode || DEFAULT_MAP_MODE;
+    // const startMapMode = localStorage.lastMapMode || DEFAULT_MAP_MODE;
+    const startMapMode = DEFAULT_MAP_MODE;
     this.mapMode$ = new BehaviorSubject<EMapMode>(startMapMode);
     this.drawOptions$ = new ObservableDict({
       ...defaultDrawOptions,
@@ -360,7 +404,7 @@ export class MapManager {
   }
 
   onChangeMapMode(mapMode: EMapMode) {
-    localStorage.lastMapMode = mapMode;
+    // localStorage.lastMapMode = mapMode;
     this.tooltipTextCache = new Map();
     if (this.globe) {
       this.drawOptions$.replace({
