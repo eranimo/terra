@@ -171,7 +171,7 @@ export class GlobeRenderer {
     this.scene = new Scene(this.engine);
     this.hasRendered = false;
     // enable debug layer
-    this.scene.debugLayer.show();
+    (window as any).debugLayer = this.scene.debugLayer;
     this.scene.clearColor = new Color4(0.5, 0.5, 0.5, 1.0);
 
     const camera = new ArcRotateCamera("camera1", 0, 0, 0, new Vector3(0, 0, -0), this.scene);
