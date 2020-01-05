@@ -1,6 +1,6 @@
 import { GlobeData, IDrawOptions } from './types';
 import { logFuncTime } from './utils';
-import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray } from '@babylonjs/core';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material } from '@babylonjs/core';
 
 
 function createGlobeMesh(globe: GlobeData, scene: Scene) {
@@ -59,22 +59,41 @@ function createCellBorderMesh(globe: GlobeData, scene: Scene) {
 const RIVER_COLOR = new Color3(0, 0, 1);
 
 function createRivers(globe: GlobeData, scene: Scene) {
+  const riverMesh = new Mesh('rivers', scene);
   var riverMaterial = new StandardMaterial('river', scene);
   riverMaterial.diffuseColor = RIVER_COLOR;
   riverMaterial.emissiveColor = RIVER_COLOR;
   riverMaterial.specularColor = RIVER_COLOR;
-  const riverMesh = new Mesh('rivers', scene);
+  riverMaterial.disableLighting = true;
+  riverMesh.material = riverMaterial;
+
+  const pointsWidthMap: Map<number, Vector3[][]> = new Map();
+
   globe.rivers.forEach((river, index) => {
-    const mesh = MeshBuilder.CreateTube(`river-${index}`, {
-      path: river.points.map(point => Vector3.FromArray(point)),
-      radiusFunction: (i) => 0.0005 * river.widths[i],
-      tessellation: 3,
-      cap: Mesh.CAP_ALL,
-    }, scene);
-    mesh.material = riverMaterial;
-    mesh.scaling = new Vector3(20.002, 20.002, 20.002);
-    riverMesh.addChild(mesh);
+    for (let p = 0; p < river.points.length - 1; p++) {
+      const thisPoint = Vector3.FromArray(river.points[p]);
+      const nextPoint = Vector3.FromArray(river.points[p + 1]);
+      const width = Math.floor(river.widths[p] + river.widths[p + 1] / 2);
+      if (!pointsWidthMap.has(width)) {
+        pointsWidthMap.set(width, []);
+      }
+      pointsWidthMap.get(width).push([ thisPoint, nextPoint ]);
+    }
   });
+
+  for (const [width, points] of pointsWidthMap) {
+    const riverSegments = MeshBuilder.CreateLineSystem(`rivers-${width}`, {
+      lines: points,
+    }, scene);
+    riverSegments.enableEdgesRendering();
+    riverSegments.color = RIVER_COLOR;
+    riverSegments.edgesWidth = width;
+    riverSegments.edgesColor = RIVER_COLOR.toColor4(1);
+    riverSegments.scaling = new Vector3(20.001, 20.001, 20.001);
+    riverSegments.material = riverMaterial;
+    riverMesh.addChild(riverSegments);
+  }
+
   return riverMesh;
 }
 

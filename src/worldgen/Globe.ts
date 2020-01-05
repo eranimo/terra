@@ -34,8 +34,8 @@ function createCoastline(mesh: TriangleMesh, globe: Globe) {
   }
 }
 
-const MIN_RIVER_WIDTH = 1;
-const MAX_RIVER_WIDTH = 5;
+const MIN_RIVER_WIDTH = 0;
+const MAX_RIVER_WIDTH = 3;
 
 
 type RiverNode = {
