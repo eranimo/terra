@@ -364,7 +364,6 @@ export type GlobeData = {
   };
   cellBorders: number[][][][],
   sideToCell: Int32Array,
-  sidesInCell: Int32Array,
 }
 
 export type WorldData = {
