@@ -125,7 +125,8 @@ export class MapManager {
       } else {
         this.selectedCell$.next(cell);
       }
-    })
+    });
+    this.selectedCell$.subscribe(cell => this.renderer.setSelectedCellBorder(cell));
     
     this.client.setMapMode(startMapMode).then(() => {
       this.drawMinimap();

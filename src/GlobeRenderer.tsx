@@ -1,6 +1,6 @@
 import { GlobeData, IDrawOptions } from './types';
 import { logFuncTime } from './utils';
-import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material, ActionManager, ExecuteCodeAction, SubMesh } from '@babylonjs/core';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material, ActionManager, ExecuteCodeAction, SubMesh, LinesMesh, EdgesRenderer } from '@babylonjs/core';
 import { Subject } from 'rxjs';
 
 
@@ -160,6 +160,8 @@ function createPlateVectors(globe: GlobeData, engine: Engine, scene: Scene) {
   return particleMesh;
 }
 
+const selectedCellBorderColor = new Color4(0, 0, 0, 1);
+
 export type GlobeEvents = {
   cellClicked: Subject<number>,
 }
@@ -176,6 +178,7 @@ export class GlobeRenderer {
   private hasRendered: boolean;
   plateVectors: Mesh;
   private events$: GlobeEvents;
+  private selectedCellBorder: LinesMesh;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -260,6 +263,30 @@ export class GlobeRenderer {
     //     console.log('cell', this.globe.sideToCell[pickResult.faceId])
     //   }
     // });
+  }
+
+  public setSelectedCellBorder(cell: number) {
+    if (this.selectedCellBorder) {
+      this.selectedCellBorder.dispose();
+    }
+    if (cell === null) { 
+      return;
+    }
+    const selectedCellBorderPoints = this.globe.cellBorders[cell];
+    this.selectedCellBorder = MeshBuilder.CreateLineSystem('selectedCellBorder', {
+      lines: selectedCellBorderPoints.map(points => (
+        points.map(p => Vector3.FromArray(p)
+      ))),
+      // updatable: true,
+      // instance: this.selectedCellBorder,
+    }, this.scene);
+    this.selectedCellBorder.color = new Color3(0, 0, 0);
+    this.selectedCellBorder.alpha = 0.5;
+    this.selectedCellBorder.scaling = new Vector3(20.002, 20.002, 20.002);
+    this.selectedCellBorder.isPickable = false;
+    this.selectedCellBorder.enableEdgesRendering();
+    this.selectedCellBorder.edgesWidth = 2;
+    this.selectedCellBorder.edgesColor = selectedCellBorderColor
   }
 
   public onDrawOptionsChanged(options: IDrawOptions) {
