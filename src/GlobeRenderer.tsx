@@ -1,6 +1,7 @@
 import { GlobeData, IDrawOptions } from './types';
 import { logFuncTime } from './utils';
-import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material } from '@babylonjs/core';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material, ActionManager, ExecuteCodeAction, SubMesh } from '@babylonjs/core';
+import { Subject } from 'rxjs';
 
 
 function createGlobeMesh(globe: GlobeData, scene: Scene) {
@@ -19,6 +20,8 @@ function createGlobeMesh(globe: GlobeData, scene: Scene) {
     indices.push(t);
     colors.push(globe.mapModeColor[(4 * t) + 0], globe.mapModeColor[(4 * t) + 1], globe.mapModeColor[(4 * t) + 2], globe.mapModeColor[(4 * t) + 3]);
   }
+
+  console.log('num faces', globe.triangleGeometry.length / 3 / 3);
   vertexData.indices = indices;
   vertexData.colors = colors;
   // compute normals
@@ -53,6 +56,7 @@ function createCellBorderMesh(globe: GlobeData, scene: Scene) {
   borders.color = new Color3(0, 0, 0);
   borders.alpha = 0.5;
   borders.scaling = new Vector3(20.002, 20.002, 20.002);
+  borders.isPickable = false;
   return borders;
 }
 
@@ -60,6 +64,7 @@ const RIVER_COLOR = new Color3(0, 0, 1);
 
 function createRivers(globe: GlobeData, scene: Scene) {
   const riverMesh = new Mesh('rivers', scene);
+  riverMesh.isPickable = false;
   var riverMaterial = new StandardMaterial('river', scene);
   riverMaterial.diffuseColor = RIVER_COLOR;
   riverMaterial.emissiveColor = RIVER_COLOR;
@@ -91,6 +96,7 @@ function createRivers(globe: GlobeData, scene: Scene) {
     riverSegments.edgesColor = RIVER_COLOR.toColor4(1);
     riverSegments.scaling = new Vector3(20.001, 20.001, 20.001);
     riverSegments.material = riverMaterial;
+    riverSegments.isPickable = false;
     riverMesh.addChild(riverSegments);
   }
 
@@ -150,23 +156,32 @@ function createPlateVectors(globe: GlobeData, engine: Engine, scene: Scene) {
   const particleMesh = arrowSystem.buildMesh();
   particleMesh.material = arrowMaterial;
   particleMesh.hasVertexAlpha = true;
+  particleMesh.isPickable = false;
   return particleMesh;
 }
 
+export type GlobeEvents = {
+  cellClicked: Subject<number>,
+}
 export class GlobeRenderer {
   public globe: GlobeData;
   private engine: Engine;
   private scene: Scene;
   private sunLight: HemisphericLight;
-  private planet: Mesh;
+  public planet: Mesh;
   private borders: Mesh;
   public camera: ArcRotateCamera;
   private rivers: Mesh;
   private skybox: Mesh;
   private hasRendered: boolean;
   plateVectors: Mesh;
+  private events$: GlobeEvents;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    events$: GlobeEvents
+  ) {
+    this.events$ = events$;
     this.engine = new Engine(canvas);
     this.scene = new Scene(this.engine);
     this.hasRendered = false;
@@ -205,11 +220,46 @@ export class GlobeRenderer {
   public renderGlobe(globe: GlobeData) {
     this.globe = globe;
     this.planet = createGlobeMesh(globe, this.scene);
+    this.planet.actionManager = new ActionManager(this.scene);
+    this.planet.updateFacetData();
+
     this.borders = createCellBorderMesh(globe, this.scene);
     this.rivers = logFuncTime('render rivers', () => createRivers(globe, this.scene));
     this.skybox = createSkybox(this.scene);
     this.plateVectors = logFuncTime('render plate arrows', () => createPlateVectors(globe, this.engine, this.scene));
     this.hasRendered = true;
+  }
+
+  public setupEvents() {
+    this.planet.actionManager.registerAction(new ExecuteCodeAction(
+      {
+        trigger: ActionManager.OnPickUpTrigger,
+      },
+      (event) => {
+        const pickResult = this.scene.pick(event.pointerX, event.pointerY,
+          mesh => mesh == this.planet,
+          false,
+          this.camera,
+        );
+        const cell = this.globe.sideToCell[pickResult.faceId];
+        console.log('clicked on ', cell)
+        this.events$.cellClicked.next(cell);
+      }
+    ));
+
+    // this.scene.registerBeforeRender(() => {
+      // const pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY,
+      //   mesh => mesh == this.planet,
+      //   false,
+      //   this.camera,
+      // );
+
+    //   if (pickResult.hit) {
+    //     const result = pickResult.pickedMesh.getFacetPosition(pickResult.faceId);
+    //     console.log(pickResult);
+    //     console.log('cell', this.globe.sideToCell[pickResult.faceId])
+    //   }
+    // });
   }
 
   public onDrawOptionsChanged(options: IDrawOptions) {

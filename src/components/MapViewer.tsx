@@ -43,79 +43,15 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
     const globeSubscription = globeManager.globe$.subscribe(globe => manager.setGlobe(globe));
 
     setLoading(false);
-    console.log('manager', manager);
+    // console.log('manager', manager);
 
     return () => {
       manager.stopRendering();
       globeSubscription.unsubscribe();
     }
-  }, []);
-
-  const [downPosition, setDownPosition] = useState({ x: 0, y: 0 });
-  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-  const [isMouseDown, setMouseDown] = useState(false);
-  const [isDragging, setDragging] = useState(false);
-  const [tooltip, setTooltip] = useState(null);
-
-  const handleMouseDown = (event: React.MouseEvent) => {
-    if (!manager) return;
-    setDownPosition({ x: event.clientX, y: event.clientY });
-    setMouseDown(true);
-  };
-
-  const handleMouseMove = (event: React.MouseEvent) => {
-    if (!manager) return;
-
-    if (!isDragging) {
-      const [cursorX, cursorY] = getCursorPosition(event, screenRef.current);
-      setHoverPosition({ x: cursorX, y: cursorY });
-      // manager.handleMapHover(cursorX, cursorY).then(setTooltip);
-    } else {
-      setTooltip(null);
-    }
-
-    if (!isMouseDown) {
-      return;
-    }
-
-    const distance = Math.sqrt(
-      Math.pow(downPosition.x - event.clientX, 2) +
-      Math.pow(downPosition.y - event.clientY, 2)
-    );
-
-    if (distance > 10) {
-      setDragging(true);
-    }
-  };
-
-  const handleMouseUp = (event: React.MouseEvent) => {
-    if (!manager) return;
-    setDragging(false);
-    setMouseDown(false);
-    const distance = Math.sqrt(
-      Math.pow(downPosition.x - event.clientX, 2) +
-      Math.pow(downPosition.y - event.clientY, 2)
-    );
-    if (distance > 10) return;
-    
-    const [cursorX, cursorY] = getCursorPosition(event, screenRef.current);
-    // manager.handleMapClick(cursorX, cursorY);
-  };
-
-  const handleMouseLeave = () => {
-    setTooltip(null);
-  }
-
-  useEffect(() => {
-    document.addEventListener('mouseleave', event => {
-      if ((event as any).toElement === null && event.relatedTarget === null) {
-        setTooltip(null);
-      }
-    }, false);
-  }, []);
+  }, [])
 
   const { width, height } = useWindowSize();
-  const cursor = isDragging ? 'move' : 'default';
 
   return (
     <div>
@@ -123,23 +59,8 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
         ref={screenRef}
         width={width}
         height={height}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onMouseOut={handleMouseLeave}
-        style={{ cursor }}
+        tabIndex={1}
       />
-      {tooltip && <Box
-        p={2}
-        position="fixed"
-        left={hoverPosition.x + 5}
-        top={hoverPosition.y + 5}
-        bg="rgba(23, 25, 35, 0.75)"
-        pointerEvents="none"
-      >
-        {tooltip}
-      </Box>}
 
       <Box
         bg="black"

@@ -23,7 +23,7 @@ export function CellInfo() {
   if (selectedCell === null || selectedCell === undefined) return null;
 
   if (prevSelectedCell !== selectedCell) {
-    manager.client.getCellData(selectedCell.cell)
+    manager.client.getCellData(selectedCell)
       .then(cellData => {
         console.log('cellData', cellData);
         setCellData(cellData);
@@ -54,7 +54,7 @@ export function CellInfo() {
         <tbody>
           <tr>
             <td><Text color="gray.400" mr={5}>(debug) Cell ID</Text></td>
-            <td>#{selectedCell.cell}</td>
+            <td>#{selectedCell}</td>
           </tr>
           <tr>
             <td><Text color="gray.400" mr={5}>Temperature</Text></td>

@@ -1,6 +1,6 @@
 import { mat4, vec3 } from 'gl-matrix';
 import createLine from 'regl-line';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { CellPoints, defaultDrawOptions, EMapMode, GlobeData, IDrawOptions, IGlobeOptions, mapModeDrawOptions, ICellGroupData } from './types';
 import { ImageRef, logGroupTime, getUV } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
@@ -11,7 +11,7 @@ import { Material, AbstractMesh, TransformNode, Particle } from '@babylonjs/core
 import REGL = require('regl');
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
-import { GlobeRenderer } from './GlobeRenderer';
+import { GlobeRenderer, GlobeEvents } from './GlobeRenderer';
 
 
 const DEFAULT_MAP_MODE = EMapMode.BIOME;
@@ -91,7 +91,7 @@ export class MapManager {
   cellGroups: Map<string, ICellGroupData>;
   cellGroupLines: Record<string, any>;
   removeDrawLoop: Cancellable;
-  selectedCell$: BehaviorSubject<CellPoints>;
+  selectedCell$: BehaviorSubject<number>;
   hoverCell$: BehaviorSubject<CellPoints>;
   minimapContext: CanvasRenderingContext2D;
   mapMode$: BehaviorSubject<EMapMode>;
@@ -112,9 +112,20 @@ export class MapManager {
     });
     this.selectedCell$ = new BehaviorSubject(null);
     this.hoverCell$ = new BehaviorSubject(null);
-    const renderer = new GlobeRenderer(screenCanvas);
+    const events$: GlobeEvents = {
+      cellClicked: new Subject(),
+    };
+    const renderer = new GlobeRenderer(screenCanvas, events$);
     this.renderer = renderer;
     this.cellGroupLines = {};
+
+    events$.cellClicked.subscribe(cell => {
+      if (this.selectedCell$.value === cell) {
+        this.selectedCell$.next(null);
+      } else {
+        this.selectedCell$.next(cell);
+      }
+    })
     
     this.client.setMapMode(startMapMode).then(() => {
       this.drawMinimap();
@@ -192,6 +203,7 @@ export class MapManager {
     this.globe = globe;
     console.log('WorldgenClient', this.client);
     this.renderer.renderGlobe(this.globe)
+    this.renderer.setupEvents()
     this.renderer.start();
     this.renderer.onDrawOptionsChanged(this.drawOptions$.value);
     this.drawMinimap();

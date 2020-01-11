@@ -397,6 +397,22 @@ export class Globe {
     console.time('map mode colors');
     this.setupMapMode();
     console.timeEnd('map mode colors');
+
+    const sideToCell = new Int32Array(Int32Array.BYTES_PER_ELEMENT * this.mesh.numSides);
+    const sidesInCell = new Int32Array(Int32Array.BYTES_PER_ELEMENT * this.mesh.numRegions * 8);
+
+    for (let r = 0; r < this.mesh.numRegions; r++) {
+      const sides = this.mesh.r_circulate_s([], r);
+      sidesInCell[r * 8] = sides.length;
+      for (let r_s = 0; r_s < sides.length; r_s++) {
+        const side = sides[r_s];
+        sidesInCell[(r * 8) + (r_s + 1)] = side;
+        sideToCell[side] = r;
+      }
+    }
+
+    console.log('sideToCell', sideToCell);
+    console.log('sidesInCell', sidesInCell);
     
     return {
       mapModeColor: this.mapModeColor,
@@ -410,6 +426,8 @@ export class Globe {
       plateVectors: logFuncTime('createPlateVectors', () => createPlateVectors(this.mesh, this)),
       plateBorders: logFuncTime('createPlateBorders', () => createPlateBorders(this.mesh, this)),
       cellBorders: logFuncTime('createCellBorders', () => createCellBorders(this.mesh, this)),
+      sideToCell,
+      sidesInCell,
     };
   }
 

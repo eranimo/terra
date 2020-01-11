@@ -26,6 +26,7 @@
     "worker-loader": "^2.0.0"
   },
   "dependencies": {
+    "@ash.ts/ash": "^1.0.2",
     "@babylonjs/core": "^4.0.3",
     "@babylonjs/gui": "^4.0.3",
     "@babylonjs/inspector": "^4.0.3",

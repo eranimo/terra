@@ -362,7 +362,9 @@ export type GlobeData = {
     points: number[],
     widths: number[],
   };
-  cellBorders: number[][][][]
+  cellBorders: number[][][][],
+  sideToCell: Int32Array,
+  sidesInCell: Int32Array,
 }
 
 export type WorldData = {
