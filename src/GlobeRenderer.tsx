@@ -234,11 +234,25 @@ export class GlobeRenderer {
   }
 
   public setupEvents() {
+    let lastAlpha = null;
+    let lastBeta = null;
+    this.planet.actionManager.registerAction(new ExecuteCodeAction(
+      {
+        trigger: ActionManager.OnPickDownTrigger,
+      },
+      event => {
+        lastAlpha = this.camera.alpha;
+        lastBeta = this.camera.beta;
+      }
+    ));
     this.planet.actionManager.registerAction(new ExecuteCodeAction(
       {
         trigger: ActionManager.OnPickUpTrigger,
       },
       (event) => {
+        if (lastAlpha !== this.camera.alpha || lastBeta !== this.camera.beta) {
+          return;
+        }
         const pickResult = this.scene.pick(event.pointerX, event.pointerY,
           mesh => mesh == this.planet,
           false,
@@ -277,8 +291,6 @@ export class GlobeRenderer {
       lines: selectedCellBorderPoints.map(points => (
         points.map(p => Vector3.FromArray(p)
       ))),
-      // updatable: true,
-      // instance: this.selectedCellBorder,
     }, this.scene);
     this.selectedCellBorder.color = new Color3(0, 0, 0);
     this.selectedCellBorder.alpha = 0.5;

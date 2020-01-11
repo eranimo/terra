@@ -411,8 +411,8 @@ export class Globe {
       }
     }
 
-    console.log('sideToCell', sideToCell);
-    console.log('sidesInCell', sidesInCell);
+    // console.log('sideToCell', sideToCell);
+    // console.log('sidesInCell', sidesInCell);
     
     return {
       mapModeColor: this.mapModeColor,
