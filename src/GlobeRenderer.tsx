@@ -1,6 +1,6 @@
 import { GlobeData, IDrawOptions } from './types';
-import { logFuncTime } from './utils';
-import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material, ActionManager, ExecuteCodeAction, SubMesh, LinesMesh, EdgesRenderer } from '@babylonjs/core';
+import { logFuncTime, logGroupTime } from './utils';
+import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material, ActionManager, ExecuteCodeAction, SubMesh, LinesMesh, EdgesRenderer, DynamicTexture } from '@babylonjs/core';
 import { Subject } from 'rxjs';
 
 
@@ -37,7 +37,6 @@ function createGlobeMesh(globe: GlobeData, scene: Scene) {
   material.disableLighting = true;
   return mesh;
 }
-
 
 function createCellBorderMesh(globe: GlobeData, scene: Scene) {
   const points: Vector3[][] = [];
@@ -183,6 +182,13 @@ const selectedCellBorderColor = new Color4(0, 0, 0, 1);
 export type GlobeEvents = {
   cellClicked: Subject<number>,
 }
+
+export type GlobeLabel = {
+  label: string;
+  position: Vector3;
+  color: Color4,
+}
+
 export class GlobeRenderer {
   public globe: GlobeData;
   private engine: Engine;
@@ -198,6 +204,7 @@ export class GlobeRenderer {
   private events$: GlobeEvents;
   private selectedCellBorder: LinesMesh;
   coastline: LinesMesh;
+  labels: GlobeLabel[];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -251,6 +258,53 @@ export class GlobeRenderer {
     this.skybox = createSkybox(this.scene);
     this.plateVectors = logFuncTime('render plate arrows', () => createPlateVectors(globe, this.engine, this.scene));
     this.hasRendered = true;
+  }
+
+  @logGroupTime('add label')
+  addLabel(label: GlobeLabel) {
+    console.log('added label', label);
+    const text = label.label;
+    const width = text.length;
+    const height = 1;
+    const plane = MeshBuilder.CreatePlane('plane', {
+      width,
+      height,
+    }, this.scene);
+    plane.position = label.position.scaleInPlace(20.05);
+    plane.lookAt(Vector3.Zero());
+
+    const dynamicTexture = new DynamicTexture(`label-texture-${label.label}`, {
+      width: width * 200,
+      height: height * 200,
+    }, this.scene, false);
+    dynamicTexture.hasAlpha = true;
+    
+    const font_type = "Arial";
+
+    // Check width of text for given font type at any size of font
+    const ctx = dynamicTexture.getContext();
+    const size = 2; // any value will work
+    ctx.font = size + "px " + font_type;
+    const textWidth = ctx.measureText(text).width;
+
+    // Calculate ratio of text width to size of font used
+    const ratio = textWidth/size;
+
+    // set font to be actually used to write text on dynamic texture
+    const font_size = Math.floor((width * 20) / (ratio * 1)); // size of multiplier (1) can be adjusted, increase for smaller text
+    const font = font_size + "px " + font_type;
+
+    // Draw text
+    dynamicTexture.drawText(text, null, null, font, "#FFF", null, true);
+
+    // create material
+    const mat = new StandardMaterial("mat", this.scene);
+    mat.diffuseTexture = dynamicTexture;
+
+    // apply material
+    plane.material = mat;
+    
+    return 
   }
 
   public setupEvents() {

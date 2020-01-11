@@ -25,7 +25,7 @@ worker.on('init', ({ options, mapMode }) => {
   });
 
   const group1 = world.createCellGroup({
-    name: 'Foo',
+    name: 'Foobar',
     color: [0.5, 0.5, 0.5, 0.1],
   });
   group1.addCell(...[15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]);

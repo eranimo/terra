@@ -185,18 +185,23 @@ export class World {
    */
   calculateCellGroup(cellGroup: CellGroup) {
     const { name, color } = cellGroup.options;
-    const cells_xyz = [];
-    const cells_rgba = [];
+    const cells_xyz: number[][] = [];
+    const label_position = [0, 0, 0];
     for (const cell of cellGroup.cells) {
       const xyz = this.globe.coordinatesForCell(cell);
       this.cellCellGroup.set(cell, name);
-      cells_xyz.push(...xyz);
-      cells_rgba.push(...times(xyz.length / 3).map(() => color) as any);
+      label_position[0] += xyz[0];
+      label_position[1] += xyz[1];
+      label_position[2] += xyz[2];
+      cells_xyz.push(xyz);
     }
 
+    label_position[0] /= cellGroup.cells.size;
+    label_position[1] /= cellGroup.cells.size;
+    label_position[2] /= cellGroup.cells.size;
+
     // find all points for sides not facing this region
-    let points = [];
-    let widths = [];
+    let border = [];
     for (const cell of cellGroup.cells) {
       let sides = [];
       this.globe.mesh.r_circulate_s(sides, cell);
@@ -208,18 +213,16 @@ export class World {
         const p1 = this.globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
         const p2 = this.globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
         if (this.cellCellGroup.get(end_r) != name) {
-          points.push(...p1, ...p1, ...p2, ...p2);
-          widths.push(0, 2, 2, 0);
+          border.push([ p1, p2 ]);
         }
       }
     }
 
     const data: ICellGroupData = {
       name,
-      cells_xyz,
-      cells_rgba,
-      border_points: points,
-      border_widths: widths,
+      label_position,
+      border,
+      color,
     };
 
     this.cellGroupUpdates$.next(data);

@@ -395,10 +395,9 @@ export interface ICellGroupOptions {
 
 export interface ICellGroupData {
   name: string;
-  cells_xyz: number[];
-  cells_rgba: number[];
-  border_points: number[];
-  border_widths: number[];
+  label_position: number[];
+  border: number[][][];
+  color: number[];
 }
 
 export interface ICellGroupTooltipData {

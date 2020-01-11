@@ -7,7 +7,7 @@ import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
 import { Cancellable } from 'regl';
 import { mapModeDefs } from './mapModes';
-import { Material, AbstractMesh, TransformNode, Particle } from '@babylonjs/core';
+import { Material, AbstractMesh, TransformNode, Particle, Vector3, Color4 } from '@babylonjs/core';
 import REGL = require('regl');
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -89,7 +89,6 @@ export class MapManager {
   camera: any;
   globe: GlobeData;
   cellGroups: Map<string, ICellGroupData>;
-  cellGroupLines: Record<string, any>;
   removeDrawLoop: Cancellable;
   selectedCell$: BehaviorSubject<number>;
   hoverCell$: BehaviorSubject<CellPoints>;
@@ -117,7 +116,6 @@ export class MapManager {
     };
     const renderer = new GlobeRenderer(screenCanvas, events$);
     this.renderer = renderer;
-    this.cellGroupLines = {};
 
     events$.cellClicked.subscribe(cell => {
       if (this.selectedCell$.value === cell) {
@@ -173,7 +171,14 @@ export class MapManager {
     this.cellGroups = new Map();
     this.client.worker$.on('cellGroupUpdate').subscribe((data: ICellGroupData) => {
       this.drawMinimap();
+      console.log('add cell group', data);
       this.cellGroups.set(data.name, data);
+      const position = Vector3.FromArray(data.label_position);
+      this.renderer.addLabel({
+        label: data.name,
+        position,
+        color: Color4.FromArray(data.color),
+      });
     });
   }
 
