@@ -60,6 +60,24 @@ function createCellBorderMesh(globe: GlobeData, scene: Scene) {
   return borders;
 }
 
+
+function createCoastlineMesh(globe: GlobeData, scene: Scene) {
+  const points: Vector3[][] = globe.coastline.map(points => (
+    points.map(p => Vector3.FromArray(p))
+  ));
+  const borders = MeshBuilder.CreateLineSystem('coastline', {
+    lines: points,
+  }, scene);
+  borders.color = new Color3(0, 0, 0);
+  borders.enableEdgesRendering();
+  borders.edgesWidth = 1;
+  borders.edgesColor = new Color4(0, 0, 0, 1);
+  borders.alpha = 1;
+  borders.scaling = new Vector3(20.002, 20.002, 20.002);
+  borders.isPickable = false;
+  return borders;
+}
+
 const RIVER_COLOR = new Color3(0, 0, 1);
 
 function createRivers(globe: GlobeData, scene: Scene) {
@@ -179,6 +197,7 @@ export class GlobeRenderer {
   plateVectors: Mesh;
   private events$: GlobeEvents;
   private selectedCellBorder: LinesMesh;
+  coastline: LinesMesh;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -227,6 +246,7 @@ export class GlobeRenderer {
     this.planet.updateFacetData();
 
     this.borders = createCellBorderMesh(globe, this.scene);
+    this.coastline = createCoastlineMesh(globe, this.scene);
     this.rivers = logFuncTime('render rivers', () => createRivers(globe, this.scene));
     this.skybox = createSkybox(this.scene);
     this.plateVectors = logFuncTime('render plate arrows', () => createPlateVectors(globe, this.engine, this.scene));
@@ -305,6 +325,7 @@ export class GlobeRenderer {
     if (!this.hasRendered) return;
     this.planet.setEnabled(options.renderPlanet);
     this.borders.setEnabled(options.drawGrid);
+    this.coastline.setEnabled(options.drawCoastlineBorder);
     this.rivers.setEnabled(options.drawRivers);
     this.plateVectors.setEnabled(options.drawPlateVectors);
   }

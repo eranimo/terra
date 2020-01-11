@@ -12,7 +12,6 @@ import { clamp } from 'lodash';
 
 function createCoastline(mesh: TriangleMesh, globe: Globe) {
   let points = [];
-  let widths = [];
 
   for (let s = 0; s < mesh.numSides; s++) {
     const begin_r = mesh.s_begin_r(s);
@@ -24,14 +23,10 @@ function createCoastline(mesh: TriangleMesh, globe: Globe) {
       const p1 = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
       const p2 = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
 
-      points.push(...p1, ...p1, ...p2, ...p2);
-      widths.push(0, 2, 2, 0);
+      points.push([ p1, p2 ]);
     }
   }
-  return {
-    points,
-    widths,
-  }
+  return points;
 }
 
 const MIN_RIVER_WIDTH = 0;

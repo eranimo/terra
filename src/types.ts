@@ -352,10 +352,7 @@ export type GlobeData = {
   minimapGeometry: Float32Array,
   mapModeColor: Float32Array;
   mapModeValue: Float32Array;
-  coastline: {
-    points: number[],
-    widths: number[],
-  };
+  coastline: number[][][];
   rivers: River[],
   plateVectors: Arrow[];
   plateBorders: {
