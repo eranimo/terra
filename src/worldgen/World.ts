@@ -6,11 +6,14 @@ import { Subject } from 'rxjs';
 import { degreesToRadians } from '../utils';
 import createGraph, { Graph } from 'ngraph.graph';
 import path from 'ngraph.path';
+import { Mesh } from '@babylonjs/core';
+import { v4 as uuid } from 'uuid';
 
 export class CellGroup {
-  cells: Set<number>;
+  public cells: Set<number>;
 
   constructor(
+    public id: number,
     public world: World,
     public options: ICellGroupOptions,
     cells: number[] = [],
@@ -54,7 +57,7 @@ export class World {
   cellCellGroup: Map<number, string>;
 
   // calculated cell group borders and cells
-  cellGroupData: Map<CellGroup, ICellGroupData>
+  cellGroupIndices: Int32Array;
 
   cellGroupUpdates$: Subject<ICellGroupData>;
 
@@ -63,6 +66,7 @@ export class World {
   cellPopulationCount: Int32Array;
 
   graph: Graph<CellNodeData, CellLinkData>;
+  private cellGroupID: number;
   
   // TODO: factor out into static create and load methods
   constructor(
@@ -72,10 +76,12 @@ export class World {
     this.globeGen = new GlobeGen();
     this.globe = this.globeGen.generate(globeOptions, worldOptions.initialMapMode);
     this.globeGen.update(0);
+
     this.cellGroups = new Set();
     this.cellCellGroup = new Map();
-    this.cellGroupData = new Map();
+    this.cellGroupIndices = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * this.globe.mesh.numRegions));
     this.cellGroupUpdates$ = new Subject<ICellGroupData>();
+    this.cellGroupID = 0;
 
     this.cellPopulationCount = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * this.globe.mesh.numRegions));
     this.cellPopulationCount.fill(0);
@@ -126,6 +132,7 @@ export class World {
   export(): WorldData {
     return {
       globe: this.globe.export(),
+      cellGroupIndices: this.cellGroupIndices,
     };
   }
 
@@ -161,7 +168,8 @@ export class World {
   }
 
   createCellGroup(options: ICellGroupOptions) {
-    const cellGroup = new CellGroup(this, options);
+    const cellGroup = new CellGroup(this.cellGroupID, this, options);
+    this.cellGroupID++;
     this.cellGroups.add(cellGroup);
     this.calculateCellGroup(cellGroup);
     return cellGroup;
@@ -178,11 +186,6 @@ export class World {
     return null;
   }
 
-  /**
-   * Calculates borders and rendering data
-   * Call this function after updating CellGroup members
-   * @param cellGroup the CellGroup instance to calculate
-   */
   calculateCellGroup(cellGroup: CellGroup) {
     const { name, color } = cellGroup.options;
     const cells_xyz: number[][] = [];
@@ -202,10 +205,12 @@ export class World {
 
     // find all points for sides not facing this region
     let border = [];
+    let sides = [];
     for (const cell of cellGroup.cells) {
-      let sides = [];
-      this.globe.mesh.r_circulate_s(sides, cell);
-      for (const s of sides) {
+      let cellSides = [];
+      this.globe.mesh.r_circulate_s(cellSides, cell);
+      for (const s of cellSides) {
+        sides.push(s);
         const begin_r = this.globe.mesh.s_begin_r(s);
         const end_r = this.globe.mesh.s_end_r(s);
         const inner_t = this.globe.mesh.s_inner_t(s);
@@ -218,16 +223,20 @@ export class World {
       }
     }
 
+    for (const cell of cellGroup.cells) {
+      this.cellGroupIndices[cell] = cellGroup.id;
+    }
+
     const data: ICellGroupData = {
+      id: cellGroup.id,
       name,
       label_position,
+      sides,
       border,
       color,
     };
 
     this.cellGroupUpdates$.next(data);
-
-    this.cellGroupData.set(cellGroup, data);
   }
 
 }

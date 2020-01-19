@@ -174,8 +174,9 @@ export class MapManager {
       console.log('add cell group', data);
       this.cellGroups.set(data.name, data);
       const position = Vector3.FromArray(data.label_position);
-      this.renderer.addLabel({
-        label: data.name,
+      this.renderer.addCellGroupOverlay(data);
+      this.renderer.addCellGroupLabel({
+        cellGroup: data,
         position,
         color: Color4.FromArray(data.color),
       });

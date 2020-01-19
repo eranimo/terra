@@ -1,4 +1,4 @@
-import { GlobeData, IDrawOptions } from './types';
+import { GlobeData, IDrawOptions, ICellGroupData } from './types';
 import { logFuncTime, logGroupTime } from './utils';
 import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material, ActionManager, ExecuteCodeAction, SubMesh, LinesMesh, EdgesRenderer, DynamicTexture } from '@babylonjs/core';
 import { Subject } from 'rxjs';
@@ -184,7 +184,7 @@ export type GlobeEvents = {
 }
 
 export type GlobeLabel = {
-  label: string;
+  cellGroup: ICellGroupData;
   position: Vector3;
   color: Color4,
 }
@@ -205,6 +205,8 @@ export class GlobeRenderer {
   private selectedCellBorder: LinesMesh;
   coastline: LinesMesh;
   labels: GlobeLabel[];
+  cellGroupOverlays: Map<number, Mesh>;
+  cellGroupLabels: Map<number, Mesh>;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -234,6 +236,9 @@ export class GlobeRenderer {
     sun.groundColor = new Color3(1, 1, 1);
     sun.intensity = 1;
     this.sunLight = sun;
+
+    this.cellGroupOverlays = new Map();
+    this.cellGroupLabels = new Map();
   }
 
   public start() {
@@ -260,11 +265,57 @@ export class GlobeRenderer {
     this.hasRendered = true;
   }
 
+  @logGroupTime('add cell group')
+  addCellGroupOverlay(data: ICellGroupData) {
+    let overlayMesh: Mesh;
+    if (this.cellGroupOverlays.has(data.id)) {
+      overlayMesh = this.cellGroupOverlays.get(data.id);
+    } else {
+      const name = `cellGroup-${data.name}`;
+      overlayMesh = new Mesh(name, this.scene);
+      this.cellGroupOverlays.set(data.id, overlayMesh);
+      overlayMesh.scaling = new Vector3(20, 20, 20);
+    }
+
+    const positions = new Float32Array(data.sides.length * 9);
+    for (let s = 0; s < data.sides.length; s++) {
+      const side = data.sides[s];
+      const face = this.globe.triangleGeometry.slice(side * 9, side * 9 + 9);
+      positions.set(face, s * 9);
+    }
+    const indices = [];
+    for (let t = 0; t < positions.length / 3; t++) {
+      indices.push(t);
+    }
+    console.log('position', positions);
+    const vertexData = new VertexData();
+    vertexData.positions = positions;
+    vertexData.indices = indices;
+    const normals = [];
+    VertexData.ComputeNormals(vertexData.positions, indices, normals);
+    vertexData.normals = normals;
+    vertexData.applyToMesh(overlayMesh);
+
+    const overlayMaterial = new StandardMaterial(name, this.scene);
+    overlayMaterial.diffuseColor = Color3.FromArray(data.color);
+    overlayMaterial.emissiveColor = Color3.FromArray(data.color);
+    overlayMaterial.specularColor = Color3.FromArray(data.color);
+    overlayMaterial.disableLighting = true;
+
+    overlayMesh.material = overlayMaterial;
+    overlayMesh.isPickable = false;
+  }
+
   @logGroupTime('add label')
-  addLabel(label: GlobeLabel) {
+  addCellGroupLabel(label: GlobeLabel) {
+    const { name, id } = label.cellGroup;
+
+    // remove old label if updating
+    if (this.cellGroupLabels.has(id)) {
+      this.cellGroupLabels.get(id).dispose();
+    }
     console.log('added label', label);
-    const text = label.label;
-    const width = text.length;
+    const width = name.length;
     const height = 1;
     const plane = MeshBuilder.CreatePlane('plane', {
       width,
@@ -273,7 +324,7 @@ export class GlobeRenderer {
     plane.position = label.position.scaleInPlace(20.05);
     plane.lookAt(Vector3.Zero());
 
-    const dynamicTexture = new DynamicTexture(`label-texture-${label.label}`, {
+    const dynamicTexture = new DynamicTexture(`label-texture-${id}`, {
       width: width * 200,
       height: height * 200,
     }, this.scene, false);
@@ -285,7 +336,7 @@ export class GlobeRenderer {
     const ctx = dynamicTexture.getContext();
     const size = 2; // any value will work
     ctx.font = size + "px " + font_type;
-    const textWidth = ctx.measureText(text).width;
+    const textWidth = ctx.measureText(name).width;
 
     // Calculate ratio of text width to size of font used
     const ratio = textWidth/size;
@@ -295,7 +346,7 @@ export class GlobeRenderer {
     const font = font_size + "px " + font_type;
 
     // Draw text
-    dynamicTexture.drawText(text, null, null, font, "#FFF", null, true);
+    dynamicTexture.drawText(name, null, null, font, "#FFF", null, true);
 
     // create material
     const mat = new StandardMaterial("mat", this.scene);
@@ -303,8 +354,10 @@ export class GlobeRenderer {
 
     // apply material
     plane.material = mat;
-    
-    return 
+    plane.isPickable = false;
+
+    this.cellGroupLabels.set(id, plane);
+    return plane;
   }
 
   public setupEvents() {

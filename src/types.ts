@@ -365,6 +365,7 @@ export type GlobeData = {
 
 export type WorldData = {
   globe: GlobeData,
+  cellGroupIndices: Int32Array,
 }
 
 export type CellPoints = {
@@ -394,8 +395,10 @@ export interface ICellGroupOptions {
 }
 
 export interface ICellGroupData {
+  id: number;
   name: string;
   label_position: number[];
+  sides: number[];
   border: number[][][];
   color: number[];
 }

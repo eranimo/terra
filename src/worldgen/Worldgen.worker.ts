@@ -21,6 +21,7 @@ worker.on('init', ({ options, mapMode }) => {
   world = new World(options, worldOptions);
 
   world.cellGroupUpdates$.subscribe(data => {
+    console.log('cell group update', data);
     worker.send('cellGroupUpdate', data);
   });
 
@@ -34,7 +35,7 @@ worker.on('init', ({ options, mapMode }) => {
 
   setTimeout(() => {
     group1.addCell(16957);
-  }, 4000);
+  }, 10000);
 
 
   game.addTimer({
