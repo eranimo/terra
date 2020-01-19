@@ -8,7 +8,7 @@ import { Field } from "./Field";
 import { MapManagerContainer } from './MapViewer';
 import { GlobeManager } from '../GlobeManager';
 import * as yup from 'yup';
-import { IWorldOptions } from '../worldgen/World';
+import { IWorldOptions } from '../worldgen/WorldGrid';
 
 
 export const worldOptionsSchema = yup.object<IWorldOptions>().shape({
@@ -290,7 +290,7 @@ const DRAW_OPTIONS: ControlDef[] = [
 ]
 
 export const Controls = ({ manager }: { manager: GlobeManager }) => {
-  const globeOptions = useObservable(manager.globeOptions$, manager.globeOptions$.value);
+  const globeOptions = useObservable(manager.worldOptions$, manager.worldOptions$.value);
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
   const groups = Object.entries(groupBy(GLOBE_OPTIONS, i => i.key.split('.')[0]));
@@ -300,7 +300,7 @@ export const Controls = ({ manager }: { manager: GlobeManager }) => {
   return (
     <form
       onSubmit={event => {
-        manager.globeOptions$.next(globeOptionsForm);
+        manager.worldOptions$.next(globeOptionsForm);
         event.preventDefault();
       }}
     >
@@ -339,7 +339,7 @@ export const Controls = ({ manager }: { manager: GlobeManager }) => {
           size="sm"
           onClick={() => {
             setGlobeOptionsForm(set(Object.assign({}, globeOptionsForm), 'core.seed', random(1000)));
-            manager.globeOptions$.next(globeOptionsForm);
+            manager.worldOptions$.next(globeOptionsForm);
           }}
         >
           Randomize Seed

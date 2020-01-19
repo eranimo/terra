@@ -40,7 +40,7 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
       minimapRef.current,
     );
 
-    const globeSubscription = globeManager.globe$.subscribe(globe => manager.setGlobe(globe));
+    const globeSubscription = globeManager.world$.subscribe(globe => manager.setGlobe(globe));
 
     setLoading(false);
     // console.log('manager', manager);

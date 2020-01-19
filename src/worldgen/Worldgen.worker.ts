@@ -1,7 +1,9 @@
 import { ReactiveWorker } from '../utils/workers';
 import { GameLoop } from './GameLoop';
-import { IWorldOptions, World, CellGroup } from './World';
+import { IWorldOptions, WorldGrid, CellGroup } from './WorldGrid';
 import { EMapMode } from '../types';
+import { WorldGenerator } from './WorldGenerator';
+import { World } from './World';
 
 const game = new GameLoop(error => {
   console.error(error);
@@ -9,29 +11,30 @@ const game = new GameLoop(error => {
 
 const ctx: Worker = self as any;
 const worker = new ReactiveWorker(ctx, false);
-let world: World;
+const worldGen = new WorldGenerator();
 
-worker.on('init', ({ options, mapMode }) => {
+// global state
+let world: World;
+let worldGrid: WorldGrid;
+
+
+worker.on('newWorld', ({ options, mapMode }) => {
   console.log('worldgen init', options);
 
-  const worldOptions: IWorldOptions = {
-    initialMapMode: mapMode
-  };
+  world = worldGen.generate(options, mapMode)
+  worldGen.update(0)
+  worldGrid = new WorldGrid(world);
 
-  world = new World(options, worldOptions);
-
-  world.cellGroupUpdates$.subscribe(data => {
+  worldGrid.cellGroupUpdates$.subscribe(data => {
     console.log('cell group update', data);
     worker.send('cellGroupUpdate', data);
   });
 
-  const group1 = world.createCellGroup({
+  const group1 = worldGrid.createCellGroup({
     name: 'Foobar',
     color: [0.5, 0.5, 0.5, 0.1],
   });
   group1.addCell(...[15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]);
-
-  console.log('!globe', world.globe);
 
   setTimeout(() => {
     group1.addCell(16957);
@@ -44,8 +47,8 @@ worker.on('init', ({ options, mapMode }) => {
     onFinished: () => {
       const yearRatio = (game.state.ticks.value % 360) / 360.;
       console.log(yearRatio);
-      world.updateGlobe(yearRatio);
-      world.globe.resetMapMode(EMapMode.INSOLATION);
+      worldGrid.updateGlobe(yearRatio);
+      world.resetMapMode(EMapMode.INSOLATION);
       worker.send('draw');
     }
   });
@@ -57,7 +60,11 @@ worker.on('init', ({ options, mapMode }) => {
     worker.send('date', date);
   });
 
-  worker.send('generate', world.getData());
+  worker.send('generate', {
+    world: world.getData(),
+    grid: worldGrid.getData(),
+    export: world.export(),
+  });
 }, true);
 
 worker.on('startGame', ({  }) => {
@@ -65,11 +72,11 @@ worker.on('startGame', ({  }) => {
 });
 
 worker.on('getIntersectedCell', async ({ point, dir }) => {
-  return world.globe.getIntersectedCell(point, dir);
+  return world.getIntersectedCell(point, dir);
 }, true);
 
 worker.on('getCellGroupForCell', async (cell) => {
-  return world.getCellGroupForCell(cell);
+  return worldGrid.getCellGroupForCell(cell);
 }, true);
 
 worker.on('getCellData', async (r) => {
@@ -77,7 +84,7 @@ worker.on('getCellData', async (r) => {
 }, true);
 
 worker.on('setMapMode', async (mapMode) => {
-  world.globe.setMapMode(mapMode);
+  world.setMapMode(mapMode);
 }, true);
 
 worker.on('start', async () => game.start());

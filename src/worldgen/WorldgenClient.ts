@@ -1,7 +1,7 @@
 import { ReactiveWorkerClient } from '../utils/workers';
 import WorldgenWorker from 'worker-loader!./Worldgen.worker';
 import { IGlobeOptions, EMapMode } from 'src/types';
-import { GlobeData, CellPoints, CellGlobeData, WorldData, ICellGroupTooltipData, CellWorldData } from '../types';
+import { WorldData, CellPoints, CellGlobeData, ICellGroupTooltipData, CellWorldData, WorldGridData, WorldExport } from '../types';
 
 
 export class WorldgenClient {
@@ -11,10 +11,10 @@ export class WorldgenClient {
     this.worker$ = new ReactiveWorkerClient(new WorldgenWorker(), false);
   }
 
-  newWorld(options: IGlobeOptions, mapMode: EMapMode): Promise<WorldData> {
+  newWorld(options: IGlobeOptions, mapMode: EMapMode): Promise<{ world: WorldData, grid: WorldGridData, export: WorldExport }> {
     console.time('worldgen worker');
     return new Promise((resolve) => {
-      this.worker$.action('init').send({ options, mapMode });
+      this.worker$.action('newWorld').send({ options, mapMode });
 
       this.worker$.on('generate').subscribe(result => {
         console.log('[worldgen client] result', result);

@@ -1,4 +1,4 @@
-import { World } from "../World";
+import { WorldGrid } from "../WorldGrid";
 import { IGlobeOptions, EMapMode } from '../../types';
 
 
@@ -34,7 +34,7 @@ const worldOptions = {
 };
 
 test('World', () => {
-  const world = new World(globeOptions, worldOptions);
+  const world = new WorldGrid(globeOptions, worldOptions);
 
   expect(world.globe).toBeDefined();
 });

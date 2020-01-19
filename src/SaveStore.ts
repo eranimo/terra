@@ -1,31 +1,31 @@
 import localforage from 'localforage';
 
 
-export interface ISaveStoreEntry<T = any> {
+export interface ISaveStoreEntry<Entry = any> {
   name: string;
   createdAt: number;
-  data: T;
+  data: Entry;
 }
 
-export interface ISaveStoreRecord<T = any> {
+export interface ISaveStoreRecord<Record = any> {
   name: string;
   modifiedAt: number;
-  data: T;
+  data: Record;
 }
 
-interface ISaveStoreOptions<T> {
+interface ISaveStoreOptions<Entity, Entry, Record> {
   name: string,
-  load(data: any): T,
-  createEntry(entity: T): any,
-  createRecord(entity: T): any,
+  recordToEntity(record: Record): Entity,
+  createEntry(entity: Entity): Entry,
+  createRecord(entity: Entity): Record,
 }
 
-export class SaveStore<T> {
-  options: ISaveStoreOptions<T>;
+export class SaveStore<Entity, Entry, Record = Entity> {
+  options: ISaveStoreOptions<Entity, Entry, Record>;
   private entries: LocalForage;
   private records: LocalForage;
 
-  constructor(options: ISaveStoreOptions<T>) {
+  constructor(options: ISaveStoreOptions<Entity, Entry, Record>) {
     this.options = options;
     this.entries = localforage.createInstance({
       name: `${options.name}-entries`
@@ -35,15 +35,15 @@ export class SaveStore<T> {
     });
   }
 
-  async load(name: string): Promise<ISaveStoreRecord<T>> {
+  async load(name: string): Promise<Entity> {
     const data = await this.records.getItem(name) as ISaveStoreRecord;
     if (data === null) {
       throw new Error(`Save '${name}' not found`);
     }
-    return this.options.load(data) as unknown as ISaveStoreRecord<T>;
+    return this.options.recordToEntity(data.data);
   }
 
-  async save(entity: T, name: string) {
+  async save(entity: Entity, name: string) {
     const record: ISaveStoreRecord = {
       name,
       modifiedAt: Date.now(),
@@ -53,7 +53,7 @@ export class SaveStore<T> {
     const entry: ISaveStoreEntry = {
       name,
       createdAt: Date.now(),
-      data: this.options.createRecord(entity),
+      data: this.options.createEntry(entity),
     };
     console.log('Save', record, entry);
 

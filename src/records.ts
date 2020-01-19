@@ -1,32 +1,12 @@
 import { SaveStore } from './SaveStore';
-import { IGlobeOptions, IGameOptions } from './types';
+import { IGlobeOptions, IGameOptions, WorldExport } from './types';
 
-
-export interface IWorldRecord {
+type WorldEntry = {
   options: IGlobeOptions,
-};
-
-export const worldStore = new SaveStore<IWorldRecord>({
+}
+export const worldStore = new SaveStore<WorldExport, WorldEntry>({
   name: 'worlds',
-  load: data => data,
-  createEntry: (entity) => entity.options,
+  recordToEntity: data => data,
+  createEntry: (entity) => ({ options: entity.options }),
   createRecord: (entity) => entity,
 });
-
-export interface IGameRecord {
-  entry: {
-    options: {
-      world: IGlobeOptions,
-      game: IGameOptions,
-    },
-    ticks: number,
-  },
-  gameState: any,
-};
-
-export const gameStore = new SaveStore<IGameRecord>({
-  name: 'games',
-  load: data => data,
-  createEntry: (entity) => entity.entry,
-  createRecord: (entity) => entity,
-})

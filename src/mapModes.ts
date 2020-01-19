@@ -1,18 +1,18 @@
 import colormap from 'colormap';
 import { clamp } from 'lodash';
-import { Globe } from './worldgen/Globe';
+import { World } from './worldgen/World';
 import { EMapMode, biomeColors, biomeTitles } from './types';
 import { arrayStats } from './utils';
 
 
 export interface IMapModeColorMap {
   colors?: Record<string, any>;
-  getter: (globe: Globe, r: number) => number,
+  getter: (globe: World, r: number) => number,
   tooltip: (value: number) => string;
   color: (
     value: number,
     colors: Record<string, { [index: number]: number[] }>,
-    globe: Globe,
+    globe: World,
     r: number,
     percent: number,
   ) => number[];
@@ -23,7 +23,7 @@ export type MapModeData = {
   values: Float32Array;
 }
 
-export function createMapMode(globe: Globe, definition: IMapModeColorMap): MapModeData {
+export function createMapMode(globe: World, definition: IMapModeColorMap): MapModeData {
   const values_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numRegions));
   let min_v = Infinity;
   let max_v = -Infinity;

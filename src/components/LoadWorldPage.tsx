@@ -7,24 +7,29 @@ import { MapViewer } from './MapViewer';
 import { WorkerContext } from './WorkerManager';
 import { WorldUI } from './WorldUI';
 import { useAsync } from 'react-use';
-import { worldStore, IWorldRecord } from '../records';
+import { worldStore } from '../records';
 import { RouteComponentProps } from 'react-router';
 import { MenuContainer } from './MenuContainer';
 import { ISaveStoreRecord } from '../SaveStore';
+import { WorldExport } from '../types';
 
 
 let globeManager: GlobeManager;
 
 type StartGamePageProps = RouteComponentProps<{ worldName: string }>;
 
-export const LoadedWorldUI: React.FC<{ record: ISaveStoreRecord<IWorldRecord> }> = ({ record }) => {
+export const LoadedWorldUI: React.FC<{
+  worldName: string,
+  record: WorldExport
+}> = ({ worldName, record }) => {
   const [isLoading, setLoading] = useState(true);
   const client = useContext(WorkerContext);
+  console.log('record', record);
 
   // globe manager
   let loadingSubscription: Subscription;
   useEffect(() => {
-    globeManager = new GlobeManager(client, record.data.options);
+    globeManager = new GlobeManager(client, record.options);
     loadingSubscription = globeManager.loading$.subscribe(isLoading => {
       setLoading(isLoading);
     });
@@ -34,7 +39,7 @@ export const LoadedWorldUI: React.FC<{ record: ISaveStoreRecord<IWorldRecord> }>
 
   return (
     <Box>
-      <WorldUI globeManager={globeManager} loadedWorldName={record.name} />
+      <WorldUI globeManager={globeManager} loadedWorldName={worldName} />
       {isLoading && <LoadingOverlay />}
       {!isLoading && <MapViewer globeManager={globeManager} />}
     </Box>
@@ -61,5 +66,5 @@ export const LoadWorldPage: React.FC<StartGamePageProps> = ({ match }) => {
   }
   console.log('WORLD', worldName, worldLoadState.value);
 
-  return <LoadedWorldUI record={worldLoadState.value} />;  
+  return <LoadedWorldUI worldName="worldName" record={worldLoadState.value} />;  
 }

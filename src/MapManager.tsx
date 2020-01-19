@@ -1,7 +1,7 @@
 import { mat4, vec3 } from 'gl-matrix';
 import createLine from 'regl-line';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { CellPoints, defaultDrawOptions, EMapMode, GlobeData, IDrawOptions, IGlobeOptions, mapModeDrawOptions, ICellGroupData } from './types';
+import { CellPoints, defaultDrawOptions, EMapMode, WorldData, IDrawOptions, IGlobeOptions, mapModeDrawOptions, ICellGroupData } from './types';
 import { ImageRef, logGroupTime, getUV } from './utils';
 import { ObservableDict } from './utils/ObservableDict';
 import { WorldgenClient } from './worldgen/WorldgenClient';
@@ -87,7 +87,7 @@ export class MapManager {
   drawOptions$: ObservableDict<IDrawOptions>;
   renderer: GlobeRenderer;
   camera: any;
-  globe: GlobeData;
+  globe: WorldData;
   cellGroups: Map<string, ICellGroupData>;
   removeDrawLoop: Cancellable;
   selectedCell$: BehaviorSubject<number>;
@@ -206,7 +206,7 @@ export class MapManager {
     this.renderer.stop();
   }
 
-  public setGlobe(globe: GlobeData) {
+  public setGlobe(globe: WorldData) {
     this.globe = globe;
     console.log('WorldgenClient', this.client);
     this.renderer.renderGlobe(this.globe)

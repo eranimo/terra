@@ -4,18 +4,17 @@ import { clamp, isArray } from 'lodash';
 import SimplexNoise from 'simplex-noise';
 import { biomeRanges, EBiome, EMapMode, IGlobeOptions, moistureZoneRanges, temperatureZoneRanges } from '../types';
 import { arrayStats, logGroupTime, getLatLng } from '../utils';
-import { Globe } from './Globe';
+import { World } from './World';
 import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
-import { generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
 
-export class GlobeGen {
-  globe: Globe;
+export class WorldGenerator {
+  globe: World;
 
   @logGroupTime('globe generate')
   generate(options: IGlobeOptions, mapMode: EMapMode) {
     console.time('globe geometry');
-    this.globe = Globe.create(options, mapMode);
+    this.globe = World.create(options, mapMode);
     console.timeEnd('globe geometry');
     this.generatePlates();
     this.generateCoastline();
@@ -26,25 +25,12 @@ export class GlobeGen {
     this.generatePops();
     this.protrudeHeight();
     this.globe.setup();
-    this.setupGeometry();
 
     return this.globe;
   }
 
   update(year_ratio: number) {
     this.generateInsolation(year_ratio);
-  }
-
-  @logGroupTime('setup geometry')
-  private setupGeometry() {
-    const r_color_fn = (r: number) => {
-      let m = this.globe.r_moisture[r];
-      let e = this.globe.r_elevation[r];
-      return [e, m];
-    }
-
-    this.globe.triangleGeometry = generateVoronoiGeometry(this.globe.mesh, this.globe, r_color_fn);
-    this.globe.minimapGeometry = generateMinimapGeometry(this.globe.mesh, this.globe, r_color_fn);
   }
 
   // https://www.itacanet.org/the-sun-as-a-source-of-energy/part-2-solar-energy-reaching-the-earths-surface/

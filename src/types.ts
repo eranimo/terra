@@ -345,7 +345,7 @@ export type Arrow = {
   color: number[];
 }
 
-export type GlobeExport = {
+export type WorldExport = {
   options: IGlobeOptions;
   r_elevation: Float32Array;
   r_biome: Float32Array;
@@ -358,8 +358,6 @@ export type GlobeExport = {
   order_t: Int32Array;
   t_flow: Float32Array;
   s_flow: Float32Array;
-  triangleGeometry: Float32Array,
-  minimapGeometry: Float32Array,
   r_plate: Int32Array;
   plate_is_ocean: number[];
   r_desirability: Float32Array;
@@ -370,7 +368,7 @@ export type GlobeExport = {
   max_temperature: number;
 };
 
-export type GlobeData = {
+export type WorldData = {
   t_xyz: Float32Array;
   r_xyz: Float32Array;
   triangleGeometry: Float32Array,
@@ -388,8 +386,7 @@ export type GlobeData = {
   sideToCell: Int32Array,
 }
 
-export type WorldData = {
-  globe: GlobeData,
+export type WorldGridData = {
   cellGroupIndices: Int32Array,
 }
 

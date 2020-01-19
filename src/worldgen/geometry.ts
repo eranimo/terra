@@ -9,7 +9,7 @@
 import { makeRandFloat } from '@redblobgames/prng';
 import SimplexNoise from 'simplex-noise';
 import TriangleMesh from '@redblobgames/dual-mesh';
-import { Globe } from './Globe';
+import { World } from './World';
 import { getUV, toFloat32SAB } from '../utils';
 
 
@@ -50,7 +50,7 @@ function pushCentroidOfTriangle(out, ax, ay, az, bx, by, bz, cx, cy, cz) {
 }
 
 
-export function generateTriangleCenters(mesh: TriangleMesh, { r_xyz }: Globe) {
+export function generateTriangleCenters(mesh: TriangleMesh, { r_xyz }: World) {
   let { numTriangles } = mesh;
   let array = [];
   for (let t = 0; t < numTriangles; t++) {
@@ -69,7 +69,7 @@ export function generateTriangleCenters(mesh: TriangleMesh, { r_xyz }: Globe) {
   return t_xyz;
 }
 
-export function coordinateForSide(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, s: number) {
+export function coordinateForSide(mesh: TriangleMesh, { r_xyz, t_xyz }: World, s: number) {
   const inner_t = mesh.s_inner_t(s);
   const outer_t = mesh.s_outer_t(s);
   const begin_r = mesh.s_begin_r(s);
@@ -81,7 +81,7 @@ export function coordinateForSide(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, s
   ];
 }
 
-export function generateVoronoiGeometry(mesh: TriangleMesh, { r_xyz, t_xyz }: Globe, r_color_fn) {
+export function generateVoronoiGeometry(mesh: TriangleMesh, { r_xyz, t_xyz }: World, r_color_fn) {
   const { numSides } = mesh;
   const xyz_array = [];
 
@@ -100,7 +100,7 @@ export function generateVoronoiGeometry(mesh: TriangleMesh, { r_xyz, t_xyz }: Gl
   return toFloat32SAB(xyz_array);
 }
 
-export function generateMinimapGeometry(mesh: TriangleMesh, { minimap_r_xyz, minimap_t_xyz }: Globe, r_color_fn) {
+export function generateMinimapGeometry(mesh: TriangleMesh, { minimap_r_xyz, minimap_t_xyz }: World, r_color_fn) {
   const { numSides } = mesh;
   let xy = [];
 
@@ -131,7 +131,7 @@ export class QuadGeometry {
 
   setMap(
     mesh: TriangleMesh,
-    globe: Globe,
+    globe: World,
     protrudeHeight: number = 0.1
   ) {
     const { r_xyz, t_xyz, s_flow, r_elevation, t_elevation, r_moisture, t_moisture } = globe;

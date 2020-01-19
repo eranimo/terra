@@ -2,7 +2,7 @@ import { Box, Button, FormControl, FormLabel, Heading, Input, Modal, ModalBody, 
 import React, { useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { GlobeManager } from '../GlobeManager';
-import { IWorldRecord, worldStore } from '../records';
+import {  worldStore } from '../records';
 import { mainPageRoute } from '../routes';
 import { Controls } from './Controls';
 
@@ -22,14 +22,10 @@ export const WorldUI: React.FC<{
   const saveWorld = async () => {
     setSavedWorldName(worldName);
     setSaveOpen(false);
-    const worldRecord: IWorldRecord = {
-      options: globeManager.globeOptions$.value,
-    };
     if (savedWorldName) {
       await worldStore.removeSave(loadedWorldName);
     }
-    await worldStore.save(worldRecord, worldName);
-
+    await worldStore.save(globeManager.worldExport$.value, worldName);
     history.push(`/world/${worldName}`);
   };
 

@@ -1,8 +1,7 @@
-import { IGlobeOptions, EMapMode, GlobeData } from './types';
+import { IGlobeOptions, EMapMode, WorldData, WorldExport } from './types';
 import { BehaviorSubject } from 'rxjs';
 import { logGroupTime } from './utils';
 import { WorldgenClient } from './worldgen/WorldgenClient';
-import { IWorldOptions } from './worldgen/World';
 
 
 export const initialOptions: IGlobeOptions = {
@@ -35,21 +34,23 @@ export const initialOptions: IGlobeOptions = {
 const DEFAULT_MAP_MODE = EMapMode.BIOME;
 
 export class GlobeManager {
-  globeOptions$: BehaviorSubject<IGlobeOptions>;
-  globe$: BehaviorSubject<GlobeData>;
+  worldOptions$: BehaviorSubject<IGlobeOptions>;
+  world$: BehaviorSubject<WorldData>;
   loading$: BehaviorSubject<boolean>;
   mapMode: EMapMode;
+  worldExport$: BehaviorSubject<WorldExport>;
 
   constructor(
     protected client: WorldgenClient,
     options: IGlobeOptions = initialOptions,
   ) {
-    this.globeOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, options));
-    this.globe$ = new BehaviorSubject<GlobeData>(null);
+    this.worldOptions$ = new BehaviorSubject<IGlobeOptions>(Object.assign({}, options));
+    this.world$ = new BehaviorSubject<WorldData>(null);
+    this.worldExport$ = new BehaviorSubject<WorldExport>(null);
     this.loading$ = new BehaviorSubject(false);
     this.mapMode = DEFAULT_MAP_MODE;
 
-    this.globeOptions$.subscribe(() => {
+    this.worldOptions$.subscribe(() => {
       this.loading$.next(true);
       this.generate().then(() => {
         this.loading$.next(false);
@@ -63,8 +64,9 @@ export class GlobeManager {
 
   @logGroupTime('generate')
   public async generate() {
-    const result = await this.client.newWorld(this.globeOptions$.value, this.mapMode);
-    this.globe$.next(result.globe);
-    return result.globe;
+    const result = await this.client.newWorld(this.worldOptions$.value, this.mapMode);
+    this.world$.next(result.world);
+    this.worldExport$.next(result.export);
+    return result;
   }
 }

@@ -1,10 +1,10 @@
-import { GlobeData, IDrawOptions, ICellGroupData } from './types';
+import { WorldData, IDrawOptions, ICellGroupData } from './types';
 import { logFuncTime, logGroupTime } from './utils';
 import { Engine, Scene, MeshBuilder, HemisphericLight, Mesh, Vector3, Color3, ArcRotateCamera, StandardMaterial, VertexData, Color4, CubeTexture, Texture, VertexBuffer, SolidParticleSystem, SolidParticle, Quaternion, Ray, Material, ActionManager, ExecuteCodeAction, SubMesh, LinesMesh, EdgesRenderer, DynamicTexture } from '@babylonjs/core';
 import { Subject } from 'rxjs';
 
 
-function createGlobeMesh(globe: GlobeData, scene: Scene) {
+function createGlobeMesh(globe: WorldData, scene: Scene) {
   const material = new StandardMaterial('globe', scene);
   const mesh = new Mesh('globe', scene);
   mesh.material = material;
@@ -38,7 +38,7 @@ function createGlobeMesh(globe: GlobeData, scene: Scene) {
   return mesh;
 }
 
-function createCellBorderMesh(globe: GlobeData, scene: Scene) {
+function createCellBorderMesh(globe: WorldData, scene: Scene) {
   const points: Vector3[][] = [];
   for (let r = 0; r < globe.cellBorders.length; r++) {
     globe.cellBorders[r].forEach(side => {
@@ -60,7 +60,7 @@ function createCellBorderMesh(globe: GlobeData, scene: Scene) {
 }
 
 
-function createCoastlineMesh(globe: GlobeData, scene: Scene) {
+function createCoastlineMesh(globe: WorldData, scene: Scene) {
   const points: Vector3[][] = globe.coastline.map(points => (
     points.map(p => Vector3.FromArray(p))
   ));
@@ -79,7 +79,7 @@ function createCoastlineMesh(globe: GlobeData, scene: Scene) {
 
 const RIVER_COLOR = new Color3(0, 0, 1);
 
-function createRivers(globe: GlobeData, scene: Scene) {
+function createRivers(globe: WorldData, scene: Scene) {
   const riverMesh = new Mesh('rivers', scene);
   riverMesh.isPickable = false;
   var riverMaterial = new StandardMaterial('river', scene);
@@ -139,7 +139,7 @@ function createSkybox(scene: Scene) {
   return skybox;
 }
 
-function createPlateVectors(globe: GlobeData, engine: Engine, scene: Scene) {
+function createPlateVectors(globe: WorldData, engine: Engine, scene: Scene) {
   const arrowMesh = MeshBuilder.CreateCylinder('arrowMesh', {
     diameterTop: 0,
     height: 1.5,
@@ -190,7 +190,7 @@ export type GlobeLabel = {
 }
 
 export class GlobeRenderer {
-  public globe: GlobeData;
+  public globe: WorldData;
   private engine: Engine;
   private scene: Scene;
   private sunLight: HemisphericLight;
@@ -251,7 +251,7 @@ export class GlobeRenderer {
     this.engine.stopRenderLoop();
   }
 
-  public renderGlobe(globe: GlobeData) {
+  public renderGlobe(globe: WorldData) {
     this.globe = globe;
     this.planet = createGlobeMesh(globe, this.scene);
     this.planet.actionManager = new ActionManager(this.scene);
@@ -436,7 +436,7 @@ export class GlobeRenderer {
     this.plateVectors.setEnabled(options.drawPlateVectors);
   }
 
-  public updateColors(globe: GlobeData) {
+  public updateColors(globe: WorldData) {
     console.log('update colors');
     const colors = [];
     for (let t = 0; t < globe.triangleGeometry.length / 3; t++) {
