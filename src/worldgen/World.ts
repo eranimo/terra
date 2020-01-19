@@ -129,9 +129,9 @@ export class World {
     // console.timeEnd('impossible path');
   }
 
-  export(): WorldData {
+  getData(): WorldData {
     return {
-      globe: this.globe.export(),
+      globe: this.globe.getData(),
       cellGroupIndices: this.cellGroupIndices,
     };
   }

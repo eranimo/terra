@@ -57,7 +57,7 @@ worker.on('init', ({ options, mapMode }) => {
     worker.send('date', date);
   });
 
-  worker.send('generate', world.export());
+  worker.send('generate', world.getData());
 }, true);
 
 worker.on('startGame', ({  }) => {

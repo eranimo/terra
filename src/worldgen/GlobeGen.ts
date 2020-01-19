@@ -15,7 +15,7 @@ export class GlobeGen {
   @logGroupTime('globe generate')
   generate(options: IGlobeOptions, mapMode: EMapMode) {
     console.time('globe geometry');
-    this.globe = new Globe(options, mapMode);
+    this.globe = Globe.create(options, mapMode);
     console.timeEnd('globe geometry');
     this.generatePlates();
     this.generateCoastline();

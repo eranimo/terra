@@ -2,7 +2,7 @@ import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
 import { createMapMode, mapModeDefs, MapModeData } from '../mapModes';
-import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData, River, Arrow } from '../types';
+import { CellPoints, EMapMode, GlobeData, IGlobeOptions, CellGlobeData, River, Arrow, GlobeExport } from '../types';
 import { getLatLng, intersectTriangle, distance3D, logGroupTime, logFuncTime } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
 import { makeSphere } from "./SphereMesh";
@@ -223,8 +223,7 @@ function createCellBorders(mesh: TriangleMesh, globe: Globe) {
 
 export class Globe {
   mesh: TriangleMesh;
-  r_xyz: number[];
-  latlong: number[];
+  r_xyz: Float32Array;
   triangleGeometry: Float32Array;
   minimapGeometry: Float32Array;
 
@@ -250,9 +249,9 @@ export class Globe {
   plate_r: Set<number>;
   r_plate: Int32Array;
   plate_vec: any[];
-  plate_is_ocean: Set<unknown>;
+  plate_is_ocean: Set<number>;
   r_lat_long: Float32Array;
-  r_temperature: number[];
+  r_temperature: Float32Array;
   min_temperature: number;
   max_temperature: number;
 
@@ -269,52 +268,87 @@ export class Globe {
   t_vec: Map<number, Vector3>;
   r_vec: Map<number, Vector3>;
 
-  constructor(public options: IGlobeOptions, public mapMode: EMapMode) {
-    console.log('options', options)
+  public options: IGlobeOptions;
+  public mapMode: EMapMode;
+
+  constructor(options: IGlobeOptions, mapMode: EMapMode) {
+    this.options = options;
+    this.mapMode = mapMode;
+
+    // make sphere
     console.time('make sphere');
-    const { mesh, r_xyz, latlong } = makeSphere(options.sphere.numberCells, options.sphere.jitter, makeRandFloat(options.core.seed));
+    const { mesh, r_xyz } = makeSphere(options.sphere.numberCells, options.sphere.jitter, makeRandFloat(options.core.seed));
+    console.log('mesh', mesh);
     console.timeEnd('make sphere');
     this.mesh = mesh;
-    console.log('mesh', mesh)
     
-    this.mapModeColor = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numSides * 4 * 3));
-    this.mapModeValue = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numRegions));
-    this.r_xyz = r_xyz;
-    this.latlong = latlong;
-
-    console.time('make quad geometry');
-    console.timeEnd('make quad geometry');
-
+    // make triangles
+    this.r_xyz = new Float32Array(r_xyz);
     console.time('make triangles');
     this.t_xyz = generateTriangleCenters(mesh, this);
     console.timeEnd('make triangles');
-    this.r_elevation = new Float32Array(mesh.numRegions);
-    this.r_biome = new Float32Array(mesh.numRegions);
-    this.r_moisture = new Float32Array(mesh.numRegions);
-    this.r_roughness = new Float32Array(mesh.numRegions);
-    
-    this.minimap_t_xyz = new Float32Array(mesh.numTriangles);
-    this.t_elevation = new Float32Array(mesh.numTriangles);
-    this.t_moisture = new Float32Array(mesh.numTriangles);
-    this.t_downflow_s = new Int32Array(mesh.numTriangles);
-    this.order_t = new Int32Array(mesh.numTriangles);
-    this.t_flow = new Float32Array(mesh.numTriangles);
-    this.s_flow = new Float32Array(mesh.numSides);
 
-    this.r_temperature = [];
-    this.max_roughness = 0;
 
-    this.r_lat_long = new Float32Array(mesh.numRegions * 2);
-    for (let r = 0; r < this.mesh.numRegions; r++) {
-      const x = this.r_xyz[3 * r];
-      const y = this.r_xyz[3 * r + 1];
-      const z = this.r_xyz[3 * r + 2];
-      const [lat, long] = getLatLng([x, y, z]);
-      this.r_lat_long[2 * r] = lat;
-      this.r_lat_long[2 * r + 1] = long;
-    }
-
+    this.mapModeColor = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numSides * 4 * 3));
+    this.mapModeValue = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numRegions));
     this.mapModeCache = new Map();
+  }
+
+  static create(options: IGlobeOptions, mapMode: EMapMode): Globe {
+    const globe = new Globe(options, mapMode);
+    const mesh = globe.mesh;
+    globe.r_elevation = new Float32Array(mesh.numRegions);
+    globe.r_biome = new Float32Array(mesh.numRegions);
+    globe.r_moisture = new Float32Array(mesh.numRegions);
+    globe.r_roughness = new Float32Array(mesh.numRegions);
+    globe.minimap_t_xyz = new Float32Array(mesh.numTriangles);
+    globe.t_elevation = new Float32Array(mesh.numTriangles);
+    globe.t_moisture = new Float32Array(mesh.numTriangles);
+    globe.t_downflow_s = new Int32Array(mesh.numTriangles);
+    globe.order_t = new Int32Array(mesh.numTriangles);
+    globe.t_flow = new Float32Array(mesh.numTriangles);
+    globe.s_flow = new Float32Array(mesh.numSides);
+
+    globe.r_temperature = new Float32Array(globe.mesh.numRegions);
+    globe.max_roughness = 0;
+
+    globe.r_lat_long = new Float32Array(mesh.numRegions * 2);
+    for (let r = 0; r < globe.mesh.numRegions; r++) {
+      const x = globe.r_xyz[3 * r];
+      const y = globe.r_xyz[3 * r + 1];
+      const z = globe.r_xyz[3 * r + 2];
+      const [lat, long] = getLatLng([x, y, z]);
+      globe.r_lat_long[2 * r] = lat;
+      globe.r_lat_long[2 * r + 1] = long;
+    }
+    return globe;
+  }
+
+  static load(exportedGlobe: GlobeExport, mapMode: EMapMode) {
+    const globe = new Globe(exportedGlobe.options, mapMode);
+    globe.r_elevation = exportedGlobe.r_elevation;
+    globe.r_biome = exportedGlobe.r_biome;
+    globe.r_moisture = exportedGlobe.r_moisture;
+    globe.r_roughness = exportedGlobe.r_roughness;
+    globe.minimap_t_xyz = exportedGlobe.minimap_t_xyz;
+    globe.t_elevation = exportedGlobe.t_elevation;
+    globe.t_moisture = exportedGlobe.t_moisture;
+    globe.t_downflow_s = exportedGlobe.t_downflow_s;
+    globe.order_t = exportedGlobe.order_t;
+    globe.t_flow = exportedGlobe.t_flow;
+    globe.s_flow = exportedGlobe.s_flow;
+    globe.triangleGeometry = exportedGlobe.triangleGeometry;
+    globe.minimapGeometry = exportedGlobe.minimapGeometry;
+    globe.r_plate = exportedGlobe.r_plate;
+    globe.plate_is_ocean = new Set(exportedGlobe.plate_is_ocean);
+    globe.r_desirability = exportedGlobe.r_desirability;
+    globe.r_temperature = exportedGlobe.r_temperature;
+    globe.insolation = exportedGlobe.insolation;
+    globe.r_lat_long = exportedGlobe.r_lat_long;
+    globe.min_temperature = exportedGlobe.min_temperature;
+    globe.max_temperature = exportedGlobe.max_temperature;
+    globe.setup();
+    return globe;
   }
 
   // post GlobeGen setup
@@ -387,8 +421,35 @@ export class Globe {
     this.setupMapMode();
   }
 
-  @logGroupTime('Globe export')
-  public export(): GlobeData {
+  public export(): GlobeExport {
+    return {
+      options: this.options,
+      r_elevation: this.r_elevation,
+      r_biome: this.r_biome,
+      r_moisture: this.r_moisture,
+      r_roughness: this.r_roughness,
+      minimap_t_xyz: this.minimap_t_xyz,
+      t_elevation: this.t_elevation,
+      t_moisture: this.t_moisture,
+      t_downflow_s: this.t_downflow_s,
+      order_t: this.order_t,
+      t_flow: this.t_flow,
+      s_flow: this.s_flow,
+      r_lat_long: this.r_lat_long,
+      triangleGeometry: this.triangleGeometry,
+      minimapGeometry: this.minimapGeometry,
+      r_plate: this.r_plate,
+      plate_is_ocean: Array.from(this.plate_is_ocean),
+      r_desirability: this.r_desirability,
+      r_temperature: this.r_temperature,
+      min_temperature: this.min_temperature,
+      max_temperature: this.max_temperature,
+      insolation: this.insolation,
+    }
+  }
+
+  @logGroupTime('Get Globe Data')
+  public getData(): GlobeData {
     console.time('map mode colors');
     this.setupMapMode();
     console.timeEnd('map mode colors');
@@ -407,7 +468,7 @@ export class Globe {
       mapModeColor: this.mapModeColor,
       mapModeValue: this.mapModeValue,
       t_xyz: this.t_xyz,
-      r_xyz: new Float32Array(this.r_xyz),
+      r_xyz: this.r_xyz,
       triangleGeometry: this.triangleGeometry,
       minimapGeometry: this.minimapGeometry,
       coastline: logFuncTime('createCoastline', () => createCoastline(this.mesh, this)),

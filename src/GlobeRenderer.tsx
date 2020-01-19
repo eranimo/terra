@@ -287,7 +287,6 @@ export class GlobeRenderer {
     for (let t = 0; t < positions.length / 3; t++) {
       indices.push(t);
     }
-    console.log('position', positions);
     const vertexData = new VertexData();
     vertexData.positions = positions;
     vertexData.indices = indices;

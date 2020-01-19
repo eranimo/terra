@@ -345,6 +345,31 @@ export type Arrow = {
   color: number[];
 }
 
+export type GlobeExport = {
+  options: IGlobeOptions;
+  r_elevation: Float32Array;
+  r_biome: Float32Array;
+  r_moisture: Float32Array;
+  r_roughness: Float32Array;
+  minimap_t_xyz: Float32Array;
+  t_elevation: Float32Array;
+  t_moisture: Float32Array;
+  t_downflow_s: Int32Array;
+  order_t: Int32Array;
+  t_flow: Float32Array;
+  s_flow: Float32Array;
+  triangleGeometry: Float32Array,
+  minimapGeometry: Float32Array,
+  r_plate: Int32Array;
+  plate_is_ocean: number[];
+  r_desirability: Float32Array;
+  r_temperature: Float32Array;
+  insolation: Float32Array;
+  r_lat_long: Float32Array;
+  min_temperature: number;
+  max_temperature: number;
+};
+
 export type GlobeData = {
   t_xyz: Float32Array;
   r_xyz: Float32Array;
