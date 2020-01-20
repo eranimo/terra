@@ -41,7 +41,7 @@ function init() {
     onFinished: () => {
       const yearRatio = (game.state.ticks.value % 360) / 360.;
       console.log(yearRatio);
-      worldGrid.updateGlobe(yearRatio);
+      worldGen.update(yearRatio);
       world.resetMapMode(EMapMode.INSOLATION);
       world.resetMapMode(EMapMode.TEMPERATURE);
       world.resetMapMode(EMapMode.MOISTURE);
@@ -59,6 +59,7 @@ function setup() {
 
 worker.on('loadWorld', (props) => {
   world = World.load(props.export, props.mapMode);
+  worldGen.world = world;
   worldGrid = new WorldGrid(world);
 
   init();

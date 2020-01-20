@@ -99,8 +99,8 @@ export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
     drawRivers: false,
   },
   [EMapMode.AVGTEMPERATURE]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: false,
+    drawRivers: false,
   },
   [EMapMode.INSOLATION]: {
     drawCoastlineBorder: true,
@@ -351,13 +351,17 @@ export type Arrow = {
   color: number[];
 }
 
+// World data saved to disk
 export type WorldExport = {
   options: IGlobeOptions;
+
   r_elevation: Float32Array;
   r_biome: Float32Array;
   r_moisture: Float32Array;
   r_roughness: Float32Array;
   minimap_t_xyz: Float32Array;
+  r_distance_to_ocean: Int32Array,
+  r_coast: Int32Array,
   minimap_r_xyz: Float32Array;
   t_elevation: Float32Array;
   t_moisture: Float32Array;
@@ -375,8 +379,10 @@ export type WorldExport = {
   r_lat_long: Float32Array;
   min_temperature: number;
   max_temperature: number;
+  max_distance_to_ocean: number;
 };
 
+// World data sent to the main thread
 export type WorldData = {
   t_xyz: Float32Array;
   r_xyz: Float32Array;
@@ -395,6 +401,7 @@ export type WorldData = {
   sideToCell: Int32Array,
 }
 
+// World grid data sent to the main thread
 export type WorldGridData = {
   cellGroupIndices: Int32Array,
 }

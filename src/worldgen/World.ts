@@ -259,8 +259,8 @@ export class World {
   min_temperature: number;
   max_temperature: number;
 
-  r_distance_to_ocean: number[];
-  r_coast: number[];
+  r_distance_to_ocean: Int32Array;
+  r_coast: Int32Array;
   max_distance_to_ocean: number;
   insolation: Float32Array;
   sideTriangles: number[][][];
@@ -319,6 +319,8 @@ export class World {
     world.r_raw_temp = new Float32Array(world.mesh.numRegions);
     world.p_atmos_thermal_energy = new Float32Array(world.mesh.numRegions);
     world.r_average_temperature = new Float32Array(world.mesh.numRegions);
+    world.r_distance_to_ocean = new Int32Array(mesh.numRegions);
+    world.r_coast = new Int32Array(mesh.numRegions);
 
     world.r_temperature = new Float32Array(world.mesh.numRegions);
     world.max_roughness = 0;
@@ -335,6 +337,7 @@ export class World {
     return world;
   }
 
+  @logGroupTime('World load')
   static load(exportedGlobe: WorldExport, mapMode: EMapMode) {
     const world = new World(exportedGlobe.options, mapMode);
     world.r_elevation = exportedGlobe.r_elevation;
@@ -359,6 +362,9 @@ export class World {
     world.r_lat_long = exportedGlobe.r_lat_long;
     world.min_temperature = exportedGlobe.min_temperature;
     world.max_temperature = exportedGlobe.max_temperature;
+    world.r_coast = exportedGlobe.r_coast;
+    world.r_distance_to_ocean = exportedGlobe.r_distance_to_ocean;
+    world.max_distance_to_ocean = exportedGlobe.max_distance_to_ocean;
     world.setup();
     return world;
   }
@@ -446,6 +452,7 @@ export class World {
   public export(): WorldExport {
     return {
       options: this.options,
+
       r_elevation: this.r_elevation,
       r_biome: this.r_biome,
       r_moisture: this.r_moisture,
@@ -467,7 +474,10 @@ export class World {
       min_temperature: this.min_temperature,
       max_temperature: this.max_temperature,
       insolation: this.insolation,
-      r_average_temperature: this.r_average_temperature
+      r_average_temperature: this.r_average_temperature,
+      r_coast: this.r_coast,
+      r_distance_to_ocean: this.r_distance_to_ocean,
+      max_distance_to_ocean: this.max_distance_to_ocean,
     }
   }
 

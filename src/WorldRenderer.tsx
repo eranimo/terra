@@ -189,7 +189,7 @@ export type GlobeLabel = {
   color: Color4,
 }
 
-export class GlobeRenderer {
+export class WorldRenderer {
   public globe: WorldData;
   private engine: Engine;
   private scene: Scene;

@@ -21,7 +21,7 @@ export const NewWorldPage = () => {
     worldEditorManager = new WorldEditorManager(client);
     worldEditorManager.generate();
 
-    loadingSubscription = worldEditorManager.loading$.subscribe(setLoading);
+    loadingSubscription = worldEditorManager.loading$.subscribe(isLoading => setLoading(isLoading));
     return () => loadingSubscription.unsubscribe();
   }, []);
 
