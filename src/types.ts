@@ -345,6 +345,7 @@ export type Arrow = {
   color: number[];
 }
 
+// World data saved to disk
 export type WorldExport = {
   options: IGlobeOptions;
 
@@ -374,6 +375,7 @@ export type WorldExport = {
   max_distance_to_ocean: number;
 };
 
+// World data sent to the main thread
 export type WorldData = {
   t_xyz: Float32Array;
   r_xyz: Float32Array;
@@ -392,6 +394,7 @@ export type WorldData = {
   sideToCell: Int32Array,
 }
 
+// World grid data sent to the main thread
 export type WorldGridData = {
   cellGroupIndices: Int32Array,
 }
