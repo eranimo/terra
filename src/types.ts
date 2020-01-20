@@ -67,7 +67,6 @@ export interface IDrawOptions {
   drawGrid: boolean,
   drawPlateBorders: boolean,
   drawPlateVectors: boolean,
-  drawCellCenters: boolean,
   drawRivers: boolean,
   renderPlanet: boolean,
   renderCellRegions: boolean,
@@ -79,7 +78,6 @@ export const defaultDrawOptions: IDrawOptions = {
   drawPlateBorders: false,
   drawPlateVectors: false,
   drawRivers: true,
-  drawCellCenters: false,
   renderPlanet: true,
   renderCellRegions: true,
   drawCoastlineBorder: false,
@@ -386,10 +384,7 @@ export type WorldData = {
   coastline: number[][][];
   rivers: River[],
   plateVectors: Arrow[];
-  plateBorders: {
-    points: number[],
-    widths: number[],
-  };
+  plateBorders: number[][][];
   cellBorders: number[][][][],
   sideToCell: Int32Array,
 }

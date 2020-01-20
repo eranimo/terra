@@ -259,12 +259,6 @@ const DRAW_OPTIONS: ControlDef[] = [
     desc: 'Draws a plate border in white',
   },
   {
-    key: 'drawCellCenters',
-    title: 'Draw cell centers',
-    type: 'boolean',
-    desc: 'Draws a small dot in the center of each cell at it\'s cell centroid point',
-  },
-  {
     key: 'drawRivers',
     title: 'Draw rivers',
     type: 'boolean',

@@ -77,6 +77,23 @@ function createCoastlineMesh(globe: WorldData, scene: Scene) {
   return borders;
 }
 
+function createPlateBorders(globe: WorldData, scene: Scene) {
+  const points: Vector3[][] = globe.plateBorders.map(points => (
+    points.map(p => Vector3.FromArray(p))
+  ));
+  const borders = MeshBuilder.CreateLineSystem('coastline', {
+    lines: points,
+  }, scene);
+  borders.color = new Color3(0, 0, 0);
+  borders.enableEdgesRendering();
+  borders.edgesWidth = 2;
+  borders.edgesColor = new Color4(0, 0, 0, 1);
+  borders.alpha = 1;
+  borders.scaling = new Vector3(20.002, 20.002, 20.002);
+  borders.isPickable = false;
+  return borders;
+}
+
 const RIVER_COLOR = new Color3(0, 0, 1);
 
 function createRivers(globe: WorldData, scene: Scene) {
@@ -207,6 +224,7 @@ export class WorldRenderer {
   labels: GlobeLabel[];
   cellGroupOverlays: Map<number, Mesh>;
   cellGroupLabels: Map<number, Mesh>;
+  private plateBorders: LinesMesh;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -262,6 +280,7 @@ export class WorldRenderer {
     this.rivers = logFuncTime('render rivers', () => createRivers(globe, this.scene));
     this.skybox = createSkybox(this.scene);
     this.plateVectors = logFuncTime('render plate arrows', () => createPlateVectors(globe, this.engine, this.scene));
+    this.plateBorders = logFuncTime('render plate borders', () => createPlateBorders(globe, this.scene));
     this.hasRendered = true;
   }
 
@@ -434,6 +453,7 @@ export class WorldRenderer {
     this.coastline.setEnabled(options.drawCoastlineBorder);
     this.rivers.setEnabled(options.drawRivers);
     this.plateVectors.setEnabled(options.drawPlateVectors);
+    this.plateBorders.setEnabled(options.drawPlateBorders);
   }
 
   public updateColors(globe: WorldData) {

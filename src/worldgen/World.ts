@@ -179,7 +179,6 @@ function createPlateVectors(mesh: TriangleMesh, globe: World) {
 
 function createPlateBorders(mesh: TriangleMesh, globe: World) {
   const points = [];
-  const widths = [];
 
   for (let s = 0; s < mesh.numSides; s++) {
     const begin_r = mesh.s_begin_r(s);
@@ -187,14 +186,13 @@ function createPlateBorders(mesh: TriangleMesh, globe: World) {
     if (globe.r_plate[begin_r] !== globe.r_plate[end_r]) {
       let inner_t = mesh.s_inner_t(s),
         outer_t = mesh.s_outer_t(s);
-      const x = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
-      const y = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
-      points.push(...x, ...x, ...y, ...y);
-      widths.push(0, 3, 3, 0);
+      const p1 = globe.t_xyz.slice(3 * inner_t, 3 * inner_t + 3);
+      const p2 = globe.t_xyz.slice(3 * outer_t, 3 * outer_t + 3);
+      points.push([ p1, p2 ]);
     }
   }
 
-  return { points, widths };
+  return points;
 }
 
 function createCellBorders(mesh: TriangleMesh, globe: World) {
