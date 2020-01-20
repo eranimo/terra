@@ -11,7 +11,7 @@ import { Material, AbstractMesh, TransformNode, Particle, Vector3, Color4 } from
 import REGL = require('regl');
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
-import { GlobeRenderer, GlobeEvents } from './GlobeRenderer';
+import { WorldRenderer, GlobeEvents } from './WorldRenderer';
 
 
 const DEFAULT_MAP_MODE = EMapMode.BIOME;
@@ -85,7 +85,7 @@ function setupMinimapRenderer(canvas) {
  */
 export class MapManager {
   drawOptions$: ObservableDict<IDrawOptions>;
-  renderer: GlobeRenderer;
+  renderer: WorldRenderer;
   camera: any;
   worldData: WorldData;
   cellGroups: Map<string, ICellGroupData>;
@@ -114,7 +114,7 @@ export class MapManager {
     const events$: GlobeEvents = {
       cellClicked: new Subject(),
     };
-    const renderer = new GlobeRenderer(screenCanvas, events$);
+    const renderer = new WorldRenderer(screenCanvas, events$);
     this.renderer = renderer;
 
     events$.cellClicked.subscribe(cell => {

@@ -44,7 +44,8 @@ export class WorldEditorManager extends WorldManager {
     this.worldOptions$ = new Subject<IGlobeOptions>();
     this.worldOptions = options;
     this.worldOptions$.subscribe(() => {
-      this.generate()
+      this.loading$.next(true);
+      this.generate();
     });
   }
 
@@ -56,6 +57,7 @@ export class WorldEditorManager extends WorldManager {
   public async load(worldExport: WorldExport) {
     const result = await this.client.loadWorld(worldExport, this.mapMode);
     this.setWorld(result.world);
+    this.loading$.next(false);
     return result;
   }
 
@@ -63,6 +65,7 @@ export class WorldEditorManager extends WorldManager {
   public async generate() {
     const result = await this.client.newWorld(this.worldOptions, this.mapMode);
     this.setWorld(result.world);
+    this.loading$.next(false);
     return result;
   }
 }
