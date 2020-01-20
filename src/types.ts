@@ -385,6 +385,8 @@ export type CellGlobeData = {
   desirability: number,
   biome: number,
   average_temperature: number,
+  raw_temp: number,
+  heat_loss: number,
 }
 
 export type CellWorldData = {

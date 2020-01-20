@@ -11,13 +11,15 @@ import { generateVoronoiGeometry, generateMinimapGeometry } from './geometry';
 
 
 const AXIAL_TILT : number = 22; // deg
-const TEMP_RATIO : number = 57.143 // In game units to Celcius -12 to 40 degrees, anything beyond this is unlivable by humans
+const TEMP_RATIO : number = 52; // In game units to Celcius -12 to 40 degrees, anything beyond this is unlivable by humans
 const INITIAL_VAPOR_PRESSURE : number = .61121; // Equilibrium vapor pressure at freezing
+const STEFAN_BOLTZMANN_CONSTANT : number = 5.670374419 * Math.pow(10, -8); // Stefan Boltzmann Constant for calculating heat loss
+const PEAK_SOLAR_FLUX : number = 1370; // Peak solar flux in W/m^2
 export class GlobeGen {
   globe: Globe;
 
   generate(options: IGlobeOptions, mapMode: EMapMode) {
-    const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * 0 * Math.PI);
+    const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * 11 / 12 * Math.PI);
     this.globe = new Globe(options, mapMode);
     this.generatePlates();
     this.generateCoastline();
@@ -31,6 +33,9 @@ export class GlobeGen {
     this.globe.setup();
     this.setupGeometry();
     this.generateAverageTemperature();
+    this.generateInsolation(-AXIAL_TILT);
+    this.generateMoisture();
+    this.generateTemperature();
 
     return this.globe;
   }
@@ -198,12 +203,12 @@ export class GlobeGen {
       const [lat, long] = this.globe.getLatLongForCell(r);
       const random1 = randomNoise.noise2D(lat / (1000 * VARIANCE), long / (1000 * VARIANCE))
       const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
-      if (this.globe.r_elevation[r] >= 0 && this.globe.r_distance_to_ocean[r] > 3) {
+      if (this.globe.r_elevation[r] >= 0 && this.globe.r_distance_to_ocean[r] > 1) {
         const inlandRatio = 1 - (this.globe.r_distance_to_ocean[r] / this.globe.max_distance_to_ocean);
-        const heatRatio = 1 - Math.abs( inlandRatio - this.globe.insolation[r]);
         this.globe.r_moisture[r] = clamp(
-          (heatRatio * 2  / 3 +
-          (random1 / 4)) * Math.max(altitude, .1)
+          (inlandRatio * .5 +
+          (random1 *.2) +
+          (altitude * .3))
         , 0, 1);
       } else {
         this.globe.r_moisture[r] = 1
@@ -228,17 +233,31 @@ export class GlobeGen {
   }
 
   private calcWetTemp(localTemp : number, r: number) {
-      const inCelsius = localTemp * TEMP_RATIO;
-      const vaporPressure = .61121 * Math.exp((18.678 - inCelsius / 234.5) * (inCelsius / (inCelsius + 257.14))) * this.globe.r_moisture[r] // Buck equation for vapor pressure in kPa
-      const weightRatio = (vaporPressure - INITIAL_VAPOR_PRESSURE) / 101.325;
-      const heatLoss = ((weightRatio * 22647.05) / 1003.5);
-      return inCelsius - heatLoss;
+    let inCelsius = localTemp * TEMP_RATIO - 12;
+    let currMoisture = this.globe.p_moisture[r];
+    let totalHeatLoss = 0;
+    for(let x: number = 0; x < 4; x++)
+    {
+      const vaporPressure = .61121 * Math.exp((18.678 - inCelsius / 234.5) *
+        (inCelsius / (inCelsius + 257.14))) * this.globe.r_moisture[r]; // Buck equation for vapor pressure in kPa
+      const weightRatio = .62198 * (vaporPressure - currMoisture) / 101.325;
+      this.globe.p_moisture[r] = vaporPressure;
+      const heatLoss = ((weightRatio * 2264705) / 1003.5) / 4;
+      totalHeatLoss += heatLoss;
+      inCelsius -= heatLoss;
+      currMoisture += (vaporPressure - currMoisture) / 4;
+    }
+    this.globe.r_heat_loss[r] = totalHeatLoss;
+    this.globe.r_raw_temp[r] = inCelsius;
+    const currThermalEnergy = (inCelsius + 273) * currMoisture * 2264705;
+    let avgThermalEnergy = ((this.globe.p_atmos_thermal_energy[r] || currThermalEnergy) + currThermalEnergy) / 2;
+    this.globe.p_atmos_thermal_energy[r] = currThermalEnergy;
+    return inCelsius + 12;
   }
 
   @logGroupTime('temperature', true)
   private generateTemperature() {
     let randomNoise = new SimplexNoise(makeRandFloat(this.globe.options.core.seed));
-    let newTemps: number[] = [];
     // temperature
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {
       const x = this.globe.r_xyz[3 * r];
@@ -266,13 +285,10 @@ export class GlobeGen {
           (0.70 * this.globe.insolation[r])
         );
       }
-      this.globe.r_temperature[r] = this.calcWetTemp(localTemp, r) / TEMP_RATIO;
+      const tempValue = this.calcWetTemp(localTemp, r)
+      this.globe.r_temperature[r] = tempValue / TEMP_RATIO;
       this.globe.r_temperature[r] += this.globe.r_temperature[r] * this.globe.options.climate.temperatureModifier;
-      this.globe.r_temperature[r] = clamp(this.globe.r_temperature[r], 0, 1);
-      newTemps.push(r);
-    }
-    while(newTemps.length < this.globe.mesh.numRegions) {
-      console.log(newTemps.length);
+      this.globe.r_temperature[r] = clamp(this.globe.r_temperature[r] || 0, 0, 1);
     }
 
     const { min, max } = arrayStats(this.globe.r_temperature);
@@ -284,7 +300,7 @@ export class GlobeGen {
     }
   }
 
-  @logGroupTime('temperature', true)
+  @logGroupTime('Average Temperature', true)
   private updateAverageTemperature() {
     // temperature
     for (let r = 0; r < this.globe.mesh.numRegions; r++) {

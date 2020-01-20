@@ -127,6 +127,8 @@ export class Globe {
   minimap_r_xyz: Float32Array; // without height added
   r_elevation: Float32Array;
   t_elevation: Float32Array;
+  r_heat_loss: Float32Array;
+  p_moisture: Float32Array;
   r_moisture: Float32Array;
   t_moisture: Float32Array;
   r_biome: Float32Array;
@@ -146,6 +148,10 @@ export class Globe {
   plate_vec: any[];
   plate_is_ocean: Set<unknown>;
   r_lat_long: Float32Array;
+  r_raw_temp: number[];
+  p_raw_temp: number[];
+  p_atmos_thermal_energy: number[];
+  p_insolation: number[];
   r_temperature: number[];
   r_average_temperature: number[];
 
@@ -182,7 +188,9 @@ export class Globe {
     this.r_elevation = new Float32Array(mesh.numRegions);
     this.r_biome = new Float32Array(mesh.numRegions);
     this.r_moisture = new Float32Array(mesh.numRegions);
+    this.p_moisture = new Float32Array(mesh.numRegions);
     this.r_roughness = new Float32Array(mesh.numRegions);
+    this.r_heat_loss = new Float32Array(mesh.numRegions);
     
     this.minimap_t_xyz = new Float32Array(mesh.numTriangles);
     this.t_elevation = new Float32Array(mesh.numTriangles);
@@ -192,6 +200,9 @@ export class Globe {
     this.t_flow = new Float32Array(mesh.numTriangles);
     this.s_flow = new Float32Array(mesh.numSides);
 
+    this.r_raw_temp = [];
+    this.p_atmos_thermal_energy = [];
+    this.p_insolation = [];
     this.r_temperature = [];
     this.r_average_temperature = [];
     this.max_roughness = 0;
@@ -204,6 +215,7 @@ export class Globe {
       const [lat, long] = getLatLng([x, y, z]);
       this.r_lat_long[2 * r] = lat;
       this.r_lat_long[2 * r + 1] = long;
+      this.p_moisture[r] = 0;
     }
 
     this.mapModeCache = new Map();
@@ -298,7 +310,6 @@ export class Globe {
   }
 
   getCellData(r: number): CellGlobeData {
-    console.log(this.r_temperature[r]);
     return {
       lat_long: this.getLatLongForCell(r),
       temperature: this.r_temperature[r],
@@ -309,6 +320,8 @@ export class Globe {
       desirability: this.r_desirability[r],
       insolation: this.insolation[r],
       average_temperature: this.r_average_temperature[r],
+      raw_temp: this.r_raw_temp[r],
+      heat_loss: this.r_heat_loss[r]
     };
   }
 

@@ -65,6 +65,14 @@ export function CellInfo() {
             <td>{round(cellData.globe.average_temperature, 2)}</td>
           </tr>
           <tr>
+            <td><Text color="gray.400" mr={5}>Raw Temp</Text></td>
+            <td>{round(cellData.globe.raw_temp, 2) || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td><Text color="gray.400" mr={5}>Heat Loss</Text></td>
+            <td>{round(cellData.globe.heat_loss, 2) || 'N/A'}</td>
+          </tr>
+          <tr>
             <td><Text color="gray.400" mr={5}>Moisture</Text></td>
             <td>{round(cellData.globe.moisture, 2)}</td>
           </tr>
