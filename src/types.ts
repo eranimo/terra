@@ -20,6 +20,8 @@ export interface IGlobeOptions {
   },
   climate: {
     temperatureModifier: number,
+    minTemperature: number,
+    maxTemperature: number,
   },
   geology: {
     numberPlates: number,
@@ -49,17 +51,6 @@ export const categoryTitles = {
   geology: 'Geology',
 }
 
-export interface IDrawOptions {
-  grid: boolean,
-  plateBorders: boolean,
-  plateVectors: boolean,
-  cellCenters: boolean,
-  rivers: boolean,
-  surface: boolean,
-  regions: boolean,
-  coastline: boolean,
-}
-
 export enum EMapMode {
   ELEVATION = 'ELEVATION',
   TECTONICS = 'TECTONICS',
@@ -73,53 +64,64 @@ export enum EMapMode {
   FLOW = 'FLOW',
 }
 
+export interface IDrawOptions {
+  drawGrid: boolean,
+  drawPlateBorders: boolean,
+  drawPlateVectors: boolean,
+  drawCellCenters: boolean,
+  drawRivers: boolean,
+  renderPlanet: boolean,
+  renderCellRegions: boolean,
+  drawCoastlineBorder: boolean,
+}
+
 export const defaultDrawOptions: IDrawOptions = {
-  grid: false,
-  plateBorders: false,
-  plateVectors: false,
-  rivers: true,
-  cellCenters: false,
-  surface: true,
-  regions: true,
-  coastline: false,
+  drawGrid: false,
+  drawPlateBorders: false,
+  drawPlateVectors: false,
+  drawRivers: true,
+  drawCellCenters: false,
+  renderPlanet: true,
+  renderCellRegions: true,
+  drawCoastlineBorder: false,
 };
 
 export const mapModeDrawOptions: Record<EMapMode, Partial<IDrawOptions>> = {
   [EMapMode.ELEVATION]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: true,
+    drawRivers: false,
   },
   [EMapMode.MOISTURE]: {
-    coastline: true,
+    drawCoastlineBorder: true,
   },
   [EMapMode.TEMPERATURE]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: true,
+    drawRivers: false,
   },
   [EMapMode.AVGTEMPERATURE]: {
     coastline: true,
     rivers: false,
   },
   [EMapMode.INSOLATION]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: true,
+    drawRivers: false,
   },
   [EMapMode.ROUGHNESS]: {
-    coastline: true,
-    rivers: false,
+    drawCoastlineBorder: true,
+    drawRivers: false,
   },
   [EMapMode.BIOME]: {},
   [EMapMode.FLOW]: {
-    coastline: true,
+    drawCoastlineBorder: true,
   },
   [EMapMode.TECTONICS]: {
-    rivers: false,
-    plateBorders: true,
-    plateVectors: true,
+    drawRivers: false,
+    drawPlateBorders: true,
+    drawPlateVectors: true,
   },
   [EMapMode.DESIRABILITY]: {
-    rivers: false,
-    coastline: true,
+    drawRivers: false,
+    drawCoastlineBorder: true,
   },
 }
 
@@ -337,37 +339,64 @@ export type SharedArray<T> = {
   buffer: SharedArrayBuffer,
 };
 
-export type GlobeData = {
+export type River = {
+  length: number;
+  points: number[][];
+  widths: number[];
+}
+
+export type Arrow = {
+  position: number[];
+  rotation: number[];
+  color: number[];
+}
+
+export type WorldExport = {
+  options: IGlobeOptions;
+  r_elevation: Float32Array;
+  r_biome: Float32Array;
+  r_moisture: Float32Array;
+  r_roughness: Float32Array;
+  minimap_t_xyz: Float32Array;
+  minimap_r_xyz: Float32Array;
+  t_elevation: Float32Array;
+  t_moisture: Float32Array;
+  t_downflow_s: Int32Array;
+  plate_vec: Record<number, number[]>;
+  order_t: Int32Array;
+  t_flow: Float32Array;
+  s_flow: Float32Array;
+  r_plate: Int32Array;
+  plate_is_ocean: number[];
+  r_desirability: Float32Array;
+  r_temperature: Float32Array;
+  r_average_temperature: Float32Array;
+  insolation: Float32Array;
+  r_lat_long: Float32Array;
+  min_temperature: number;
+  max_temperature: number;
+};
+
+export type WorldData = {
   t_xyz: Float32Array;
   r_xyz: Float32Array;
   triangleGeometry: Float32Array,
   minimapGeometry: Float32Array,
   mapModeColor: Float32Array;
   mapModeValue: Float32Array;
-  coastline: {
-    points: number[],
-    widths: number[],
-  };
-  rivers: {
-    points: number[],
-    widths: number[],
-  };
-  plateVectors: {
-    line_xyz: number[],
-    line_rgba: number[],
-  };
+  coastline: number[][][];
+  rivers: River[],
+  plateVectors: Arrow[];
   plateBorders: {
     points: number[],
     widths: number[],
   };
-  cellBorders: {
-    points: number[],
-    rgba: number[],
-  };
+  cellBorders: number[][][][],
+  sideToCell: Int32Array,
 }
 
-export type WorldData = {
-  globe: GlobeData,
+export type WorldGridData = {
+  cellGroupIndices: Int32Array,
 }
 
 export type CellPoints = {
@@ -400,11 +429,12 @@ export interface ICellGroupOptions {
 }
 
 export interface ICellGroupData {
+  id: number;
   name: string;
-  cells_xyz: number[];
-  cells_rgba: number[];
-  border_points: number[];
-  border_widths: number[];
+  label_position: number[];
+  sides: number[];
+  border: number[][][];
+  color: number[];
 }
 
 export interface ICellGroupTooltipData {

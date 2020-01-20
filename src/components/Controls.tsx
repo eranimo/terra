@@ -6,9 +6,10 @@ import { categoryTitles, IDrawOptions } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
 import { MapManagerContainer } from './MapViewer';
-import { GlobeManager } from '../GlobeManager';
+import { WorldManager } from '../WorldManager';
 import * as yup from 'yup';
-import { IWorldOptions } from '../worldgen/World';
+import { IWorldOptions } from '../worldgen/WorldGrid';
+import { WorldEditorManager } from '../WorldEditorManager';
 
 
 export const worldOptionsSchema = yup.object<IWorldOptions>().shape({
@@ -42,7 +43,7 @@ export const worldOptionsSchema = yup.object<IWorldOptions>().shape({
       .label('Height modifier').meta({ component: 'slider', step: 0.1 }),
   }),
   climate: yup.object().label('Climate').shape({
-    temperatureModifier: yup.number().required().min(-1).max(1)
+    temperatureModifier: yup.number().required().min(0).max(1)
       .label('Temperature modifier').meta({ component: 'slider', step: 0.1 }),
   })
 });
@@ -240,57 +241,57 @@ const GLOBE_OPTIONS: ControlDef[] = [
 
 const DRAW_OPTIONS: ControlDef[] = [
   {
-    key: 'grid',
+    key: 'drawGrid',
     title: 'Draw grid',
     type: 'boolean',
     desc: 'Draws grids on cell edges',
   },
   {
-    key: 'plateVectors',
+    key: 'drawPlateVectors',
     title: 'Draw plate vectors',
     type: 'boolean',
     desc: 'Draws a vector line at each cell pointing in the direction of that cell\'s plate',
   },
   {
-    key: 'plateBorders',
+    key: 'drawPlateBorders',
     title: 'Draw plate borders',
     type: 'boolean',
     desc: 'Draws a plate border in white',
   },
   {
-    key: 'cellCenters',
+    key: 'drawCellCenters',
     title: 'Draw cell centers',
     type: 'boolean',
     desc: 'Draws a small dot in the center of each cell at it\'s cell centroid point',
   },
   {
-    key: 'rivers',
+    key: 'drawRivers',
     title: 'Draw rivers',
     type: 'boolean',
     desc: 'Draws blue rivers on cell edges where they exist',
   },
   {
-    key: 'surface',
-    title: 'Draw surface',
+    key: 'renderPlanet',
+    title: 'Draw planet',
     type: 'boolean',
     desc: 'Draws the planet surface',
   },
   {
-    key: 'regions',
+    key: 'renderCellRegions',
     title: 'Draw cell groups',
     type: 'boolean',
     desc: 'Draws cell groups',
   },
   {
-    key: 'coastline',
+    key: 'drawCoastlineBorder',
     title: 'Draw coastline',
     type: 'boolean',
     desc: 'Draws border on coastline',
   }
 ]
 
-export const Controls = ({ manager }: { manager: GlobeManager }) => {
-  const globeOptions = useObservable(manager.globeOptions$, manager.globeOptions$.value);
+export const Controls = ({ worldEditorManager }: { worldEditorManager: WorldEditorManager }) => {
+  const globeOptions = useObservable(worldEditorManager.worldOptions$, worldEditorManager.worldOptions);
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
   const groups = Object.entries(groupBy(GLOBE_OPTIONS, i => i.key.split('.')[0]));
@@ -300,7 +301,7 @@ export const Controls = ({ manager }: { manager: GlobeManager }) => {
   return (
     <form
       onSubmit={event => {
-        manager.globeOptions$.next(globeOptionsForm);
+        worldEditorManager.worldOptions$.next(globeOptionsForm);
         event.preventDefault();
       }}
     >
@@ -339,7 +340,7 @@ export const Controls = ({ manager }: { manager: GlobeManager }) => {
           size="sm"
           onClick={() => {
             setGlobeOptionsForm(set(Object.assign({}, globeOptionsForm), 'core.seed', random(1000)));
-            manager.globeOptions$.next(globeOptionsForm);
+            worldEditorManager.worldOptions$.next(globeOptionsForm);
           }}
         >
           Randomize Seed

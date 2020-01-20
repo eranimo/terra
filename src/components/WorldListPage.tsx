@@ -55,7 +55,11 @@ export const WorldListPage = ({}) => {
             <tbody>
               {worldSavesState.value.map(item => (
                 <tr key={item.name}>
-                  <td>{item.name}</td>
+                  <td>
+                    <ChakraLink$ color="blue.300" as={Link} to={loadWorldPageRoute(item.name)}>
+                      {item.name}
+                    </ChakraLink$>
+                  </td>
                   <td>
                     {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString()}
                   </td>

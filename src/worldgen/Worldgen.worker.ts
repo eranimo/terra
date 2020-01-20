@@ -1,7 +1,10 @@
 import { ReactiveWorker } from '../utils/workers';
 import { GameLoop } from './GameLoop';
-import { IWorldOptions, World, CellGroup } from './World';
+import { IWorldOptions, WorldGrid, CellGroup } from './WorldGrid';
 import { EMapMode } from '../types';
+import { WorldGenerator } from './WorldGenerator';
+import { World } from './World';
+import { worldStore } from '../records';
 
 const game = new GameLoop(error => {
   console.error(error);
@@ -9,32 +12,27 @@ const game = new GameLoop(error => {
 
 const ctx: Worker = self as any;
 const worker = new ReactiveWorker(ctx, false);
+const worldGen = new WorldGenerator();
+
+// global state
 let world: World;
+let worldGrid: WorldGrid;
 
-worker.on('init', ({ options, mapMode }) => {
-  console.log('worldgen init', options);
-
-  const worldOptions: IWorldOptions = {
-    initialMapMode: mapMode
-  };
-
-  world = new World(options, worldOptions);
-
-  world.cellGroupUpdates$.subscribe(data => {
+function init() {
+  worldGrid.cellGroupUpdates$.subscribe(data => {
+    console.log('cell group update', data);
     worker.send('cellGroupUpdate', data);
   });
 
-  const group1 = world.createCellGroup({
-    name: 'Foo',
+  const group1 = worldGrid.createCellGroup({
+    name: 'Foobar',
     color: [0.5, 0.5, 0.5, 0.1],
   });
   group1.addCell(...[15881, 16114, 16258, 16347, 16580, 16724, 16868, 16635]);
 
-  console.log('!globe', world.globe);
-
   setTimeout(() => {
     group1.addCell(16957);
-  }, 4000);
+  }, 10000);
 
 
   game.addTimer({
@@ -43,42 +41,75 @@ worker.on('init', ({ options, mapMode }) => {
     onFinished: () => {
       const yearRatio = (game.state.ticks.value % 360) / 360.;
       console.log(yearRatio);
-      world.updateGlobe(yearRatio);
-      world.globe.resetMapMode(EMapMode.INSOLATION);
-      world.globe.resetMapMode(EMapMode.TEMPERATURE);
-      world.globe.resetMapMode(EMapMode.MOISTURE);
+      worldGrid.updateGlobe(yearRatio);
+      world.resetMapMode(EMapMode.INSOLATION);
+      world.resetMapMode(EMapMode.TEMPERATURE);
+      world.resetMapMode(EMapMode.MOISTURE);
       worker.send('draw');
     }
   });
+}
 
+function setup() {
   game.state.speedIndex.subscribe(speedIndex => worker.send('speedIndex', speedIndex));
   game.state.speed.subscribe(speed => worker.send('speed', speed));
   game.state.running.subscribe(running => worker.send('running', running));
-  game.date$.subscribe(date => {
-    worker.send('date', date);
-  });
+  game.date$.subscribe(date => worker.send('date', date));
+}
 
-  worker.send('generate', world.export());
+worker.on('loadWorld', (props) => {
+  world = World.load(props.export, props.mapMode);
+  worldGrid = new WorldGrid(world);
+
+  init();
+  setup();
+  
+
+  worker.send('generate', {
+    world: world.getData(),
+    grid: worldGrid.getData(),
+  });
 }, true);
 
-worker.on('startGame', ({  }) => {
+worker.on('newWorld', ({ options, mapMode }) => {
+  console.log('worldgen init', options);
 
-});
+  world = worldGen.generate(options, mapMode)
+  worldGen.update(0)
+  worldGrid = new WorldGrid(world);
+
+  init();
+  setup();
+
+  worker.send('generate', {
+    world: world.getData(),
+    grid: worldGrid.getData(),
+  });
+}, true);
+
+worker.on('saveWorld', async ({ name }) => {
+  try {
+    worldStore.save(world.export(), name);
+  } catch {
+    return false;
+  }
+  return true;
+}, true);
 
 worker.on('getIntersectedCell', async ({ point, dir }) => {
-  return world.globe.getIntersectedCell(point, dir);
+  return world.getIntersectedCell(point, dir);
 }, true);
 
 worker.on('getCellGroupForCell', async (cell) => {
-  return world.getCellGroupForCell(cell);
+  return worldGrid.getCellGroupForCell(cell);
 }, true);
 
 worker.on('getCellData', async (r) => {
-  return world.getCellData(r);
+  return worldGrid.getCellData(r);
 }, true);
 
 worker.on('setMapMode', async (mapMode) => {
-  world.globe.setMapMode(mapMode);
+  world.setMapMode(mapMode);
 }, true);
 
 worker.on('start', async () => game.start());

@@ -1,4 +1,4 @@
-import { World } from "../World";
+import { WorldGrid } from "../WorldGrid";
 import { IGlobeOptions, EMapMode } from '../../types';
 
 
@@ -17,6 +17,8 @@ const globeOptions: IGlobeOptions = {
   },
   climate: {
     temperatureModifier: 0,
+    minTemperature: -40,
+    maxTemperature: 30,
   },
   geology: {
     numberPlates: 25,
@@ -32,7 +34,7 @@ const worldOptions = {
 };
 
 test('World', () => {
-  const world = new World(globeOptions, worldOptions);
+  const world = new WorldGrid(globeOptions, worldOptions);
 
   expect(world.globe).toBeDefined();
 });

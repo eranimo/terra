@@ -1,35 +1,37 @@
 import { Box, Button, FormControl, FormLabel, Heading, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Stack } from '@chakra-ui/core';
 import React, { useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import { GlobeManager } from '../GlobeManager';
-import { IWorldRecord, worldStore } from '../records';
+import { WorldEditorManager } from '../WorldEditorManager';
+import {  worldStore } from '../records';
 import { mainPageRoute } from '../routes';
 import { Controls } from './Controls';
 
 
 export const WorldUI: React.FC<{
-  globeManager: GlobeManager,
+  worldEditorManager: WorldEditorManager,
   loadedWorldName?: string,
-}> = ({ globeManager, loadedWorldName, }) => {
+}> = ({
+  worldEditorManager,
+  loadedWorldName,
+}) => {
   const [isOptionsOpen, setOptionsOpen] = useState(false);
   const history = useHistory();
 
   // save modal
   const [isSaveOpen, setSaveOpen] = useState(false);
-  const [worldName, setWorldName] = useState(loadedWorldName);
+  const [worldName, setWorldName] = useState(loadedWorldName || '');
+  const [savedWorldName, setSavedWorldName] = useState(loadedWorldName);
 
   const saveWorld = async () => {
+    setSavedWorldName(worldName);
     setSaveOpen(false);
-    const worldRecord: IWorldRecord = {
-      options: globeManager.globeOptions$.value,
-    };
-    if (loadedWorldName) {
-      await worldStore.removeSave(loadedWorldName);
-    }
-    await worldStore.save(worldRecord, worldName);
-    window.alert('World Saved');
-
-    history.push(`/world/${worldName}`);
+    worldEditorManager.saveWorld(worldName).then(didSave => {
+      if (didSave) {
+        history.push(`/world/${worldName}`);
+      } else {
+        window.alert('Failed to save world');
+      }
+    });
   };
 
   return (
@@ -48,7 +50,7 @@ export const WorldUI: React.FC<{
         Back
       </Link>
       <Heading mb="5">
-        {worldName ? `World "${worldName}"` : 'New World'}
+        {savedWorldName ? `World "${savedWorldName}"` : 'New World'}
       </Heading>
       <Stack align="center" isInline>
         <Button
@@ -71,7 +73,7 @@ export const WorldUI: React.FC<{
           <ModalHeader>World Options</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Controls manager={globeManager} />
+            <Controls worldEditorManager={worldEditorManager} />
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -102,7 +104,7 @@ export const WorldUI: React.FC<{
                 variantColor="blue"
                 onClick={saveWorld}
               >
-                Play World
+                Save World
               </Button>
             </Stack>
           </ModalFooter>

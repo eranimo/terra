@@ -1,31 +1,38 @@
 import { Box, Spinner } from '@chakra-ui/core';
 import React, { useContext, useEffect, useState } from 'react';
 import { Subscription } from 'rxjs';
-import { GlobeManager } from '../GlobeManager';
+import { WorldManager } from '../WorldManager';
 import { LoadingOverlay } from './LoadingOverlay';
 import { MapViewer } from './MapViewer';
 import { WorkerContext } from './WorkerManager';
 import { WorldUI } from './WorldUI';
 import { useAsync } from 'react-use';
-import { worldStore, IWorldRecord } from '../records';
+import { worldStore } from '../records';
 import { RouteComponentProps } from 'react-router';
 import { MenuContainer } from './MenuContainer';
 import { ISaveStoreRecord } from '../SaveStore';
+import { WorldExport } from '../types';
+import { WorldEditorManager } from '../WorldEditorManager';
 
 
-let globeManager: GlobeManager;
+let worldEditorManager: WorldEditorManager;
 
 type StartGamePageProps = RouteComponentProps<{ worldName: string }>;
 
-export const LoadedWorldUI: React.FC<{ record: ISaveStoreRecord<IWorldRecord> }> = ({ record }) => {
+export const LoadedWorldUI: React.FC<{
+  worldName: string,
+  record: WorldExport
+}> = ({ worldName, record }) => {
   const [isLoading, setLoading] = useState(true);
   const client = useContext(WorkerContext);
+  console.log('record', record);
 
   // globe manager
   let loadingSubscription: Subscription;
   useEffect(() => {
-    globeManager = new GlobeManager(client, record.data.options);
-    loadingSubscription = globeManager.loading$.subscribe(isLoading => {
+    worldEditorManager = new WorldEditorManager(client);
+    worldEditorManager.load(record);
+    loadingSubscription = worldEditorManager.loading$.subscribe(isLoading => {
       setLoading(isLoading);
     });
     return () => loadingSubscription.unsubscribe();
@@ -34,9 +41,9 @@ export const LoadedWorldUI: React.FC<{ record: ISaveStoreRecord<IWorldRecord> }>
 
   return (
     <Box>
-      <WorldUI globeManager={globeManager} loadedWorldName={record.name} />
+      <WorldUI loadedWorldName={worldName} worldEditorManager={worldEditorManager} />
       {isLoading && <LoadingOverlay />}
-      {!isLoading && <MapViewer globeManager={globeManager} />}
+      {!isLoading && <MapViewer worldManager={worldEditorManager} />}
     </Box>
   );
 }
@@ -52,7 +59,14 @@ export const LoadWorldPage: React.FC<StartGamePageProps> = ({ match }) => {
       </MenuContainer>
     );
   }
+  if (worldLoadState.value === undefined) {
+    return (
+      <MenuContainer page="Load World">
+        World not found
+      </MenuContainer>
+    )
+  }
   console.log('WORLD', worldName, worldLoadState.value);
 
-  return <LoadedWorldUI record={worldLoadState.value} />;  
+  return <LoadedWorldUI worldName={worldName} record={worldLoadState.value} />;  
 }

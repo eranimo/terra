@@ -9,7 +9,7 @@ import { ViewControl } from './ViewControl';
 import createContainer from 'constate';
 import { TimeControls } from './TimeControls';
 import { WorkerContext } from './WorkerManager';
-import { GlobeManager } from '../GlobeManager';
+import { WorldManager } from '../WorldManager';
 
 export const MapManagerContainer = createContainer(({ manager }: { manager: MapManager }) => {
   return useState(manager)[0];
@@ -17,111 +17,33 @@ export const MapManagerContainer = createContainer(({ manager }: { manager: MapM
 
 (window as any)._ = require('lodash');
 
-const IMAGES = {
-  stars: require('../images/stars2.png')
-};
+let mapManager: MapManager;
 
-let manager: MapManager;
-
-function getCursorPosition(event: React.MouseEvent, element: HTMLElement) {
-  const { left, top } = element.getBoundingClientRect();
-  const { clientX, clientY } = event;
-  const mouseX = clientX - left;
-  const mouseY = clientY - top;
-  return [mouseX, mouseY];
-}
-
-export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
+export function MapViewer({ worldManager }: { worldManager: WorldManager }) {
   const client = useContext(WorkerContext);
   const [isLoading, setLoading] = useState(true);
   const screenRef = useRef<HTMLCanvasElement>();
   const minimapRef = useRef<HTMLCanvasElement>();
 
   useEffect(() => {
-    loadImages(IMAGES).then(images => {
-      manager = new MapManager(
-        client,
-        screenRef.current,
-        minimapRef.current,
-        images,
-      );
-
-      const globeSubscription = globeManager.globe$.subscribe(globe => manager.setGlobe(globe));
-
-      setLoading(false);
-      console.log('manager', manager);
-
-      return () => {
-        globeSubscription.unsubscribe();
-      }
-    });
-  }, []);
-
-  const [downPosition, setDownPosition] = useState({ x: 0, y: 0 });
-  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-  const [isMouseDown, setMouseDown] = useState(false);
-  const [isDragging, setDragging] = useState(false);
-  const [tooltip, setTooltip] = useState(null);
-
-  const handleMouseDown = (event: React.MouseEvent) => {
-    if (!manager) return;
-    setDownPosition({ x: event.clientX, y: event.clientY });
-    setMouseDown(true);
-  };
-
-  const handleMouseMove = (event: React.MouseEvent) => {
-    if (!manager) return;
-
-    if (!isDragging) {
-      const [cursorX, cursorY] = getCursorPosition(event, screenRef.current);
-      setHoverPosition({ x: cursorX, y: cursorY });
-      manager.handleMapHover(cursorX, cursorY).then(setTooltip);
-    } else {
-      setTooltip(null);
-    }
-
-    if (!isMouseDown) {
-      return;
-    }
-
-    const distance = Math.sqrt(
-      Math.pow(downPosition.x - event.clientX, 2) +
-      Math.pow(downPosition.y - event.clientY, 2)
+    mapManager = new MapManager(
+      client,
+      screenRef.current,
+      minimapRef.current,
     );
 
-    if (distance > 10) {
-      setDragging(true);
+    const globeSubscription = worldManager.worldData$.subscribe(globe => mapManager.setWorldData(globe));
+
+    setLoading(false);
+    // console.log('manager', manager);
+
+    return () => {
+      mapManager.stopRendering();
+      globeSubscription.unsubscribe();
     }
-  };
-
-  const handleMouseUp = (event: React.MouseEvent) => {
-    if (!manager) return;
-    setDragging(false);
-    setMouseDown(false);
-    const distance = Math.sqrt(
-      Math.pow(downPosition.x - event.clientX, 2) +
-      Math.pow(downPosition.y - event.clientY, 2)
-    );
-    if (distance > 10) return;
-    
-    const [cursorX, cursorY] = getCursorPosition(event, screenRef.current);
-    manager.handleMapClick(cursorX, cursorY);
-  };
-
-  const handleMouseLeave = () => {
-    setTooltip(null);
-  }
-
-  useEffect(() => {
-    document.addEventListener('mouseleave', event => {
-      if (event.toElement === null && event.relatedTarget === null) {
-        setTooltip(null);
-      }
-    }, false);
-  }, []);
+  }, [])
 
   const { width, height } = useWindowSize();
-  const cursor = isDragging ? 'move' : 'default';
 
   return (
     <div>
@@ -129,23 +51,8 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
         ref={screenRef}
         width={width}
         height={height}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onMouseOut={handleMouseLeave}
-        style={{ cursor }}
+        tabIndex={1}
       />
-      {tooltip && <Box
-        p={2}
-        position="fixed"
-        left={hoverPosition.x + 5}
-        top={hoverPosition.y + 5}
-        bg="rgba(23, 25, 35, 0.75)"
-        pointerEvents="none"
-      >
-        {tooltip}
-      </Box>}
 
       <Box
         bg="black"
@@ -162,13 +69,13 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
           width={360 * 5}
           height={180 * 5}
           style={{
-            transform: 'rotate(180deg)',
+            transform: 'rotate(180deg) scaleX(-1)',
             width: '360px',
             height: '180px',
           }}
           />
       </Box>
-      {!isLoading && <MapManagerContainer.Provider manager={manager}>
+      {!isLoading && <MapManagerContainer.Provider manager={mapManager}>
         <TimeControls />
         <ViewControl />
         <CellInfo />

@@ -1,7 +1,7 @@
 import { ReactiveWorkerClient } from '../utils/workers';
 import WorldgenWorker from 'worker-loader!./Worldgen.worker';
 import { IGlobeOptions, EMapMode } from 'src/types';
-import { GlobeData, CellPoints, CellGlobeData, WorldData, ICellGroupTooltipData, CellWorldData } from '../types';
+import { WorldData, CellPoints, CellGlobeData, ICellGroupTooltipData, CellWorldData, WorldGridData, WorldExport } from '../types';
 
 
 export class WorldgenClient {
@@ -11,10 +11,10 @@ export class WorldgenClient {
     this.worker$ = new ReactiveWorkerClient(new WorldgenWorker(), false);
   }
 
-  newWorld(options: IGlobeOptions, mapMode: EMapMode): Promise<WorldData> {
+  newWorld(options: IGlobeOptions, mapMode: EMapMode): Promise<{ world: WorldData, grid: WorldGridData }> {
     console.time('worldgen worker');
     return new Promise((resolve) => {
-      this.worker$.action('init').send({ options, mapMode });
+      this.worker$.action('newWorld').send({ options, mapMode });
 
       this.worker$.on('generate').subscribe(result => {
         console.log('[worldgen client] result', result);
@@ -23,6 +23,24 @@ export class WorldgenClient {
         resolve(result);
       });
     });
+  }
+
+  loadWorld(worldExport: WorldExport, mapMode: EMapMode): Promise<{ world: WorldData, grid: WorldGridData }> {
+    console.time('worldgen worker');
+    return new Promise((resolve) => {
+      this.worker$.action('loadWorld').send({ export: worldExport, mapMode });
+
+      this.worker$.on('generate').subscribe(result => {
+        console.log('[worldgen client] result', result);
+
+        console.timeEnd('worldgen worker');
+        resolve(result);
+      });
+    });
+  }
+
+  async saveWorld(name: string) {
+    return this.worker$.action('saveWorld').observe({ name }).toPromise();
   }
 
   // time
@@ -49,12 +67,6 @@ export class WorldgenClient {
     return this.worker$.action('getCellGroupForCell')
       .observe(cell)
       .toPromise() as Promise<ICellGroupTooltipData>;
-  }
-
-  async getCellTooltip(cell: number): Promise<string> {
-    return this.worker$.action('getCellTooltip')
-      .observe(cell)
-      .toPromise() as Promise<string>;
   }
 
   async getCellData(r: number): Promise<CellWorldData> {

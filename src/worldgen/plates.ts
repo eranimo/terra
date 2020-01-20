@@ -27,7 +27,7 @@ function pickRandomRegions(
 }
 
 
-export function generatePlates(mesh: TriangleMesh, options: IGlobeOptions, r_xyz: number[]) {
+export function generatePlates(mesh: TriangleMesh, options: IGlobeOptions, r_xyz: Float32Array) {
   let r_plate = new Int32Array(mesh.numRegions);
   r_plate.fill(-1);
   let plate_r = pickRandomRegions(mesh, Math.min(options.geology.numberPlates, options.sphere.numberCells), makeRandInt(options.core.seed));
@@ -55,7 +55,7 @@ export function generatePlates(mesh: TriangleMesh, options: IGlobeOptions, r_xyz
     let neighbor_r = mesh.r_circulate_r([], center_r)[0];
     const p0 = r_xyz.slice(3 * center_r, 3 * center_r + 3);
     const p1 = r_xyz.slice(3 * neighbor_r, 3 * neighbor_r + 3);
-    plate_vec[center_r] = vec3.normalize([] as any, vec3.subtract([] as any, p1, p0));
+    plate_vec[center_r] = vec3.normalize([] as any, vec3.subtract([] as any, p1 as any, p0 as any));
   });
 
   return { plate_r, r_plate, plate_vec };

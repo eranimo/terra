@@ -23,7 +23,7 @@ export const Field: React.FC<FieldProps> = ({ key, title, desc, children }) => {
           <Box flex={1}>
             {title}
             <Tooltip aria-label={desc} label={desc} placement="top" hasArrow>
-              <Icon m="3" name="help" aria-label="help" />
+              ?
             </Tooltip>
           </Box>
           <Box flex={1}>
