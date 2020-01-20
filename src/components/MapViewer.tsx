@@ -9,7 +9,7 @@ import { ViewControl } from './ViewControl';
 import createContainer from 'constate';
 import { TimeControls } from './TimeControls';
 import { WorkerContext } from './WorkerManager';
-import { GlobeManager } from '../GlobeManager';
+import { WorldManager } from '../WorldManager';
 
 export const MapManagerContainer = createContainer(({ manager }: { manager: MapManager }) => {
   return useState(manager)[0];
@@ -17,36 +17,28 @@ export const MapManagerContainer = createContainer(({ manager }: { manager: MapM
 
 (window as any)._ = require('lodash');
 
-let manager: MapManager;
+let mapManager: MapManager;
 
-function getCursorPosition(event: React.MouseEvent, element: HTMLElement) {
-  const { left, top } = element.getBoundingClientRect();
-  const { clientX, clientY } = event;
-  const mouseX = clientX - left;
-  const mouseY = clientY - top;
-  return [mouseX, mouseY];
-}
-
-export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
+export function MapViewer({ worldManager }: { worldManager: WorldManager }) {
   const client = useContext(WorkerContext);
   const [isLoading, setLoading] = useState(true);
   const screenRef = useRef<HTMLCanvasElement>();
   const minimapRef = useRef<HTMLCanvasElement>();
 
   useEffect(() => {
-    manager = new MapManager(
+    mapManager = new MapManager(
       client,
       screenRef.current,
       minimapRef.current,
     );
 
-    const globeSubscription = globeManager.world$.subscribe(globe => manager.setGlobe(globe));
+    const globeSubscription = worldManager.worldData$.subscribe(globe => mapManager.setWorldData(globe));
 
     setLoading(false);
     // console.log('manager', manager);
 
     return () => {
-      manager.stopRendering();
+      mapManager.stopRendering();
       globeSubscription.unsubscribe();
     }
   }, [])
@@ -83,7 +75,7 @@ export function MapViewer({ globeManager }: { globeManager: GlobeManager }) {
           }}
           />
       </Box>
-      {!isLoading && <MapManagerContainer.Provider manager={manager}>
+      {!isLoading && <MapManagerContainer.Provider manager={mapManager}>
         <TimeControls />
         <ViewControl />
         <CellInfo />

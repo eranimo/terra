@@ -4,6 +4,7 @@ import { IWorldOptions, WorldGrid, CellGroup } from './WorldGrid';
 import { EMapMode } from '../types';
 import { WorldGenerator } from './WorldGenerator';
 import { World } from './World';
+import { worldStore } from '../records';
 
 const game = new GameLoop(error => {
   console.error(error);
@@ -17,14 +18,7 @@ const worldGen = new WorldGenerator();
 let world: World;
 let worldGrid: WorldGrid;
 
-
-worker.on('newWorld', ({ options, mapMode }) => {
-  console.log('worldgen init', options);
-
-  world = worldGen.generate(options, mapMode)
-  worldGen.update(0)
-  worldGrid = new WorldGrid(world);
-
+function init() {
   worldGrid.cellGroupUpdates$.subscribe(data => {
     console.log('cell group update', data);
     worker.send('cellGroupUpdate', data);
@@ -52,24 +46,53 @@ worker.on('newWorld', ({ options, mapMode }) => {
       worker.send('draw');
     }
   });
+}
 
+function setup() {
   game.state.speedIndex.subscribe(speedIndex => worker.send('speedIndex', speedIndex));
   game.state.speed.subscribe(speed => worker.send('speed', speed));
   game.state.running.subscribe(running => worker.send('running', running));
-  game.date$.subscribe(date => {
-    worker.send('date', date);
-  });
+  game.date$.subscribe(date => worker.send('date', date));
+}
+
+worker.on('loadWorld', (props) => {
+  world = World.load(props.export, props.mapMode);
+  worldGrid = new WorldGrid(world);
+
+  init();
+  setup();
+  
 
   worker.send('generate', {
     world: world.getData(),
     grid: worldGrid.getData(),
-    export: world.export(),
   });
 }, true);
 
-worker.on('startGame', ({  }) => {
+worker.on('newWorld', ({ options, mapMode }) => {
+  console.log('worldgen init', options);
 
-});
+  world = worldGen.generate(options, mapMode)
+  worldGen.update(0)
+  worldGrid = new WorldGrid(world);
+
+  init();
+  setup();
+
+  worker.send('generate', {
+    world: world.getData(),
+    grid: worldGrid.getData(),
+  });
+}, true);
+
+worker.on('saveWorld', async ({ name }) => {
+  try {
+    worldStore.save(world.export(), name);
+  } catch {
+    return false;
+  }
+  return true;
+}, true);
 
 worker.on('getIntersectedCell', async ({ point, dir }) => {
   return world.getIntersectedCell(point, dir);
@@ -80,7 +103,7 @@ worker.on('getCellGroupForCell', async (cell) => {
 }, true);
 
 worker.on('getCellData', async (r) => {
-  return world.getCellData(r);
+  return worldGrid.getCellData(r);
 }, true);
 
 worker.on('setMapMode', async (mapMode) => {

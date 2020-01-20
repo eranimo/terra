@@ -6,9 +6,10 @@ import { categoryTitles, IDrawOptions } from '../types';
 import { useObservable, useObservableDict } from '../utils/hooks';
 import { Field } from "./Field";
 import { MapManagerContainer } from './MapViewer';
-import { GlobeManager } from '../GlobeManager';
+import { WorldManager } from '../WorldManager';
 import * as yup from 'yup';
 import { IWorldOptions } from '../worldgen/WorldGrid';
+import { WorldEditorManager } from '../WorldEditorManager';
 
 
 export const worldOptionsSchema = yup.object<IWorldOptions>().shape({
@@ -289,8 +290,8 @@ const DRAW_OPTIONS: ControlDef[] = [
   }
 ]
 
-export const Controls = ({ manager }: { manager: GlobeManager }) => {
-  const globeOptions = useObservable(manager.worldOptions$, manager.worldOptions$.value);
+export const Controls = ({ worldEditorManager }: { worldEditorManager: WorldEditorManager }) => {
+  const globeOptions = useObservable(worldEditorManager.worldOptions$, worldEditorManager.worldOptions);
   const [globeOptionsForm, setGlobeOptionsForm] = useState(globeOptions);
 
   const groups = Object.entries(groupBy(GLOBE_OPTIONS, i => i.key.split('.')[0]));
@@ -300,7 +301,7 @@ export const Controls = ({ manager }: { manager: GlobeManager }) => {
   return (
     <form
       onSubmit={event => {
-        manager.worldOptions$.next(globeOptionsForm);
+        worldEditorManager.worldOptions$.next(globeOptionsForm);
         event.preventDefault();
       }}
     >
@@ -339,7 +340,7 @@ export const Controls = ({ manager }: { manager: GlobeManager }) => {
           size="sm"
           onClick={() => {
             setGlobeOptionsForm(set(Object.assign({}, globeOptionsForm), 'core.seed', random(1000)));
-            manager.worldOptions$.next(globeOptionsForm);
+            worldEditorManager.worldOptions$.next(globeOptionsForm);
           }}
         >
           Randomize Seed

@@ -1,14 +1,15 @@
 import { Box } from '@chakra-ui/core';
 import React, { useContext, useEffect, useState } from 'react';
 import { Subscription } from 'rxjs';
-import { GlobeManager } from '../GlobeManager';
+import { WorldManager } from '../WorldManager';
 import { LoadingOverlay } from './LoadingOverlay';
 import { MapViewer } from './MapViewer';
 import { WorkerContext } from './WorkerManager';
 import { WorldUI } from './WorldUI';
+import { WorldEditorManager } from '../WorldEditorManager';
 
 
-let globeManager: GlobeManager;
+let worldEditorManager: WorldEditorManager;
 
 export const NewWorldPage = () => {
   const client = useContext(WorkerContext);
@@ -17,19 +18,19 @@ export const NewWorldPage = () => {
   const [isLoading, setLoading] = useState(true);
   let loadingSubscription: Subscription;
   useEffect(() => {
-    globeManager = new GlobeManager(client);
-    loadingSubscription = globeManager.loading$.subscribe(isLoading => {
-      setLoading(isLoading);
-    });
+    worldEditorManager = new WorldEditorManager(client);
+    worldEditorManager.generate();
+
+    loadingSubscription = worldEditorManager.loading$.subscribe(setLoading);
     return () => loadingSubscription.unsubscribe();
   }, []);
 
 
   return (
     <Box>
-      <WorldUI globeManager={globeManager} />
+      <WorldUI worldEditorManager={worldEditorManager} />
       {isLoading && <LoadingOverlay />}
-      {!isLoading && <MapViewer globeManager={globeManager} />}
+      {!isLoading && <MapViewer worldManager={worldEditorManager} />}
     </Box>
   );
 }

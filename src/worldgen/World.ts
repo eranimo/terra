@@ -247,7 +247,7 @@ export class World {
 
   plate_r: Set<number>;
   r_plate: Int32Array;
-  plate_vec: any[];
+  plate_vec: Record<number, number[]>;
   plate_is_ocean: Set<number>;
   r_lat_long: Float32Array;
   r_temperature: Float32Array;
@@ -301,6 +301,8 @@ export class World {
     world.r_moisture = new Float32Array(mesh.numRegions);
     world.r_roughness = new Float32Array(mesh.numRegions);
     world.minimap_t_xyz = new Float32Array(mesh.numTriangles);
+    world.minimap_t_xyz = new Float32Array(mesh.numTriangles);
+    world.plate_vec = {};
     world.t_elevation = new Float32Array(mesh.numTriangles);
     world.t_moisture = new Float32Array(mesh.numTriangles);
     world.t_downflow_s = new Int32Array(mesh.numTriangles);
@@ -330,6 +332,8 @@ export class World {
     world.r_moisture = exportedGlobe.r_moisture;
     world.r_roughness = exportedGlobe.r_roughness;
     world.minimap_t_xyz = exportedGlobe.minimap_t_xyz;
+    world.minimap_r_xyz = exportedGlobe.minimap_r_xyz;
+    world.plate_vec = exportedGlobe.plate_vec;
     world.t_elevation = exportedGlobe.t_elevation;
     world.t_moisture = exportedGlobe.t_moisture;
     world.t_downflow_s = exportedGlobe.t_downflow_s;
@@ -390,6 +394,7 @@ export class World {
     for (let r = 0; r < this.mesh.numRegions; r++) {
       this.cellBorders[r] = this.getBorderForCell(r);
     }
+    console.log('WORLD', this);
   }
 
   getLatLongForCell(cell: number): [number, number] {
@@ -435,6 +440,8 @@ export class World {
       r_moisture: this.r_moisture,
       r_roughness: this.r_roughness,
       minimap_t_xyz: this.minimap_t_xyz,
+      minimap_r_xyz: this.minimap_r_xyz,
+      plate_vec: this.plate_vec,
       t_elevation: this.t_elevation,
       t_moisture: this.t_moisture,
       t_downflow_s: this.t_downflow_s,

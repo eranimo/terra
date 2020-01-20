@@ -87,7 +87,7 @@ export class MapManager {
   drawOptions$: ObservableDict<IDrawOptions>;
   renderer: GlobeRenderer;
   camera: any;
-  globe: WorldData;
+  worldData: WorldData;
   cellGroups: Map<string, ICellGroupData>;
   removeDrawLoop: Cancellable;
   selectedCell$: BehaviorSubject<number>;
@@ -128,7 +128,7 @@ export class MapManager {
     
     this.client.setMapMode(startMapMode).then(() => {
       this.drawMinimap();
-      this.renderer.updateColors(this.globe);
+      this.renderer.updateColors(this.worldData);
     });
     
     // redraw minimap when draw option changes
@@ -161,10 +161,10 @@ export class MapManager {
     });
 
     this.client.worker$.on('draw').subscribe(() => {
-      if (this.globe) {
-        console.log('draw', this.globe);
+      if (this.worldData) {
+        console.log('draw', this.worldData);
         this.drawMinimap();
-        this.renderer.updateColors(this.globe);
+        this.renderer.updateColors(this.worldData);
       }
     });
 
@@ -186,7 +186,7 @@ export class MapManager {
   onChangeMapMode(mapMode: EMapMode) {
     // localStorage.lastMapMode = mapMode;
     this.tooltipTextCache = new Map();
-    if (this.globe) {
+    if (this.worldData) {
       this.drawOptions$.replace({
         ...defaultDrawOptions,
         ...mapModeDrawOptions[mapMode],
@@ -195,8 +195,8 @@ export class MapManager {
       this.client.setMapMode(mapMode)
         .then(() => {
           // TODO: re-render map and minimap
-          console.log('draw', this.globe);
-          this.renderer.updateColors(this.globe);
+          console.log('draw', this.worldData);
+          this.renderer.updateColors(this.worldData);
           this.drawMinimap();
         });
     }
@@ -206,10 +206,10 @@ export class MapManager {
     this.renderer.stop();
   }
 
-  public setGlobe(globe: WorldData) {
-    this.globe = globe;
+  public setWorldData(worldData: WorldData) {
+    this.worldData = worldData;
     console.log('WorldgenClient', this.client);
-    this.renderer.renderGlobe(this.globe)
+    this.renderer.renderGlobe(this.worldData)
     this.renderer.setupEvents()
     this.renderer.start();
     this.renderer.onDrawOptionsChanged(this.drawOptions$.value);
@@ -220,7 +220,7 @@ export class MapManager {
 
   @logGroupTime('draw minimap')
   drawMinimap() {
-    const { minimapGeometry, mapModeColor } = this.globe;
+    const { minimapGeometry, mapModeColor } = this.worldData;
     // draw minimap
     this.minimapRenderer({
       scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),

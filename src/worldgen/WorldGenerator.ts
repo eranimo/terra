@@ -9,12 +9,12 @@ import { assignRegionElevation, generatePlates } from './plates';
 import { assignDownflow, assignFlow, assignTriangleValues } from './rivers';
 
 export class WorldGenerator {
-  globe: World;
+  world: World;
 
   @logGroupTime('globe generate')
   generate(options: IGlobeOptions, mapMode: EMapMode) {
     console.time('globe geometry');
-    this.globe = World.create(options, mapMode);
+    this.world = World.create(options, mapMode);
     console.timeEnd('globe geometry');
     this.generatePlates();
     this.generateCoastline();
@@ -24,9 +24,8 @@ export class WorldGenerator {
     this.generateBiomes();
     this.generatePops();
     this.protrudeHeight();
-    this.globe.setup();
-
-    return this.globe;
+    this.world.setup();
+    return this.world;
   }
 
   update(year_ratio: number) {
@@ -36,36 +35,36 @@ export class WorldGenerator {
   // https://www.itacanet.org/the-sun-as-a-source-of-energy/part-2-solar-energy-reaching-the-earths-surface/
   @logGroupTime('insolation')
   generateInsolation(year_ratio) {
-    const globe = this.globe;
-    globe.insolation = new Float32Array(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numRegions);
+    const world = this.world;
+    world.insolation = new Float32Array(Float32Array.BYTES_PER_ELEMENT * world.mesh.numRegions);
 
     const AXIAL_TILT = 22; // deg
     const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * year_ratio * Math.PI);
     console.log(year_ratio);
     console.log(seasonalRatio);
-    let randomNoise = new SimplexNoise(makeRandFloat(globe.options.core.seed));
+    let randomNoise = new SimplexNoise(makeRandFloat(world.options.core.seed));
       
-    for (let r = 0; r < globe.mesh.numRegions; r++) {
-      const x = globe.r_xyz[3 * r];
-      const y = globe.r_xyz[3 * r + 1];
-      const z = globe.r_xyz[3 * r + 2];
-      const [lat, long] = globe.getLatLongForCell(r);
+    for (let r = 0; r < world.mesh.numRegions; r++) {
+      const x = world.r_xyz[3 * r];
+      const y = world.r_xyz[3 * r + 1];
+      const z = world.r_xyz[3 * r + 2];
+      const [lat, long] = world.getLatLongForCell(r);
       const latRatioSeasonal = Math.max(0, Math.cos((lat - seasonalRatio) * Math.PI / 180));
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
 
-      if (globe.r_elevation[r] < 0) { // ocean
-        const altitude = 1 + globe.r_elevation[r];
+      if (world.r_elevation[r] < 0) { // ocean
+        const altitude = 1 + world.r_elevation[r];
         // shallow seas are warmer than deep oceans
-        globe.insolation[r] = (
+        world.insolation[r] = (
           (0.05 * random1) +
           (0.10 * altitude) +
           (0.85 * latRatioSeasonal)
         );
       } else { // land
-        const altitude = 1 - Math.max(0, globe.r_elevation[r]);
+        const altitude = 1 - Math.max(0, world.r_elevation[r]);
         // higher is colder
         // lower is warmer
-        globe.insolation[r] = (
+        world.insolation[r] = (
           (0.05 * random1) +
           (0.10 * altitude) +
           (0.85 * latRatioSeasonal)
@@ -74,14 +73,14 @@ export class WorldGenerator {
     }
 
     // normalize to 0 to 1
-    const { min, max, avg } = arrayStats(globe.insolation);
-    for (let i = 0; i < globe.insolation.length; i++) {
-      globe.insolation[i] = (globe.insolation[i] - min) / (max - min);
+    const { min, max, avg } = arrayStats(world.insolation);
+    for (let i = 0; i < world.insolation.length; i++) {
+      world.insolation[i] = (world.insolation[i] - min) / (max - min);
     }
   }
 
   generatePlates() {
-    const globe = this.globe;
+    const globe = this.world;
 
     let result = generatePlates(globe.mesh, globe.options, globe.r_xyz);
     globe.plate_r = result.plate_r;
@@ -103,12 +102,12 @@ export class WorldGenerator {
     let r_distance_to_ocean = [];
     let r_coast = [];
     const queue = new FlatQueue();
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      if (this.globe.r_elevation[r] >= 0) {
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
+      if (this.world.r_elevation[r] >= 0) {
         let numOceanNeighbors = 0;
-        const neighbors = this.globe.mesh.r_circulate_r([], r);
+        const neighbors = this.world.mesh.r_circulate_r([], r);
         for (const nr of neighbors) {
-          if (this.globe.r_elevation[nr] < 0) {
+          if (this.world.r_elevation[nr] < 0) {
             numOceanNeighbors++;
           }
         }
@@ -120,12 +119,12 @@ export class WorldGenerator {
       }
     }
     // initialize the queue with the next-most land cells next to coast cells
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
       if (r_coast[r]) {
-        const neighbors = this.globe.mesh.r_circulate_r([], r);
+        const neighbors = this.world.mesh.r_circulate_r([], r);
         for (const nr of neighbors) {
           // if land and not coastline
-          if (r_coast[nr] === false && this.globe.r_elevation[nr] >= 0) {
+          if (r_coast[nr] === false && this.world.r_elevation[nr] >= 0) {
             r_distance_to_ocean[nr] = 2;
             queue.push(nr, 2);
           }
@@ -140,10 +139,10 @@ export class WorldGenerator {
       const r = queue.pop();
       const myDistance = r_distance_to_ocean[r];
 
-      const neighbors = this.globe.mesh.r_circulate_r([], r);
+      const neighbors = this.world.mesh.r_circulate_r([], r);
       for (const nr of neighbors) {
         // if land and not visited yet
-        if (r_distance_to_ocean[nr] === undefined && this.globe.r_elevation[nr] >= 0) {
+        if (r_distance_to_ocean[nr] === undefined && this.world.r_elevation[nr] >= 0) {
           r_distance_to_ocean[nr] = myDistance + 1;
           queue.push(nr, r_distance_to_ocean[nr]);
         }
@@ -153,9 +152,9 @@ export class WorldGenerator {
     const maxDistanceToOcean = Math.max(...Object.values(r_distance_to_ocean));
     console.log(`Max distance to ocean: ${maxDistanceToOcean}`);
 
-    this.globe.r_distance_to_ocean = r_distance_to_ocean;
-    this.globe.r_coast = r_coast;
-    this.globe.max_distance_to_ocean = maxDistanceToOcean;
+    this.world.r_distance_to_ocean = r_distance_to_ocean;
+    this.world.r_coast = r_coast;
+    this.world.max_distance_to_ocean = maxDistanceToOcean;
   }
 
   @logGroupTime('moisture', true)
@@ -166,22 +165,22 @@ export class WorldGenerator {
      * Lower latitudes = higher moisture
      */
 
-    let randomNoise = new SimplexNoise(makeRandFloat(this.globe.options.core.seed));
-    const MODIFIER = this.globe.options.hydrology.moistureModifier;
+    let randomNoise = new SimplexNoise(makeRandFloat(this.world.options.core.seed));
+    const MODIFIER = this.world.options.hydrology.moistureModifier;
     const VARIANCE = 0.15;
 
     // moisture
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
       // const x = this.globe.r_xyz[3 * r];
       // const y = this.globe.r_xyz[3 * r + 1];
       // const z = this.globe.r_xyz[3 * r + 2];
-      const [lat, long] = this.globe.getLatLongForCell(r);
+      const [lat, long] = this.world.getLatLongForCell(r);
       const latRatio = 1 - (Math.abs(lat) / 90);
       const random1 = randomNoise.noise2D(lat / (1000 * VARIANCE), long / (1000 * VARIANCE))
-      const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
-      if (this.globe.r_elevation[r] >= 0) {
-        const inlandRatio = 1 - (this.globe.r_distance_to_ocean[r] / this.globe.max_distance_to_ocean);
-        this.globe.r_moisture[r] = clamp(
+      const altitude = 1 - Math.max(0, this.world.r_elevation[r]);
+      if (this.world.r_elevation[r] >= 0) {
+        const inlandRatio = 1 - (this.world.r_distance_to_ocean[r] / this.world.max_distance_to_ocean);
+        this.world.r_moisture[r] = clamp(
           (((latRatio + inlandRatio) / 3) +
           (random1 / 2)) * altitude
         , 0, 1);
@@ -189,78 +188,78 @@ export class WorldGenerator {
     }
 
 
-    const moisture_min = Math.min(...this.globe.r_moisture.filter(i => i));
-    const moisture_max = Math.max(...this.globe.r_moisture.filter(i => i));
+    const moisture_min = Math.min(...this.world.r_moisture.filter(i => i));
+    const moisture_max = Math.max(...this.world.r_moisture.filter(i => i));
     console.log('min moisture', moisture_min);
     console.log('max moisture', moisture_max);
     // normalize moisture
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      if (this.globe.r_elevation[r] >= 0) {
-        this.globe.r_moisture[r] = (this.globe.r_moisture[r] - moisture_min) / (moisture_max - moisture_min);
-        this.globe.r_moisture[r] += this.globe.r_moisture[r] * MODIFIER;
-        this.globe.r_moisture[r] = clamp(this.globe.r_moisture[r], 0, 1);
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
+      if (this.world.r_elevation[r] >= 0) {
+        this.world.r_moisture[r] = (this.world.r_moisture[r] - moisture_min) / (moisture_max - moisture_min);
+        this.world.r_moisture[r] += this.world.r_moisture[r] * MODIFIER;
+        this.world.r_moisture[r] = clamp(this.world.r_moisture[r], 0, 1);
       }
     }
 
-    randomNoise = new SimplexNoise(makeRandFloat(this.globe.options.core.seed * 2));
+    randomNoise = new SimplexNoise(makeRandFloat(this.world.options.core.seed * 2));
   }
 
   @logGroupTime('temperature', true)
   private generateTemperature() {
-    let randomNoise = new SimplexNoise(makeRandFloat(this.globe.options.core.seed));
-    const { temperatureModifier, minTemperature, maxTemperature } = this.globe.options.climate;
+    let randomNoise = new SimplexNoise(makeRandFloat(this.world.options.core.seed));
+    const { temperatureModifier, minTemperature, maxTemperature } = this.world.options.climate;
     const temperatureRange = maxTemperature + Math.abs(minTemperature);
     // temperature
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      const x = this.globe.r_xyz[3 * r];
-      const y = this.globe.r_xyz[3 * r + 1];
-      const z = this.globe.r_xyz[3 * r + 2];
-      const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
-      const [lat, long] = this.globe.getLatLongForCell(r);
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
+      const x = this.world.r_xyz[3 * r];
+      const y = this.world.r_xyz[3 * r + 1];
+      const z = this.world.r_xyz[3 * r + 2];
+      const altitude = 1 - Math.max(0, this.world.r_elevation[r]);
+      const [lat, long] = this.world.getLatLongForCell(r);
       const latRatio = 1 - (Math.abs(lat) / 90);
       const random1 = (randomNoise.noise3D(x, y, z) + 1) / 2;
-      if (this.globe.r_elevation[r] < 0) { // ocean
-        const altitude = 1 + this.globe.r_elevation[r];
+      if (this.world.r_elevation[r] < 0) { // ocean
+        const altitude = 1 + this.world.r_elevation[r];
         // shallow seas are warmer than deep oceans
-        this.globe.r_temperature[r] = (
+        this.world.r_temperature[r] = (
           (0.10 * random1) +
           (0.20 * altitude) +
           (0.70 * latRatio)
         );
       } else { // land
-        const altitude = 1 - Math.max(0, this.globe.r_elevation[r]);
+        const altitude = 1 - Math.max(0, this.world.r_elevation[r]);
         // higher is colder
         // lower is warmer
-        this.globe.r_temperature[r] = (
+        this.world.r_temperature[r] = (
           (0.10 * random1) +
           (0.20 * altitude) +
           (0.70 * latRatio)
         );
       }
 
-      this.globe.r_temperature[r] *= temperatureModifier;
-      this.globe.r_temperature[r] = clamp(this.globe.r_temperature[r], 0, 1);
-      const temp = this.globe.r_temperature[r];
-      this.globe.r_temperature[r] = (temp * temperatureRange) + minTemperature;
+      this.world.r_temperature[r] *= temperatureModifier;
+      this.world.r_temperature[r] = clamp(this.world.r_temperature[r], 0, 1);
+      const temp = this.world.r_temperature[r];
+      this.world.r_temperature[r] = (temp * temperatureRange) + minTemperature;
     }
 
-    const { min, max } = arrayStats(this.globe.r_temperature);
-    this.globe.min_temperature = min;
-    this.globe.max_temperature = max;
+    const { min, max } = arrayStats(this.world.r_temperature);
+    this.world.min_temperature = min;
+    this.world.max_temperature = max;
 
-    console.log(arrayStats(this.globe.r_temperature));
+    console.log(arrayStats(this.world.r_temperature));
   }
 
   @logGroupTime('generate pops', true)
   private generatePops() {
-    const { minTemperature, maxTemperature } = this.globe.options.climate;
+    const { minTemperature, maxTemperature } = this.world.options.climate;
 
     // calculate land desirability
-    this.globe.r_desirability = new Float32Array(this.globe.mesh.numRegions);
+    this.world.r_desirability = new Float32Array(this.world.mesh.numRegions);
 
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      if (this.globe.r_elevation[r] < 0) {
-        this.globe.r_desirability[r] = 0;
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
+      if (this.world.r_elevation[r] < 0) {
+        this.world.r_desirability[r] = 0;
         continue;
       }
 
@@ -268,27 +267,27 @@ export class WorldGenerator {
       // 1 at lowest elevation
       // 0 at highest elevation
       // shape: linear
-      const elevation_value = 1 - this.globe.r_elevation[r];
+      const elevation_value = 1 - this.world.r_elevation[r];
 
       // Terrain Roughness
       // 1 at flat
       // 0 at rough
-      const roughness_value = 1 - this.globe.r_roughness[r];
+      const roughness_value = 1 - this.world.r_roughness[r];
 
       // Temperature:
       // 0 at 0 and 1 temperature (extremes)
       // 1 at 0.5 temperature (temperate)
       // shape: sine
-      const temperature_ratio = (this.globe.r_temperature[r] - minTemperature) / (maxTemperature - minTemperature);
+      const temperature_ratio = (this.world.r_temperature[r] - minTemperature) / (maxTemperature - minTemperature);
       const temperature_value = Math.sin((temperature_ratio ** 2) * Math.PI);
 
       // Moisture:
       // 0 at 0 moisture
       // 100 at 1 moisture
       // shape: linear
-      const moisture_value = this.globe.r_moisture[r];
+      const moisture_value = this.world.r_moisture[r];
 
-      this.globe.r_desirability[r] = (
+      this.world.r_desirability[r] = (
         elevation_value *
         roughness_value *
         temperature_value *
@@ -296,7 +295,7 @@ export class WorldGenerator {
       );
     }
 
-    console.log('desirability', arrayStats(this.globe.r_desirability));
+    console.log('desirability', arrayStats(this.world.r_desirability));
 
 
     // generate pops at desirable locations
@@ -310,25 +309,25 @@ export class WorldGenerator {
   @logGroupTime('rivers', true)
   private generateRivers() {
     // rivers
-    assignTriangleValues(this.globe.mesh, this.globe);
-    assignDownflow(this.globe.mesh, this.globe);
-    for(let i = 0; i < 2; i++) assignFlow(this.globe.mesh, this.globe.options, this.globe);
+    assignTriangleValues(this.world.mesh, this.world);
+    assignDownflow(this.world.mesh, this.world);
+    for(let i = 0; i < 2; i++) assignFlow(this.world.mesh, this.world.options, this.world);
 
-    this.globe.minimap_t_xyz = new Float32Array(Array.from(this.globe.t_xyz));
-    this.globe.minimap_r_xyz = new Float32Array(Array.from(this.globe.r_xyz));
-    console.log('map', this.globe);
+    this.world.minimap_t_xyz = new Float32Array(Array.from(this.world.t_xyz));
+    this.world.minimap_r_xyz = new Float32Array(Array.from(this.world.r_xyz));
+    console.log('map', this.world);
 
     // terrain roughness
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      const height = this.globe.r_elevation[r];
-      const triangles = this.globe.mesh.r_circulate_t([], r);
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
+      const height = this.world.r_elevation[r];
+      const triangles = this.world.mesh.r_circulate_t([], r);
       let roughness = 0;
       for (const t of triangles) {
-        roughness += Math.abs(height - this.globe.t_elevation[t]);
+        roughness += Math.abs(height - this.world.t_elevation[t]);
       }
-      this.globe.r_roughness[r] = roughness;
-      if (this.globe.max_roughness < roughness) {
-        this.globe.max_roughness = roughness;
+      this.world.r_roughness[r] = roughness;
+      if (this.world.max_roughness < roughness) {
+        this.world.max_roughness = roughness;
       }
     }
   }
@@ -336,38 +335,38 @@ export class WorldGenerator {
   @logGroupTime('biomes', true)
   private generateBiomes() {
     // biomes
-    this.globe.r_moisture_zone = [];
-    this.globe.r_temperature_zone = [];
-    const { minTemperature, maxTemperature } = this.globe.options.climate;
+    this.world.r_moisture_zone = [];
+    this.world.r_temperature_zone = [];
+    const { minTemperature, maxTemperature } = this.world.options.climate;
 
     
-    for (let r = 0; r < this.globe.mesh.numRegions; r++) {
-      if (this.globe.r_elevation[r] < 0 && this.globe.r_temperature[r] < -15) {
-        this.globe.r_biome[r] = EBiome.GLACIAL;
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
+      if (this.world.r_elevation[r] < 0 && this.world.r_temperature[r] < -15) {
+        this.world.r_biome[r] = EBiome.GLACIAL;
         continue;
       }
 
-      if (this.globe.r_elevation[r] < -0.1) {
-        this.globe.r_biome[r] = EBiome.OCEAN;
-      } else if (this.globe.r_elevation[r] < 0) {
-        this.globe.r_biome[r] = EBiome.COAST;
+      if (this.world.r_elevation[r] < -0.1) {
+        this.world.r_biome[r] = EBiome.OCEAN;
+      } else if (this.world.r_elevation[r] < 0) {
+        this.world.r_biome[r] = EBiome.COAST;
       } else {
-        const moisture = clamp(this.globe.r_moisture[r], 0, 1);
-        const temperature = (this.globe.r_temperature[r] - minTemperature) / (maxTemperature - minTemperature);
+        const moisture = clamp(this.world.r_moisture[r], 0, 1);
+        const temperature = (this.world.r_temperature[r] - minTemperature) / (maxTemperature - minTemperature);
         let moistureZone = null;
         for (const [zone, { start, end }] of Object.entries(moistureZoneRanges)) {
           if (moisture >= start && moisture <= end) {
             moistureZone = zone;
           }
         }
-        this.globe.r_moisture_zone[r] = moistureZone;
+        this.world.r_moisture_zone[r] = moistureZone;
         let temperatureZone = null;
         for (const [zone, { start, end }] of Object.entries(temperatureZoneRanges)) {
           if (temperature >= start && temperature <= end) {
             temperatureZone = zone;
           }
         }
-        this.globe.r_temperature_zone[r] = temperatureZone;
+        this.world.r_temperature_zone[r] = temperatureZone;
         if (moistureZone === null) {
           throw new Error(`Failed to find biome for moisture: ${moisture}`);
         }
@@ -377,14 +376,14 @@ export class WorldGenerator {
         const biomeTempMoisture = biomeRanges[moistureZone][temperatureZone];
         if (isArray(biomeTempMoisture)) {
           let landType = 0;
-          if (this.globe.r_elevation[r] < 0.6) {
+          if (this.world.r_elevation[r] < 0.6) {
             landType = 1;
-          } else if (this.globe.r_elevation[r] < 0.9) {
+          } else if (this.world.r_elevation[r] < 0.9) {
             landType = 2;
           }
-          this.globe.r_biome[r] = biomeTempMoisture[landType];
+          this.world.r_biome[r] = biomeTempMoisture[landType];
         } else {
-          this.globe.r_biome[r] = biomeTempMoisture;
+          this.world.r_biome[r] = biomeTempMoisture;
         }
       }
     }
@@ -393,16 +392,16 @@ export class WorldGenerator {
   @logGroupTime('protrude height', true)
   private protrudeHeight() {
     // protrude
-    const { numTriangles, numRegions } = this.globe.mesh;
-    const { t_xyz, r_xyz, t_elevation, r_elevation } = this.globe;
+    const { numTriangles, numRegions } = this.world.mesh;
+    const { t_xyz, r_xyz, t_elevation, r_elevation } = this.world;
     for (let t = 0; t < numTriangles; t++) {
-      const e = Math.max(0, t_elevation[t]) * this.globe.options.sphere.protrudeHeight * 0.2;
+      const e = Math.max(0, t_elevation[t]) * this.world.options.sphere.protrudeHeight * 0.2;
       t_xyz[3 * t] = t_xyz[3 * t] + (t_xyz[3 * t] * e);
       t_xyz[3 * t + 1] = t_xyz[3 * t + 1] + (t_xyz[3 * t + 1] * e);
       t_xyz[3 * t + 2] = t_xyz[3 * t + 2] + (t_xyz[3 * t + 2] * e);
     }
     for (let r = 0; r < numRegions; r++) {
-      const e = Math.max(0, r_elevation[r]) * this.globe.options.sphere.protrudeHeight * 0.2;
+      const e = Math.max(0, r_elevation[r]) * this.world.options.sphere.protrudeHeight * 0.2;
       r_xyz[3 * r] = r_xyz[3 * r] + (r_xyz[3 * r] * e);
       r_xyz[3 * r + 1] = r_xyz[3 * r + 1] + (r_xyz[3 * r + 1] * e);
       r_xyz[3 * r + 2] = r_xyz[3 * r + 2] + (r_xyz[3 * r + 2] * e);

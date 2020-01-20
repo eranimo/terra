@@ -352,9 +352,11 @@ export type WorldExport = {
   r_moisture: Float32Array;
   r_roughness: Float32Array;
   minimap_t_xyz: Float32Array;
+  minimap_r_xyz: Float32Array;
   t_elevation: Float32Array;
   t_moisture: Float32Array;
   t_downflow_s: Int32Array;
+  plate_vec: Record<number, number[]>;
   order_t: Int32Array;
   t_flow: Float32Array;
   s_flow: Float32Array;

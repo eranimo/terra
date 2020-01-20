@@ -1,7 +1,7 @@
 import { Box, Spinner } from '@chakra-ui/core';
 import React, { useContext, useEffect, useState } from 'react';
 import { Subscription } from 'rxjs';
-import { GlobeManager } from '../GlobeManager';
+import { WorldManager } from '../WorldManager';
 import { LoadingOverlay } from './LoadingOverlay';
 import { MapViewer } from './MapViewer';
 import { WorkerContext } from './WorkerManager';
@@ -12,9 +12,10 @@ import { RouteComponentProps } from 'react-router';
 import { MenuContainer } from './MenuContainer';
 import { ISaveStoreRecord } from '../SaveStore';
 import { WorldExport } from '../types';
+import { WorldEditorManager } from '../WorldEditorManager';
 
 
-let globeManager: GlobeManager;
+let worldEditorManager: WorldEditorManager;
 
 type StartGamePageProps = RouteComponentProps<{ worldName: string }>;
 
@@ -29,8 +30,9 @@ export const LoadedWorldUI: React.FC<{
   // globe manager
   let loadingSubscription: Subscription;
   useEffect(() => {
-    globeManager = new GlobeManager(client, record.options);
-    loadingSubscription = globeManager.loading$.subscribe(isLoading => {
+    worldEditorManager = new WorldEditorManager(client);
+    worldEditorManager.load(record);
+    loadingSubscription = worldEditorManager.loading$.subscribe(isLoading => {
       setLoading(isLoading);
     });
     return () => loadingSubscription.unsubscribe();
@@ -39,9 +41,9 @@ export const LoadedWorldUI: React.FC<{
 
   return (
     <Box>
-      <WorldUI globeManager={globeManager} loadedWorldName={worldName} />
+      <WorldUI loadedWorldName={worldName} worldEditorManager={worldEditorManager} />
       {isLoading && <LoadingOverlay />}
-      {!isLoading && <MapViewer globeManager={globeManager} />}
+      {!isLoading && <MapViewer worldManager={worldEditorManager} />}
     </Box>
   );
 }
@@ -66,5 +68,5 @@ export const LoadWorldPage: React.FC<StartGamePageProps> = ({ match }) => {
   }
   console.log('WORLD', worldName, worldLoadState.value);
 
-  return <LoadedWorldUI worldName="worldName" record={worldLoadState.value} />;  
+  return <LoadedWorldUI worldName={worldName} record={worldLoadState.value} />;  
 }
