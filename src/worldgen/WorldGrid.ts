@@ -48,8 +48,6 @@ type CellLinkData = {
 }
 
 export class WorldGrid {
-  globeGen: WorldGenerator;
-
   cellGroups: Set<CellGroup>;
 
   // mapping of cell id to cell group name
@@ -147,15 +145,6 @@ export class WorldGrid {
       Math.sin(latARadians) * Math.sin(latBRadians) +
       Math.cos(latARadians) * Math.cos(latBRadians) * Math.cos(deltaLongRadians)
     ) * radius;
-  }
-
-  /**
-   * Run the Globe climate simulation
-   * 
-   * @param yearRatio Percent through the year
-   */
-  updateGlobe(yearRatio: number) {
-    this.globeGen.update(yearRatio);
   }
 
   createCellGroup(options: ICellGroupOptions) {
