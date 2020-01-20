@@ -347,11 +347,14 @@ export type Arrow = {
 
 export type WorldExport = {
   options: IGlobeOptions;
+
   r_elevation: Float32Array;
   r_biome: Float32Array;
   r_moisture: Float32Array;
   r_roughness: Float32Array;
   minimap_t_xyz: Float32Array;
+  r_distance_to_ocean: Int32Array,
+  r_coast: Int32Array,
   minimap_r_xyz: Float32Array;
   t_elevation: Float32Array;
   t_moisture: Float32Array;
@@ -368,6 +371,7 @@ export type WorldExport = {
   r_lat_long: Float32Array;
   min_temperature: number;
   max_temperature: number;
+  max_distance_to_ocean: number;
 };
 
 export type WorldData = {

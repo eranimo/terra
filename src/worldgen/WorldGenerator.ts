@@ -99,8 +99,7 @@ export class WorldGenerator {
   }
 
   private generateCoastline() {
-    let r_distance_to_ocean = [];
-    let r_coast = [];
+    this.world.r_distance_to_ocean.fill(0);
     const queue = new FlatQueue();
     for (let r = 0; r < this.world.mesh.numRegions; r++) {
       if (this.world.r_elevation[r] >= 0) {
@@ -112,20 +111,20 @@ export class WorldGenerator {
           }
         }
 
-        r_coast[r] = numOceanNeighbors > 0;
-        if (r_coast[r]) {
-          r_distance_to_ocean[r] = 1;
+        this.world.r_coast[r] = Number(numOceanNeighbors > 0);
+        if (this.world.r_coast[r]) {
+          this.world.r_distance_to_ocean[r] = 1;
         }
       }
     }
     // initialize the queue with the next-most land cells next to coast cells
     for (let r = 0; r < this.world.mesh.numRegions; r++) {
-      if (r_coast[r]) {
+      if (this.world.r_coast[r] === 1) {
         const neighbors = this.world.mesh.r_circulate_r([], r);
         for (const nr of neighbors) {
           // if land and not coastline
-          if (r_coast[nr] === false && this.world.r_elevation[nr] >= 0) {
-            r_distance_to_ocean[nr] = 2;
+          if (this.world.r_coast[nr] === 0 && this.world.r_elevation[nr] >= 0) {
+            this.world.r_distance_to_ocean[nr] = 2;
             queue.push(nr, 2);
           }
         }
@@ -137,23 +136,26 @@ export class WorldGenerator {
     // loop through land cells, calculating distance to ocean
     while (queue.length) {
       const r = queue.pop();
-      const myDistance = r_distance_to_ocean[r];
+      const myDistance = this.world.r_distance_to_ocean[r];
 
       const neighbors = this.world.mesh.r_circulate_r([], r);
       for (const nr of neighbors) {
         // if land and not visited yet
-        if (r_distance_to_ocean[nr] === undefined && this.world.r_elevation[nr] >= 0) {
-          r_distance_to_ocean[nr] = myDistance + 1;
-          queue.push(nr, r_distance_to_ocean[nr]);
+        if (this.world.r_distance_to_ocean[nr] === 0 && this.world.r_elevation[nr] >= 0) {
+          this.world.r_distance_to_ocean[nr] = myDistance + 1;
+          queue.push(nr, this.world.r_distance_to_ocean[nr]);
         }
       }
     }
 
-    const maxDistanceToOcean = Math.max(...Object.values(r_distance_to_ocean));
+    let maxDistanceToOcean = -Infinity;
+    for (let r = 0; r < this.world.mesh.numRegions; r++) {
+      const dist = this.world.r_distance_to_ocean[r];
+      if (dist > maxDistanceToOcean) {
+        maxDistanceToOcean = dist;
+      } 
+    }
     console.log(`Max distance to ocean: ${maxDistanceToOcean}`);
-
-    this.world.r_distance_to_ocean = r_distance_to_ocean;
-    this.world.r_coast = r_coast;
     this.world.max_distance_to_ocean = maxDistanceToOcean;
   }
 
