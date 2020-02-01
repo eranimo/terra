@@ -24,12 +24,10 @@ export class Timer {
       }
       if (this.options.isRepeated) {
         this.ticksLeft = this.options.ticksLength;
-      }
-      else {
+      } else {
         this.isActive = false;
       }
-    }
-    else {
+    } else {
       if (this.options.onTick) {
         this.options.onTick(this.options.ticksLength - this.ticksLeft);
       }

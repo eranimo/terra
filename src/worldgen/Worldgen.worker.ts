@@ -34,16 +34,23 @@ function init() {
     group1.addCell(16957);
   }, 10000);
 
+  game.addTimer({
+    ticksLength: Infinity,
+    onTick: () => {
+      world.updateMapModes();
+      worker.send('draw');
+    }
+  });
 
   game.addTimer({
     ticksLength: 30,
     isRepeated: true,
     onFinished: () => {
       const yearRatio = (game.state.ticks.value % 360) / 360.;
-      console.log(yearRatio);
+      console.time('map mode update');
       worldGen.update(yearRatio);
-      world.resetMapMode(EMapMode.INSOLATION);
-      worker.send('draw');
+      world.setMapModeDirty(EMapMode.INSOLATION);
+      console.timeEnd('map mode update');
     }
   });
 }

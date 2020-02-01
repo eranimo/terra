@@ -33,15 +33,15 @@ export class WorldGenerator {
   }
 
   // https://www.itacanet.org/the-sun-as-a-source-of-energy/part-2-solar-energy-reaching-the-earths-surface/
-  @logGroupTime('insolation')
+  @logGroupTime('insolation', true)
   generateInsolation(year_ratio) {
     const world = this.world;
     world.insolation = new Float32Array(Float32Array.BYTES_PER_ELEMENT * world.mesh.numRegions);
 
     const AXIAL_TILT = 22; // deg
     const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * year_ratio * Math.PI);
-    console.log(year_ratio);
-    console.log(seasonalRatio);
+    console.log('year_ratio', year_ratio);
+    console.log('seasonalRatio', seasonalRatio);
     let randomNoise = new SimplexNoise(makeRandFloat(world.options.core.seed));
       
     for (let r = 0; r < world.mesh.numRegions; r++) {

@@ -1,7 +1,7 @@
 import TriangleMesh from '@redblobgames/dual-mesh';
 import { makeRandFloat } from '@redblobgames/prng';
 import { vec3 } from 'gl-matrix';
-import { createMapMode, mapModeDefs, MapModeData } from '../mapModes';
+import { MapMode, mapModeDefs, MapModeData } from '../mapModes';
 import { CellPoints, EMapMode, WorldData, IGlobeOptions, CellGlobeData, River, Arrow, WorldExport } from '../types';
 import { getLatLng, intersectTriangle, distance3D, logGroupTime, logFuncTime } from '../utils';
 import { coordinateForSide, generateTriangleCenters } from './geometry';
@@ -261,7 +261,8 @@ export class World {
 
   mapModeColor: Float32Array;
   mapModeValue: Float32Array;
-  mapModeCache: Map<EMapMode, MapModeData>;
+  mapModes: Map<EMapMode, MapMode>;
+
   t_vec: Map<number, Vector3>;
   r_vec: Map<number, Vector3>;
 
@@ -288,7 +289,7 @@ export class World {
 
     this.mapModeColor = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numSides * 4 * 3));
     this.mapModeValue = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * this.mesh.numRegions));
-    this.mapModeCache = new Map();
+    this.mapModes = new Map();
   }
 
   static create(options: IGlobeOptions, mapMode: EMapMode): World {
@@ -407,33 +408,42 @@ export class World {
     return [lat, long];
   }
 
-  public setupMapMode() {
-    const def = mapModeDefs.get(this.mapMode);
-    let data: MapModeData;
-    if (this.mapModeCache.has(this.mapMode)) {
-      data = this.mapModeCache.get(this.mapMode);
-    } else {
-      console.log(`Setting up map mode ${this.mapMode}`);
-      data = createMapMode(this, def);
+  /**
+   * Sets up all map modes
+   */
+  @logGroupTime('setupMapModes')
+  setupMapModes() {
+    for (const [mapMode, def] of mapModeDefs) {
+      this.mapModes.set(mapMode, new MapMode(this, def));
     }
-    this.mapModeCache.set(this.mapMode, data);
-    this.mapModeColor.set(data.rgba);
-    this.mapModeValue.set(data.values);
+    this.updateMapModeData(this.mapMode);
   }
 
-  resetMapMode(mapMode: EMapMode) {
-    const def = mapModeDefs.get(mapMode);
-    const data = createMapMode(this, def);
-    this.mapModeCache.set(mapMode, data);
-    if (this.mapMode === mapMode) {
-      this.mapModeColor.set(data.rgba);
-      this.mapModeValue.set(data.values);
+  public setMapModeDirty(mapMode: EMapMode) {
+    this.mapModes.get(mapMode).isDirty = true;
+  }
+
+  public updateMapModes() {
+    for (const [mapMode, instance] of this.mapModes) {
+      if (instance.isDirty) {
+        console.log(`Updating map mode ${mapMode}`);
+        instance.update();
+      }
     }
+
+    // update current map mode
+    this.updateMapModeData(this.mapMode);
+  }
+
+  updateMapModeData(mapMode: EMapMode) {
+    const { rgba, values } = this.mapModes.get(mapMode).data;
+    this.mapModeColor.set(rgba);
+    this.mapModeValue.set(values);
   }
 
   public setMapMode(mapMode: EMapMode) {
     this.mapMode = mapMode;
-    this.setupMapMode();
+    this.updateMapModeData(mapMode);
   }
 
   public export(): WorldExport {
@@ -469,9 +479,7 @@ export class World {
 
   @logGroupTime('Get Globe Data')
   public getData(): WorldData {
-    console.time('map mode colors');
-    this.setupMapMode();
-    console.timeEnd('map mode colors');
+    this.setupMapModes();
 
     const sideToCell = new Int32Array(Int32Array.BYTES_PER_ELEMENT * this.mesh.numSides);
 

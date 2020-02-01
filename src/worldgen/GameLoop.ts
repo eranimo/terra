@@ -36,10 +36,10 @@ interface IGameState {
 }
 
 export enum EGameSpeed {
-  SLOW = 0.25,
-  NORMAL = 0.5,
-  FAST = 1,
-  VERY_FAST = 2,
+  SLOW = 0.1,
+  NORMAL = 0.25,
+  FAST = 0.5,
+  VERY_FAST = 1,
 }
 
 const speeds = [

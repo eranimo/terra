@@ -162,7 +162,6 @@ export class MapManager {
 
     this.client.worker$.on('draw').subscribe(() => {
       if (this.worldData) {
-        console.log('draw', this.worldData);
         this.drawMinimap();
         this.renderer.updateColors(this.worldData);
       }
@@ -218,10 +217,8 @@ export class MapManager {
     this.tooltipTextCache = new Map();
   }
 
-  @logGroupTime('draw minimap')
   drawMinimap() {
     const { minimapGeometry, mapModeColor } = this.worldData;
-    // draw minimap
     this.minimapRenderer({
       scale: mat4.fromScaling(mat4.create(), [1.001, 1.001, 1.001]),
       a_xy: minimapGeometry,

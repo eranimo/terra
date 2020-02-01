@@ -23,46 +23,66 @@ export type MapModeData = {
   values: Float32Array;
 }
 
-export function createMapMode(globe: World, definition: IMapModeColorMap): MapModeData {
-  const values_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numRegions));
-  let min_v = Infinity;
-  let max_v = -Infinity;
-  for (let s = 0; s < globe.mesh.numSides; s++) {
-    const r = globe.mesh.s_begin_r(s);
-    const value = definition.getter(globe, r);
-    if (value < min_v) {
-      min_v = value;
-    } else if (value > max_v) {
-      max_v = value;
+export class MapMode {
+  public valuesBuffer: Float32Array;
+  public rgbaBuffer: Float32Array;
+  public isDirty: boolean;
+  public dirtyCells: Set<number>;
+
+  constructor(
+    public world: World,
+    protected definition: IMapModeColorMap
+  ) {
+    this.valuesBuffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * world.mesh.numRegions));
+    this.rgbaBuffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * world.mesh.numSides * 12));
+    this.isDirty = true;
+    this.update();
+  }
+
+  get data(): MapModeData {
+    return {
+      rgba: this.rgbaBuffer,
+      values: this.valuesBuffer
+    };
+  }
+
+  public update() {
+    if (!this.isDirty) return;
+    let min_v = Infinity;
+    let max_v = -Infinity;
+    for (let s = 0; s < this.world.mesh.numSides; s++) {
+      const r = this.world.mesh.s_begin_r(s);
+      const value = this.definition.getter(this.world, r);
+      if (value < min_v) {
+        min_v = value;
+      } else if (value > max_v) {
+        max_v = value;
+      }
+      this.valuesBuffer[r] = value;
     }
-    values_buffer[r] = value;
+
+    for (let s = 0; s < this.world.mesh.numSides; s++) {
+      const r = this.world.mesh.s_begin_r(s);
+      const value = this.valuesBuffer[r];
+      const percent = (this.valuesBuffer[r] - min_v) / (max_v - min_v);
+      const color = this.definition.color(value, this.definition.colors, this.world, r, percent);
+      this.rgbaBuffer[(12 * s) + 0] = color[0];
+      this.rgbaBuffer[(12 * s) + 1] = color[1];
+      this.rgbaBuffer[(12 * s) + 2] = color[2];
+      this.rgbaBuffer[(12 * s) + 3] = color[3];
+  
+      this.rgbaBuffer[(12 * s) + 4] = color[0];
+      this.rgbaBuffer[(12 * s) + 5] = color[1];
+      this.rgbaBuffer[(12 * s) + 6] = color[2];
+      this.rgbaBuffer[(12 * s) + 7] = color[3];
+  
+      this.rgbaBuffer[(12 * s) + 8] = color[0];
+      this.rgbaBuffer[(12 * s) + 9] = color[1];
+      this.rgbaBuffer[(12 * s) + 10] = color[2];
+      this.rgbaBuffer[(12 * s) + 11] = color[3];
+    }
+    this.isDirty = false;
   }
-  const rgba_buffer = new Float32Array(new SharedArrayBuffer(Float32Array.BYTES_PER_ELEMENT * globe.mesh.numSides * 12));
-  for (let s = 0; s < globe.mesh.numSides; s++) {
-    const r = globe.mesh.s_begin_r(s);
-    const value = values_buffer[r];
-    const percent = (values_buffer[r] - min_v) / (max_v - min_v);
-    const color = definition.color(value, definition.colors, globe, r, percent);
-    rgba_buffer[(12 * s) + 0] = color[0];
-    rgba_buffer[(12 * s) + 1] = color[1];
-    rgba_buffer[(12 * s) + 2] = color[2];
-    rgba_buffer[(12 * s) + 3] = color[3];
-
-    rgba_buffer[(12 * s) + 4] = color[0];
-    rgba_buffer[(12 * s) + 5] = color[1];
-    rgba_buffer[(12 * s) + 6] = color[2];
-    rgba_buffer[(12 * s) + 7] = color[3];
-
-    rgba_buffer[(12 * s) + 8] = color[0];
-    rgba_buffer[(12 * s) + 9] = color[1];
-    rgba_buffer[(12 * s) + 10] = color[2];
-    rgba_buffer[(12 * s) + 11] = color[3];
-  }
-
-  return {
-    rgba: rgba_buffer,
-    values: values_buffer
-  };
 }
 
 export const mapModeDefs: Map<EMapMode, IMapModeColorMap> = new Map([
