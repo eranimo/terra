@@ -408,20 +408,6 @@ export class WorldRenderer {
         this.events$.cellClicked.next(cell);
       }
     ));
-
-    // this.scene.registerBeforeRender(() => {
-      // const pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY,
-      //   mesh => mesh == this.planet,
-      //   false,
-      //   this.camera,
-      // );
-
-    //   if (pickResult.hit) {
-    //     const result = pickResult.pickedMesh.getFacetPosition(pickResult.faceId);
-    //     console.log(pickResult);
-    //     console.log('cell', this.globe.sideToCell[pickResult.faceId])
-    //   }
-    // });
   }
 
   public setSelectedCellBorder(cell: number) {
@@ -456,12 +442,10 @@ export class WorldRenderer {
     this.plateBorders.setEnabled(options.drawPlateBorders);
   }
 
+  /**
+   * Updates planet colors based on current map mode color buffer
+   */
   public updateColors(globe: WorldData) {
-    console.log('update colors');
-    const colors = [];
-    for (let t = 0; t < globe.triangleGeometry.length / 3; t++) {
-      colors.push(globe.mapModeColor[(4 * t) + 0], globe.mapModeColor[(4 * t) + 1], globe.mapModeColor[(4 * t) + 2], globe.mapModeColor[(4 * t) + 3]);
-    }
-    this.planet.setVerticesData(VertexBuffer.ColorKind, colors);
+    this.planet.setVerticesData(VertexBuffer.ColorKind, globe.mapModeColor);
   }
 }
