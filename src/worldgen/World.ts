@@ -307,6 +307,7 @@ export class World {
     world.t_downflow_s = new Int32Array(mesh.numTriangles);
     world.order_t = new Int32Array(mesh.numTriangles);
     world.t_flow = new Float32Array(mesh.numTriangles);
+    world.insolation = new Float32Array(world.mesh.numRegions)
     world.s_flow = new Float32Array(mesh.numSides);
     world.r_distance_to_ocean = new Int32Array(mesh.numRegions);
     world.r_coast = new Int32Array(mesh.numRegions);

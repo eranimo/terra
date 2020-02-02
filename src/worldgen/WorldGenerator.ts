@@ -36,7 +36,6 @@ export class WorldGenerator {
   @logGroupTime('insolation', true)
   generateInsolation(year_ratio) {
     const world = this.world;
-    world.insolation = new Float32Array(Float32Array.BYTES_PER_ELEMENT * world.mesh.numRegions);
 
     const AXIAL_TILT = 22; // deg
     const seasonalRatio: number = -AXIAL_TILT * Math.cos(2 * year_ratio * Math.PI);
